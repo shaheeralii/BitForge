@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+:root {
+  --color-forge-plum: #321E48;
+  --color-forge-plum-dark: #221432;
+  --color-forge-steel: #43637E;
+  --color-forge-steel-light: #5B819F;
+  --color-forge-teal: #65DCD5;
+  --color-forge-teal-dark: #0D9488;
+  --color-forge-frost: #D9FFF4;
+  --color-forge-frost-light: #F2FCF9;
+}
