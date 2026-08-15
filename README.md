@@ -163,7 +163,23 @@ BitForge is deployed and publicly accessible on **Vercel**:
 
 ## 📸 Screenshots
 
-> Screenshots coming soon.
+ <table>
+  <tr>
+    <td><img width="1905" height="995" alt="1" src="https://github.com/user-attachments/assets/62e17018-4f88-4b36-b42b-9dda2d8e09ca" />
+</td>
+    <td><img width="1919" height="996" alt="2" src="https://github.com/user-attachments/assets/5a52972d-9ad4-4dfa-89b4-37d2fc0a7f12" />
+</td>
+  </tr>
+  <tr>
+    <td><img width="1906" height="996" alt="3" src="https://github.com/user-attachments/assets/a5423ea4-cbe8-4ee8-b09f-1d565d9855a6" />
+</td>
+    <td><img width="1905" height="996" alt="4" src="https://github.com/user-attachments/assets/bb816817-6e7f-4f98-9ba2-b57de1460b77" />
+</td>
+  </tr>
+</table>
+
+
+
 
 ---
 
