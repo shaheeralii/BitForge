@@ -197,7 +197,8 @@ Building BitForge involved working through:
 
 ## Author
 
-**Syed Shaheer Ali**
+**Syed Shaheer Ali**  
+BSCS Undergrad @Bahria University
 
 ---
 
