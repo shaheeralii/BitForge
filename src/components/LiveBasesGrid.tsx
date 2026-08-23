@@ -78,10 +78,10 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#43637E] dark:text-[#65DCD5]">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
           Real-Time Conversion Matrix
         </h2>
-        <span className="text-xs text-[#43637E] dark:text-slate-400 font-medium">
+        <span className="text-xs text-[#1F6B4C] dark:text-slate-400 font-medium">
           Click any card to focus step-by-step math derivation
         </span>
       </div>
@@ -99,21 +99,21 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
             <div
               key={card.id}
               onClick={() => onSelectTargetBase(card.id)}
-              className={`group relative bg-white dark:bg-[#1E132B] p-5 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between ${
+              className={`group relative bg-white dark:bg-[#072818] p-5 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between ${
                 isTarget
-                  ? 'border-[#65DCD5] dark:border-[#65DCD5] ring-2 ring-[#65DCD5]/30 shadow-md bg-gradient-to-b from-white to-[#D9FFF4]/20 dark:from-[#1E132B] dark:to-[#321E48]/40'
-                  : 'border-slate-200 dark:border-[#43637E]/40 hover:border-[#65DCD5]/60 shadow-sm'
+                  ? 'border-[#34E89A] dark:border-[#34E89A] ring-2 ring-[#34E89A]/30 shadow-md bg-gradient-to-b from-white to-[#D9FFF4]/20 dark:from-[#072818] dark:to-[#0A3324]/40'
+                  : 'border-slate-200 dark:border-[#1F6B4C]/40 hover:border-[#34E89A]/60 shadow-sm'
               }`}
             >
               <div>
                 {/* Header Sublabel */}
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-[#43637E] dark:text-[#65DCD5] uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-[#1F6B4C] dark:text-[#34E89A] uppercase tracking-widest">
                       {card.id === 'custom' ? `RADIX ${customRadix}` : `BASE ${card.radix}`}
                     </span>
                     {isSource && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-[#321E48] text-[#65DCD5] border border-[#65DCD5]/30">
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-[#0A3324] text-[#34E89A] border border-[#34E89A]/30">
                         SOURCE
                       </span>
                     )}
@@ -121,28 +121,28 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
 
                   <div className="flex items-center gap-1">
                     {card.badgeText && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F4FAF9] dark:bg-[#251737] text-[#43637E] dark:text-[#D9FFF4] font-medium border border-slate-200 dark:border-[#43637E]/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F4FAF9] dark:bg-[#0A2E1D] text-[#1F6B4C] dark:text-[#D9FFF4] font-medium border border-slate-200 dark:border-[#1F6B4C]/30">
                         {card.badgeText}
                       </span>
                     )}
                     {isTarget && (
-                      <span className="flex items-center text-[10px] font-bold text-[#321E48] dark:text-[#65DCD5] bg-[#D9FFF4] dark:bg-[#321E48] px-2 py-0.5 rounded border border-[#65DCD5]/40">
-                        <Target className="w-3 h-3 mr-1 text-[#0D9488] dark:text-[#65DCD5]" />
+                      <span className="flex items-center text-[10px] font-bold text-[#0A3324] dark:text-[#34E89A] bg-[#D9FFF4] dark:bg-[#0A3324] px-2 py-0.5 rounded border border-[#34E89A]/40">
+                        <Target className="w-3 h-3 mr-1 text-[#0AA15F] dark:text-[#34E89A]" />
                         FOCUSED
                       </span>
                     )}
                   </div>
                 </div>
 
-                <h3 className="text-sm font-bold text-[#321E48] dark:text-[#D9FFF4] mb-2">
+                <h3 className="text-sm font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-2">
                   {card.name}
                 </h3>
 
                 {/* Main Large Numerical Output */}
                 <div className="flex items-baseline justify-between gap-2 my-2">
-                  <div className="font-mono text-2xl sm:text-3xl font-bold text-[#321E48] dark:text-[#D9FFF4] break-all leading-tight">
+                  <div className="font-mono text-2xl sm:text-3xl font-bold text-[#0A3324] dark:text-[#D9FFF4] break-all leading-tight">
                     {card.prefix && card.value !== 'Error' && (
-                      <span className="text-[#43637E] dark:text-slate-500 select-none text-xl mr-1 font-normal">
+                      <span className="text-[#1F6B4C] dark:text-slate-500 select-none text-xl mr-1 font-normal">
                         {card.prefix}
                       </span>
                     )}
@@ -160,7 +160,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                     className={`p-2 rounded-lg transition-all shrink-0 ${
                       isCopied
                         ? 'bg-emerald-600 text-white'
-                        : 'bg-[#F4FAF9] dark:bg-[#251737] text-[#43637E] dark:text-slate-300 hover:text-[#321E48] dark:hover:text-[#65DCD5] border border-slate-200 dark:border-[#43637E]/50 hover:bg-slate-100 dark:hover:bg-[#321E48]'
+                        : 'bg-[#F4FAF9] dark:bg-[#0A2E1D] text-[#1F6B4C] dark:text-slate-300 hover:text-[#0A3324] dark:hover:text-[#34E89A] border border-slate-200 dark:border-[#1F6B4C]/50 hover:bg-slate-100 dark:hover:bg-[#0A3324]'
                     }`}
                     title="Copy converted value"
                   >
@@ -170,16 +170,16 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
               </div>
 
               {/* Bottom Visual Progress / Radix Indicator Bar */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#43637E]/30">
-                <div className="flex items-center justify-between text-[11px] text-[#43637E] dark:text-slate-400 mb-1.5 font-mono">
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#1F6B4C]/30">
+                <div className="flex items-center justify-between text-[11px] text-[#1F6B4C] dark:text-slate-400 mb-1.5 font-mono">
                   <span>Radix Scale ({card.radix})</span>
-                  <span className="flex items-center font-medium text-[#321E48] dark:text-[#65DCD5] group-hover:underline">
+                  <span className="flex items-center font-medium text-[#0A3324] dark:text-[#34E89A] group-hover:underline">
                     Math Derivation <ChevronRight className="w-3 h-3 ml-0.5" />
                   </span>
                 </div>
-                <div className="h-1.5 w-full bg-slate-100 dark:bg-[#251737] rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-[#0A2E1D] rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-300 ${isTarget ? 'bg-gradient-to-r from-[#43637E] to-[#65DCD5]' : 'bg-[#43637E]/40 dark:bg-[#43637E]/60'}`}
+                    className={`h-full transition-all duration-300 ${isTarget ? 'bg-gradient-to-r from-[#1F6B4C] to-[#34E89A]' : 'bg-[#1F6B4C]/40 dark:bg-[#1F6B4C]/60'}`}
                     style={{ width: `${radixPercent}%` }}
                   />
                 </div>

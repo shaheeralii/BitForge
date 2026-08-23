@@ -15,18 +15,18 @@ export const AsciiConverterCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#1E132B] rounded-xl border border-slate-200 dark:border-[#43637E]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
+    <div className="bg-white dark:bg-[#072818] rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
       
       {/* Header */}
-      <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-[#43637E]/30 pb-4">
-        <div className="p-2 rounded-lg bg-[#321E48] text-[#65DCD5]">
+      <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-[#1F6B4C]/30 pb-4">
+        <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A]">
           <Type className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-base font-bold text-[#321E48] dark:text-[#D9FFF4]">
+          <h2 className="text-base font-bold text-[#0A3324] dark:text-[#D9FFF4]">
             Text & ASCII Character Encoding
           </h2>
-          <p className="text-xs text-[#43637E] dark:text-[#65DCD5]/80 mt-0.5">
+          <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80 mt-0.5">
             Convert text strings into 8-bit Binary, Hexadecimal, Octal, and Decimal character codes
           </p>
         </div>
@@ -34,7 +34,7 @@ export const AsciiConverterCard: React.FC = () => {
 
       {/* Input Field */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-[#43637E] dark:text-[#65DCD5] mb-2">
+        <label className="block text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A] mb-2">
           Text Input
         </label>
         <input
@@ -42,7 +42,7 @@ export const AsciiConverterCard: React.FC = () => {
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="Enter text..."
-          className="w-full font-mono text-lg font-bold px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-[#43637E]/60 bg-slate-50 dark:bg-[#130B1C] text-[#321E48] dark:text-[#D9FFF4] outline-none focus:border-[#65DCD5] focus:ring-2 focus:ring-[#65DCD5]/20 transition-all"
+          className="w-full font-mono text-lg font-bold px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-[#1F6B4C]/60 bg-slate-50 dark:bg-[#030D08] text-[#0A3324] dark:text-[#D9FFF4] outline-none focus:border-[#34E89A] focus:ring-2 focus:ring-[#34E89A]/20 transition-all"
         />
       </div>
 
@@ -50,8 +50,8 @@ export const AsciiConverterCard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Full Binary Stream */}
-        <div className="bg-[#321E48] text-white p-4 rounded-xl border border-[#43637E]/60 space-y-2">
-          <div className="flex items-center justify-between text-xs text-[#65DCD5]">
+        <div className="bg-[#0A3324] text-white p-4 rounded-xl border border-[#1F6B4C]/60 space-y-2">
+          <div className="flex items-center justify-between text-xs text-[#34E89A]">
             <span className="font-bold">8-Bit Binary Stream</span>
             <button
               onClick={() => copyVal(converted.fullBinary, 'fullBin')}
@@ -60,14 +60,14 @@ export const AsciiConverterCard: React.FC = () => {
               {copiedKey === 'fullBin' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
-          <div className="font-mono text-xs sm:text-sm font-bold text-[#D9FFF4] break-all bg-[#1E132B]/80 p-2.5 rounded-lg border border-[#43637E]/40">
+          <div className="font-mono text-xs sm:text-sm font-bold text-[#D9FFF4] break-all bg-[#072818]/80 p-2.5 rounded-lg border border-[#1F6B4C]/40">
             {converted.fullBinary || '(empty)'}
           </div>
         </div>
 
         {/* Full Hex Stream */}
-        <div className="bg-[#321E48] text-white p-4 rounded-xl border border-[#43637E]/60 space-y-2">
-          <div className="flex items-center justify-between text-xs text-[#65DCD5]">
+        <div className="bg-[#0A3324] text-white p-4 rounded-xl border border-[#1F6B4C]/60 space-y-2">
+          <div className="flex items-center justify-between text-xs text-[#34E89A]">
             <span className="font-bold">Hexadecimal Bytes</span>
             <button
               onClick={() => copyVal(converted.fullHex, 'fullHex')}
@@ -76,7 +76,7 @@ export const AsciiConverterCard: React.FC = () => {
               {copiedKey === 'fullHex' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
-          <div className="font-mono text-xs sm:text-sm font-bold text-[#D9FFF4] break-all bg-[#1E132B]/80 p-2.5 rounded-lg border border-[#43637E]/40">
+          <div className="font-mono text-xs sm:text-sm font-bold text-[#D9FFF4] break-all bg-[#072818]/80 p-2.5 rounded-lg border border-[#1F6B4C]/40">
             {converted.fullHex || '(empty)'}
           </div>
         </div>
@@ -86,13 +86,13 @@ export const AsciiConverterCard: React.FC = () => {
       {/* Character-by-Character Table */}
       {text.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#43637E] dark:text-[#65DCD5]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
             Character-by-Character Encoding Table
           </h3>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#43637E]/40">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40">
             <table className="w-full text-left font-mono text-xs">
-              <thead className="bg-[#F4FAF9] dark:bg-[#251737] text-[#43637E] dark:text-[#D9FFF4] border-b border-slate-200 dark:border-[#43637E]/40">
+              <thead className="bg-[#F4FAF9] dark:bg-[#0A2E1D] text-[#1F6B4C] dark:text-[#D9FFF4] border-b border-slate-200 dark:border-[#1F6B4C]/40">
                 <tr>
                   <th className="px-4 py-2.5 font-bold">Char</th>
                   <th className="px-4 py-2.5 font-bold">Decimal ASCII</th>
@@ -101,10 +101,10 @@ export const AsciiConverterCard: React.FC = () => {
                   <th className="px-4 py-2.5 font-bold">Octal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#43637E]/30 text-[#321E48] dark:text-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#1F6B4C]/30 text-[#0A3324] dark:text-slate-100">
                 {text.split('').map((char, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-[#321E48]/30">
-                    <td className="px-4 py-2 font-bold text-[#0D9488] dark:text-[#65DCD5]">
+                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-[#0A3324]/30">
+                    <td className="px-4 py-2 font-bold text-[#0AA15F] dark:text-[#34E89A]">
                       {char === ' ' ? '<space>' : char}
                     </td>
                     <td className="px-4 py-2">{converted.asciiCodes[i]}</td>

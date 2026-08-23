@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer utilities {
   .scrollbar-none::-webkit-scrollbar {
@@ -8,15 +9,36 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Premium glass surface — sits above the FlowWave canvas */
+  .glass-panel {
+    background: rgba(7, 40, 24, 0.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(52, 232, 154, 0.14);
+  }
+  .glass-panel-solid {
+    background: rgba(4, 26, 17, 0.72);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(52, 232, 154, 0.14);
+  }
+  .mint-glow {
+    box-shadow: 0 0 0 1px rgba(52, 232, 154, 0.12), 0 8px 30px -8px rgba(52, 232, 154, 0.25);
+  }
 }
 
 :root {
-  --color-forge-plum: #321E48;
-  --color-forge-plum-dark: #221432;
-  --color-forge-steel: #43637E;
-  --color-forge-steel-light: #5B819F;
-  --color-forge-teal: #65DCD5;
-  --color-forge-teal-dark: #0D9488;
+  --color-forge-plum: #0A3324;
+  --color-forge-plum-dark: #041A11;
+  --color-forge-steel: #1F6B4C;
+  --color-forge-steel-light: #2F8F68;
+  --color-forge-teal: #34E89A;
+  --color-forge-teal-dark: #0AA15F;
   --color-forge-frost: #D9FFF4;
   --color-forge-frost-light: #F2FCF9;
+}
+
+html, body, #root {
+  background: #02160c;
 }
