@@ -1,7 +1,7 @@
 import React from 'react';
-import { Binary, Calculator, Cpu, Type, Sparkles } from 'lucide-react';
+import { Binary, Calculator, Cpu, Type, Sparkles, SquareSigma } from 'lucide-react';
 
-export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii';
+export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations';
 
 interface HeaderProps {
   activeMode: AppMode;
@@ -30,20 +30,25 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
       label: 'Text & ASCII',
       icon: Type,
     },
+    {
+      id: 'operations' as AppMode,
+      label: 'Binary Operations',
+      icon: SquareSigma,
+    },
   ];
 
   return (
-    <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[#321E48] text-white border-b border-[#43637E]/40 shadow-md sticky top-0 z-30 transition-colors gap-3">
+    <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[#041A11]/55 backdrop-blur-xl text-white border-b border-[#34E89A]/15 shadow-lg shadow-black/30 sticky top-0 z-30 transition-colors gap-3">
       {/* Branding */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-gradient-to-tr from-[#65DCD5] to-[#D9FFF4] rounded-lg flex items-center justify-center text-[#321E48] font-mono font-black text-lg shadow-sm shadow-[#65DCD5]/20">
+        <div className="w-9 h-9 bg-gradient-to-tr from-[#34E89A] to-[#D9FFF4] rounded-lg flex items-center justify-center text-[#0A3324] font-mono font-black text-lg shadow-sm shadow-[#34E89A]/30">
           BF
         </div>
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold tracking-tight text-white font-mono flex items-center gap-1.5">
               BitForge
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-semibold bg-[#65DCD5]/20 text-[#65DCD5] border border-[#65DCD5]/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-semibold bg-[#34E89A]/20 text-[#34E89A] border border-[#34E89A]/30">
                 v2.5
               </span>
             </h1>
@@ -55,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
       </div>
 
       {/* Center Navigation Tabs */}
-      <nav className="flex items-center gap-1 bg-[#221432] p-1 rounded-lg border border-[#43637E]/50 text-xs font-semibold overflow-x-auto max-w-full">
+      <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[#34E89A]/15 text-xs font-semibold overflow-x-auto max-w-full">
         {modes.map(mode => {
           const Icon = mode.icon;
           const isActive = activeMode === mode.id;
@@ -65,11 +70,11 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
               onClick={() => onModeChange(mode.id)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md whitespace-nowrap transition-all duration-150 ${
                 isActive
-                  ? 'bg-[#65DCD5] text-[#321E48] shadow-sm font-bold'
-                  : 'text-[#D9FFF4]/70 hover:text-white hover:bg-[#321E48]'
+                  ? 'bg-[#34E89A] text-[#0A3324] shadow-sm shadow-[#34E89A]/40 font-bold'
+                  : 'text-[#D9FFF4]/70 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#321E48]' : 'text-[#65DCD5]'}`} />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#0A3324]' : 'text-[#34E89A]'}`} />
               <span>{mode.label}</span>
             </button>
           );
@@ -78,8 +83,8 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
 
       {/* System Status Indicators */}
       <div className="hidden lg:flex items-center gap-3 text-xs font-mono">
-        <div className="flex items-center gap-2 px-2.5 py-1 bg-[#221432] text-[#65DCD5] text-xs font-medium rounded-full border border-[#65DCD5]/40">
-          <div className="w-2 h-2 bg-[#65DCD5] rounded-full animate-pulse"></div>
+        <div className="flex items-center gap-2 px-2.5 py-1 bg-black/25 backdrop-blur-sm text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30">
+          <div className="w-2 h-2 bg-[#34E89A] rounded-full animate-pulse"></div>
           ENGINE ACTIVE
         </div>
         <div className="text-[#D9FFF4]/60 text-xs">

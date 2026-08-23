@@ -11,6 +11,8 @@ import { AsciiConverterCard } from './components/AsciiConverterCard';
 import { WelcomeBanner } from './components/WelcomeBanner';
 import { PresetsBar } from './components/PresetsBar';
 import { Footer } from './components/Footer';
+import { FlowWaveBackground } from './components/FlowWaveBackground';
+import { BinaryOperationsCard } from './components/BinaryOperationsCard';
 import { Calculator, Zap, BookOpen } from 'lucide-react';
 
 export default function App() {
@@ -54,9 +56,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between font-sans transition-colors selection:bg-indigo-500 selection:text-white">
-      
-      <div>
+    <div className="min-h-screen relative text-slate-900 dark:text-[#EAFFF6] flex flex-col justify-between font-sans transition-colors selection:bg-[#34E89A] selection:text-[#0A3324]">
+
+      {/* Animated premium emerald/mint background */}
+      <FlowWaveBackground />
+
+      <div className="relative z-10">
         {/* Top Header */}
         <Header activeMode={activeMode} onModeChange={setActiveMode} />
 
@@ -103,44 +108,44 @@ export default function App() {
               />
 
               {/* Quick Reference Cheat Sheet Footer Card */}
-              <div className="bg-white dark:bg-[#1E132B] rounded-xl border border-slate-200 dark:border-[#43637E]/40 p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm">
+              <div className="bg-white dark:glass-panel rounded-xl border border-slate-200 dark:border-transparent p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm dark:mint-glow">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#321E48] text-[#65DCD5] shrink-0 shadow-xs">
+                  <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
                     <Calculator className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#321E48] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
                       Positional Weights (rⁿ)
                     </h4>
-                    <p className="text-[#43637E] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
                       Values are calculated by multiplying each digit by Radix^position. Fractional digits use negative powers (Radix⁻ⁱ).
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#321E48] text-[#65DCD5] shrink-0 shadow-xs">
+                  <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
                     <Zap className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#321E48] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
                       Fast Bit Grouping
                     </h4>
-                    <p className="text-[#43637E] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
                       Octal uses 3-bit triplets (2³ = 8). Hexadecimal uses 4-bit nibbles (2⁴ = 16), providing direct bit alignment.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#321E48] text-[#65DCD5] shrink-0 shadow-xs">
+                  <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#321E48] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
                       Repeated Division
                     </h4>
-                    <p className="text-[#43637E] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
                       Converting Decimal to Base Y divides repeatedly by Y. Remainders collected bottom-to-top yield the target representation.
                     </p>
                   </div>
@@ -159,11 +164,16 @@ export default function App() {
           {/* ASCII / Text Mode */}
           {activeMode === 'ascii' && <AsciiConverterCard />}
 
+          {/* Binary Arithmetic Operations Mode */}
+          {activeMode === 'operations' && <BinaryOperationsCard />}
+
         </main>
       </div>
 
       {/* System Status Footer Bar */}
-      <Footer />
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   );
 }
