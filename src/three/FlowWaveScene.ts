@@ -1,10 +1,7 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js';
-import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
 
 // ---------------------------------------------------------------------------
 // Fixed parameters (baked in, per spec)
@@ -34,14 +31,22 @@ const parallax = 1.2;
 const pointerRadius = 7.0;
 const pointerStrength = 0.9;
 
+// Perf caps. The look is driven by additive point sprites + the warp
+// fragment shader below, not by raw vertex/pixel counts, so these can be
+// kept low without changing how the scene reads visually.
+const MAX_DPR = 2;
+// Sphere used purely as a point cloud. The original (200, 600) segment
+// counts produced ~120k vertices for a decorative background layer; the
+// same particle-field impression holds at a small fraction of that.
+const SPHERE_WIDTH_SEGMENTS = 48;
+const SPHERE_HEIGHT_SEGMENTS = 96;
+
 const Lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 function hexToVec3(hex: string) {
   const n = parseInt(hex.slice(1), 16);
   return new THREE.Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 }
-
-const LAYERS = { NONE: 0, TORUS_SCENE: 1, BLOOM_SCENE: 2, ENTIRE_SCENE: 3 };
 
 const SNOISE = `
 vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
@@ -117,8 +122,13 @@ const FINAL_VERTEX = `
 varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }
 `;
 
+// Note: the original shader also sampled a "bloomTexture" and "torusTexture"
+// produced by two extra EffectComposers. Nothing was ever rendered onto the
+// layers those composers read from, so both textures were always fully
+// black and contributed nothing to the final image. They're removed here
+// (along with the composers that produced them) with no visual change.
 const FINAL_FRAGMENT = `
-uniform float iTime; uniform sampler2D tDiffuse; uniform sampler2D bloomTexture; uniform sampler2D torusTexture; uniform sampler2D haloTexture;
+uniform float iTime; uniform sampler2D tDiffuse;
 uniform vec3 uBg; uniform vec3 uFlameA; uniform vec3 uFlameB; uniform float uFlameAmt;
 varying vec2 vUv;
 vec3 warp3d(vec3 pos, float t){ float curv=.8,a=1.9,b=0.7; pos*=2.;
@@ -133,8 +143,7 @@ void main(){
   flame *= smoothstep(0.25, 1., abs(uv.y));
   float md = smoothstep(-0.7, 1., -uv.y*uv.x); flame *= md*md;
   vec3 bg = uBg * (1.0 - 0.4 * length(uv));
-  vec3 halo = texture2D(haloTexture, vUv).xyz;
-  gl_FragColor = vec4(bg + flame*uFlameAmt + texture2D(bloomTexture, vUv).xyz + texture2D(torusTexture, vUv).xyz + texture2D(tDiffuse, vUv).xyz + halo, 1.);
+  gl_FragColor = vec4(bg + flame*uFlameAmt + texture2D(tDiffuse, vUv).xyz, 1.);
 }
 `;
 
@@ -163,17 +172,20 @@ void main(){ vec2 p = gl_PointCoord - 0.5; float l = length(p); if (l > 0.5) dis
 
 export class FlowWaveScene {
   private canvas: HTMLCanvasElement;
-  private renderer: THREE.WebGL1Renderer;
+  private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private group: THREE.Group;
   private uniforms: any;
+
+  private sphereGeo: THREE.SphereGeometry;
+  private pointsMat: THREE.ShaderMaterial;
+  private moteGeo: THREE.BufferGeometry;
   private moteMat: THREE.ShaderMaterial;
   private motePts: THREE.Points;
+
   private finalPass: ShaderPass;
-  private torusComposer: EffectComposer;
-  private bloomComposer: EffectComposer;
-  private finalComposer: EffectComposer;
+  private composer: EffectComposer;
 
   private scrollTarget = 0;
   private scrollSmooth = 0;
@@ -187,6 +199,12 @@ export class FlowWaveScene {
   private rafId = 0;
   private disposed = false;
 
+  // When the tab is hidden or the user prefers reduced motion, the render
+  // loop stops entirely instead of continuing to burn GPU/CPU in the
+  // background.
+  private reducedMotion: boolean;
+  private mql: MediaQueryList | null = null;
+
   private _ndc = new THREE.Vector3();
   private _dir = new THREE.Vector3();
   private _tgt = new THREE.Vector3();
@@ -194,10 +212,14 @@ export class FlowWaveScene {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
 
-    this.renderer = new THREE.WebGL1Renderer({ canvas, antialias: true, alpha: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.VSMShadowMap;
+    this.reducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR));
+    // Nothing in this scene casts or receives shadows; leaving shadow
+    // mapping enabled just adds cost for no visual benefit.
+    this.renderer.shadowMap.enabled = false;
 
     this.scene = new THREE.Scene();
     this.scene.background = null;
@@ -205,14 +227,11 @@ export class FlowWaveScene {
 
     this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 400);
     this.camera.position.set(0, camStartY, camStartZ);
-    this.camera.layers.enable(LAYERS.TORUS_SCENE);
-    this.camera.layers.enable(LAYERS.BLOOM_SCENE);
-    this.camera.layers.enable(LAYERS.ENTIRE_SCENE);
     this.scene.add(this.camera);
 
     // ---- Points sheet -----------------------------------------------------
     this.group = new THREE.Group();
-    const geo = new THREE.SphereGeometry(4.2, 200, 600);
+    this.sphereGeo = new THREE.SphereGeometry(4.2, SPHERE_WIDTH_SEGMENTS, SPHERE_HEIGHT_SEGMENTS);
     this.uniforms = {
       uTime: { value: 0 },
       uStream: { value: 0 },
@@ -230,7 +249,7 @@ export class FlowWaveScene {
       uRepelStrength: { value: pointerStrength },
       uActivity: { value: 0 },
     };
-    const mat = new THREE.ShaderMaterial({
+    this.pointsMat = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: POINTS_VERTEX,
       fragmentShader: POINTS_FRAGMENT,
@@ -238,9 +257,8 @@ export class FlowWaveScene {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const pts = new THREE.Points(geo, mat);
+    const pts = new THREE.Points(this.sphereGeo, this.pointsMat);
     pts.frustumCulled = false;
-    pts.layers.enable(LAYERS.ENTIRE_SCENE);
     this.group.add(pts);
     this.scene.add(this.group);
 
@@ -256,10 +274,10 @@ export class FlowWaveScene {
       sizes[i] = atmoSize * (0.4 + Math.random());
       seeds[i] = Math.random();
     }
-    const moteGeo = new THREE.BufferGeometry();
-    moteGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    moteGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    moteGeo.setAttribute('seed', new THREE.BufferAttribute(seeds, 1));
+    this.moteGeo = new THREE.BufferGeometry();
+    this.moteGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this.moteGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    this.moteGeo.setAttribute('seed', new THREE.BufferAttribute(seeds, 1));
     this.moteMat = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -273,33 +291,19 @@ export class FlowWaveScene {
       depthWrite: false,
       depthTest: false,
     });
-    this.motePts = new THREE.Points(moteGeo, this.moteMat);
+    this.motePts = new THREE.Points(this.moteGeo, this.moteMat);
     this.motePts.frustumCulled = false;
-    this.motePts.layers.enable(LAYERS.ENTIRE_SCENE);
     this.scene.add(this.motePts);
 
     // ---- Postprocessing -----------------------------------------------------
+    // A single composer: render the scene, then run it through the flame/warp
+    // composite shader. (Two extra bloom composers previously ran here but
+    // rendered nothing visible — see FINAL_FRAGMENT comment above.)
     const renderPass = new RenderPass(this.scene, this.camera);
-
-    this.torusComposer = new EffectComposer(this.renderer);
-    this.torusComposer.renderToScreen = false;
-    this.torusComposer.addPass(renderPass);
-    this.torusComposer.addPass(new ShaderPass(GammaCorrectionShader));
-    this.torusComposer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.22, 0.2, 0));
-    this.torusComposer.addPass(new ShaderPass(CopyShader));
-
-    this.bloomComposer = new EffectComposer(this.renderer);
-    this.bloomComposer.renderToScreen = false;
-    this.bloomComposer.addPass(renderPass);
-    this.bloomComposer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.55, 0));
-    this.bloomComposer.addPass(new ShaderPass(GammaCorrectionShader));
 
     const finalUniforms = {
       iTime: { value: 0 },
       tDiffuse: { value: null },
-      torusTexture: { value: null },
-      bloomTexture: { value: null },
-      haloTexture: { value: new THREE.Texture() },
       uBg: { value: hexToVec3(bgColor) },
       uFlameA: { value: hexToVec3(flameColor) },
       uFlameB: { value: hexToVec3(flameColor2) },
@@ -310,24 +314,48 @@ export class FlowWaveScene {
       vertexShader: FINAL_VERTEX,
       fragmentShader: FINAL_FRAGMENT,
     } as any);
-    this.finalPass.uniforms.bloomTexture.value = this.bloomComposer.renderTarget1.texture;
-    this.finalPass.uniforms.torusTexture.value = this.torusComposer.renderTarget1.texture;
 
-    this.finalComposer = new EffectComposer(this.renderer);
-    this.finalComposer.addPass(renderPass);
-    this.finalComposer.addPass(this.finalPass);
-
-    this.motePts.onBeforeRender = () => {
-      const t = performance.now() / 1000;
-      this.moteMat.uniforms.uTime.value = t * atmoSpeed * 8.0;
-      this.motePts.position.copy(this.camera.position);
-      this.finalPass.uniforms.iTime.value = t;
-    };
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(renderPass);
+    this.composer.addPass(this.finalPass);
 
     this.bindEvents();
     this.resize();
-    this.loop();
+
+    if (this.reducedMotion) {
+      // Render a single static frame and stop; no rAF loop, no listeners
+      // driving continuous motion.
+      this.renderFrame(0, { x: 0, y: 0 });
+      this.composer.render();
+    } else {
+      this.loop();
+    }
+
+    // If the preference changes mid-session, start/stop the loop to match.
+    if (typeof window.matchMedia === 'function') {
+      this.mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      this.mql.addEventListener?.('change', this.onMotionPrefChange);
+    }
   }
+
+  private onMotionPrefChange = (e: MediaQueryListEvent) => {
+    this.reducedMotion = e.matches;
+    if (this.reducedMotion) {
+      cancelAnimationFrame(this.rafId);
+    } else if (!this.disposed) {
+      this.loop();
+    }
+  };
+
+  private onVisibilityChange = () => {
+    if (document.hidden) {
+      cancelAnimationFrame(this.rafId);
+    } else if (!this.disposed && !this.reducedMotion) {
+      // Resync timers so a long hidden period doesn't produce a big jump.
+      this.t0 = performance.now() / 1000;
+      this.loop();
+    }
+  };
 
   private onScroll = () => {
     const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -352,18 +380,19 @@ export class FlowWaveScene {
     window.addEventListener('mousemove', this.onMouseMove, { passive: true });
     window.addEventListener('mouseout', this.onMouseOut);
     window.addEventListener('resize', this.onResize);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   private resize() {
-    const w = window.innerWidth, h = window.innerHeight, dpr = window.devicePixelRatio;
+    const w = window.innerWidth, h = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio, MAX_DPR);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    for (const c of [this.torusComposer, this.bloomComposer, this.finalComposer]) {
-      c.setPixelRatio(dpr);
-      c.setSize(w, h);
-    }
+    this.composer.setPixelRatio(dpr);
+    this.composer.setSize(w, h);
+    this.moteMat.uniforms.uRes.value.set(w * dpr, h * dpr);
     this.onScroll();
   }
 
@@ -383,7 +412,7 @@ export class FlowWaveScene {
     this.POINTER.activity += (((this.POINTER.active && idle < 3) ? 1 : 0) - this.POINTER.activity) * 0.06;
   }
 
-  private render(scroll: number, m: { x: number; y: number }) {
+  private renderFrame(scroll: number, m: { x: number; y: number }) {
     const t = performance.now() / 1000;
     const dt = Math.min(0.05, t - this.t0);
     this.t0 = t;
@@ -407,6 +436,10 @@ export class FlowWaveScene {
     this.uniforms.uActivity.value = this.POINTER.activity;
     const elapsed = (performance.now() - this.appearStart) / 1000;
     this.uniforms.uAppear.value = Math.max(0, Math.min(1, (elapsed - 0.2) / 1.4));
+
+    this.moteMat.uniforms.uTime.value = t * atmoSpeed * 8.0;
+    this.motePts.position.copy(this.camera.position);
+    this.finalPass.uniforms.iTime.value = t;
   }
 
   private loop = () => {
@@ -415,14 +448,9 @@ export class FlowWaveScene {
     this.scrollCurrent = Lerp(this.scrollCurrent, this.scrollSmooth, 0.06);
     this.mouse.x = Lerp(this.mouse.x, this.mouseTarget.x, 0.06);
     this.mouse.y = Lerp(this.mouse.y, this.mouseTarget.y, 0.06);
-    this.render(this.scrollCurrent, this.mouse);
+    this.renderFrame(this.scrollCurrent, this.mouse);
 
-    this.camera.layers.set(LAYERS.TORUS_SCENE);
-    this.torusComposer.render();
-    this.camera.layers.set(LAYERS.BLOOM_SCENE);
-    this.bloomComposer.render();
-    this.camera.layers.set(LAYERS.ENTIRE_SCENE);
-    this.finalComposer.render();
+    this.composer.render();
 
     this.rafId = requestAnimationFrame(this.loop);
   };
@@ -434,9 +462,14 @@ export class FlowWaveScene {
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseout', this.onMouseOut);
     window.removeEventListener('resize', this.onResize);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.mql?.removeEventListener?.('change', this.onMotionPrefChange);
+
+    this.sphereGeo.dispose();
+    this.pointsMat.dispose();
+    this.moteGeo.dispose();
+    this.moteMat.dispose();
+    this.composer.dispose();
     this.renderer.dispose();
-    this.torusComposer.dispose();
-    this.bloomComposer.dispose();
-    this.finalComposer.dispose();
   }
 }

@@ -41,6 +41,7 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
           </label>
           <button
             onClick={onToggleLock}
+            aria-pressed={isLocked}
             className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md border transition-colors ${
               isLocked
                 ? 'bg-[#0A3324] text-[#34E89A] border-[#34E89A]/50 shadow-sm'
@@ -121,6 +122,7 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
             <button
               key={key}
               onClick={() => onSourceBaseChange(key)}
+              aria-pressed={isSelected}
               className={`relative flex flex-col items-start p-2.5 sm:p-3 rounded-lg border text-left transition-all ${
                 isSelected
                   ? 'bg-[#0A3324] text-[#34E89A] border-[#34E89A] shadow-sm'

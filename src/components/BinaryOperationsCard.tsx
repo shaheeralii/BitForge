@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Minus, X, Divide, AlertTriangle, Sigma, Table as TableIcon, Hash } from 'lucide-react';
+import { Plus, Minus, X, Divide, AlertTriangle, Sigma, Table as TableIcon, Hash, Copy, Check } from 'lucide-react';
 import {
   BinaryOperator,
   BitWidth,
@@ -7,6 +7,7 @@ import {
   computeBinaryOperation,
   bitsToSignedBigInt,
 } from '../utils/binaryOps';
+import { useHistory } from '../context/HistoryContext';
 
 const WIDTHS: BitWidth[] = [4, 8, 16, 32, 64];
 const OPERATORS: { id: BinaryOperator; icon: React.ElementType; label: string }[] = [
@@ -114,7 +115,7 @@ export const BinaryOperationsCard: React.FC = () => {
       </div>
 
       {/* ---------------------------------------------------------------- Results */}
-      {result && <ResultSummary result={result} width={width} opMeta={opMeta} />}
+      {result && <ResultSummary result={result} width={width} opMeta={opMeta} rawA={rawA} rawB={rawB} />}
       {result && <ResultTrace result={result} width={width} />}
 
       {!bothValid && (
@@ -168,11 +169,22 @@ const Chip: React.FC<{ label: string; value: string; tone?: 'ok' | 'warn' }> = (
   </div>
 );
 
-const ResultSummary: React.FC<{ result: ReturnType<typeof computeBinaryOperation>; width: number; opMeta: typeof OPERATORS[number] }> = ({
+const ResultSummary: React.FC<{
+  result: ReturnType<typeof computeBinaryOperation>;
+  width: number;
+  opMeta: typeof OPERATORS[number];
+  rawA: string;
+  rawB: string;
+}> = ({
   result,
   width,
   opMeta,
+  rawA,
+  rawB,
 }) => {
+  const { addEntry } = useHistory();
+  const [copied, setCopied] = useState(false);
+
   if (result.kind === 'divide' && result.data.divideByZero) {
     return (
       <div className="glass-panel mint-glow rounded-xl p-6 text-center">
@@ -215,11 +227,40 @@ const ResultSummary: React.FC<{ result: ReturnType<typeof computeBinaryOperation
   const signedVal = bitsToSignedBigInt(resultBits, width);
   const unsignedVal = BigInt('0b' + resultBits);
 
+  const copyResult = () => {
+    navigator.clipboard.writeText(resultBits);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+
+    addEntry({
+      mode: 'operations',
+      operation: `A ${opMeta.id} B (${width}-bit)`,
+      input: `A=${rawA.trim() || '0'}  B=${rawB.trim() || '0'}`,
+      inputLabel: `${width}-bit Operands`,
+      output: groupNibbles(resultBits),
+      outputLabel: `Result (${opMeta.label})`,
+    });
+  };
+
   return (
     <div className="glass-panel mint-glow rounded-xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#D9FFF4]/60">
-        <opMeta.icon className="w-3.5 h-3.5 text-[#34E89A]" />
-        Result — A {opMeta.id} B
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#D9FFF4]/60">
+          <opMeta.icon className="w-3.5 h-3.5 text-[#34E89A]" />
+          Result — A {opMeta.id} B
+        </div>
+        <button
+          onClick={copyResult}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+            copied
+              ? 'bg-emerald-500 text-white'
+              : 'bg-black/20 text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#34E89A]/15 hover:border-[#34E89A]/40'
+          }`}
+          title="Copy result"
+        >
+          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          <span>{copied ? 'Copied!' : 'Copy'}</span>
+        </button>
       </div>
 
       <div className="font-mono text-2xl sm:text-3xl tracking-widest text-[#34E89A] break-all">
@@ -284,7 +325,7 @@ const AddSubTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> ex
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-none">
         <table className="w-full text-xs font-mono min-w-[420px]">
           <thead>
             <tr>
@@ -299,7 +340,7 @@ const AddSubTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> ex
           <tbody>
             {rowsMsbFirst.map(r => (
               <tr key={r.index}>
-                <td className={tdClass}>{data.width - 1 - r.index}{r.index === 0 ? ' (LSB)' : (r.index === data.width - 1 ? ' (MSB)' : '')}</td>
+                <td className={tdClass}>{r.index}{r.index === 0 ? ' (LSB)' : (r.index === data.width - 1 ? ' (MSB)' : '')}</td>
                 <td className={tdClass}>{r.a}</td>
                 <td className={tdClass}>{r.b}</td>
                 <td className={tdClass}>{r.carryIn}</td>
@@ -320,7 +361,7 @@ const MultiplyTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> 
       Shift-and-add multiplication: for every bit of B (LSB → MSB), if the bit is 1, add A shifted left by
       that bit's position into a running sum. The final sum is the exact {data.width * 2}-bit product.
     </p>
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-none">
       <table className="w-full text-xs font-mono min-w-[560px]">
         <thead>
           <tr>
@@ -352,7 +393,7 @@ const DivideTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> ex
       bring down the next bit. If the remainder is ≥ the divisor, subtract the divisor and record a
       quotient bit of 1; otherwise record 0 and leave the remainder unchanged.
     </p>
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-none">
       <table className="w-full text-xs font-mono min-w-[640px]">
         <thead>
           <tr>

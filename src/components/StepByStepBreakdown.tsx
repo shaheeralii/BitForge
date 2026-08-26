@@ -109,7 +109,7 @@ const StepCard: React.FC<{ step: StepDetail; index: number }> = ({ step, index }
 
       {/* Table Data if present */}
       {step.tableData && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-[#1F6B4C]/40 bg-white dark:bg-[#0A2E1D]">
+        <div className="overflow-x-auto scrollbar-none rounded-lg border border-slate-200 dark:border-[#1F6B4C]/40 bg-white dark:bg-[#0A2E1D]">
           <table className="w-full text-left text-xs font-mono">
             <thead className="bg-[#F4FAF9] dark:bg-[#072818] text-[#1F6B4C] dark:text-[#D9FFF4] border-b border-slate-200 dark:border-[#1F6B4C]/40">
               <tr>
@@ -137,7 +137,7 @@ const StepCard: React.FC<{ step: StepDetail; index: number }> = ({ step, index }
 
       {/* Equation Lines if present */}
       {step.equationLines && step.equationLines.length > 0 && (
-        <div className="bg-[#0A3324] text-[#34E89A] p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto border border-[#1F6B4C]/40">
+        <div className="bg-[#0A3324] text-[#34E89A] p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto scrollbar-none border border-[#1F6B4C]/40">
           {step.equationLines.map((line, lIdx) => (
             <div key={lIdx} className="whitespace-pre-wrap leading-relaxed">
               <span dangerouslySetInnerHTML={{ __html: line }} />

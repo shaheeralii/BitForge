@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Binary, RotateCcw, ArrowLeft, ArrowRight, Zap, Copy, Check } from 'lucide-react';
+import { useHistory } from '../context/HistoryContext';
 
 export const BitGridVisualizer: React.FC = () => {
   const [bitWidth, setBitWidth] = useState<8 | 16 | 32>(16);
@@ -12,6 +13,7 @@ export const BitGridVisualizer: React.FC = () => {
   });
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { addEntry } = useHistory();
 
   const handleWidthChange = (newWidth: 8 | 16 | 32) => {
     setBitWidth(newWidth);
@@ -54,10 +56,19 @@ export const BitGridVisualizer: React.FC = () => {
   const octalVal = unsignedBigInt.toString(8);
   const denaryVal = unsignedBigInt.toString();
 
-  const copyVal = (val: string, key: string) => {
+  const copyVal = (val: string, key: string, outputLabel: string) => {
     navigator.clipboard.writeText(val);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+
+    addEntry({
+      mode: 'bitgrid',
+      operation: `${bitWidth}-bit \u2192 ${outputLabel}`,
+      input: binaryString,
+      inputLabel: `${bitWidth}-bit Binary`,
+      output: val,
+      outputLabel,
+    });
   };
 
   return (
@@ -87,6 +98,7 @@ export const BitGridVisualizer: React.FC = () => {
             <button
               key={w}
               onClick={() => handleWidthChange(w)}
+              aria-pressed={bitWidth === w}
               className={`px-3 py-1.5 rounded-md transition-all ${
                 bitWidth === w
                   ? 'bg-[#0A3324] text-[#34E89A] shadow-sm font-bold border border-[#34E89A]/40'
@@ -165,6 +177,8 @@ export const BitGridVisualizer: React.FC = () => {
                 {/* Interactive Bit Toggle Button */}
                 <button
                   onClick={() => toggleBit(idx)}
+                  aria-pressed={bitVal === 1}
+                  aria-label={`Bit ${bitPosition}, weight 2 to the power ${bitPosition}, currently ${bitVal}`}
                   className={`w-full aspect-square max-w-[42px] rounded-xl font-mono text-base sm:text-lg font-bold flex items-center justify-center transition-all duration-150 transform active:scale-95 shadow-sm ${
                     bitVal === 1
                       ? 'bg-[#0A3324] text-[#34E89A] border-2 border-[#34E89A] shadow-md ring-2 ring-[#34E89A]/30'
@@ -194,7 +208,7 @@ export const BitGridVisualizer: React.FC = () => {
               {denaryVal}
             </span>
             <button
-              onClick={() => copyVal(denaryVal, 'denary')}
+              onClick={() => copyVal(denaryVal, 'denary', 'Unsigned Denary')}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
             >
               {copiedKey === 'denary' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
@@ -213,7 +227,7 @@ export const BitGridVisualizer: React.FC = () => {
               {signedVal.toString()}
             </span>
             <button
-              onClick={() => copyVal(signedVal.toString(), 'signed')}
+              onClick={() => copyVal(signedVal.toString(), 'signed', "Signed (2's Comp)")}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
             >
               {copiedKey === 'signed' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
@@ -232,7 +246,7 @@ export const BitGridVisualizer: React.FC = () => {
               0x{hexVal}
             </span>
             <button
-              onClick={() => copyVal(`0x${hexVal}`, 'hex')}
+              onClick={() => copyVal(`0x${hexVal}`, 'hex', 'Hexadecimal')}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
             >
               {copiedKey === 'hex' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
@@ -251,7 +265,7 @@ export const BitGridVisualizer: React.FC = () => {
               0o{octalVal}
             </span>
             <button
-              onClick={() => copyVal(`0o${octalVal}`, 'octal')}
+              onClick={() => copyVal(`0o${octalVal}`, 'octal', 'Octal')}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
             >
               {copiedKey === 'octal' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
