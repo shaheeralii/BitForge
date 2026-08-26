@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { calculateTwosComplement } from '../utils/converter';
 import { Cpu, Copy, Check, AlertCircle, Info } from 'lucide-react';
+import { useHistory } from '../context/HistoryContext';
 
 export const TwosComplementCard: React.FC = () => {
   const [inputStr, setInputStr] = useState<string>('-42');
   const [bitWidth, setBitWidth] = useState<number>(8);
   const [copied, setCopied] = useState<boolean>(false);
+  const { addEntry } = useHistory();
 
   // Parse numeric value allowing direct typing of '-' or '+'
   const cleanedStr = inputStr.trim();
@@ -44,6 +46,15 @@ export const TwosComplementCard: React.FC = () => {
       navigator.clipboard.writeText(result.binaryStr);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+
+      addEntry({
+        mode: 'twos_complement',
+        operation: `Signed Decimal \u2192 ${bitWidth}-bit Two's Complement`,
+        input: numVal.toString(),
+        inputLabel: 'Signed Decimal',
+        output: result.binaryStr,
+        outputLabel: `${bitWidth}-bit Two's Complement`,
+      });
     }
   };
 
@@ -84,6 +95,7 @@ export const TwosComplementCard: React.FC = () => {
             <button
               key={w}
               onClick={() => setBitWidth(w)}
+              aria-pressed={bitWidth === w}
               className={`px-3 py-1.5 rounded-md transition-all ${
                 bitWidth === w
                   ? 'bg-[#0A3324] text-[#34E89A] shadow-sm font-bold border border-[#34E89A]/40'
@@ -156,6 +168,7 @@ export const TwosComplementCard: React.FC = () => {
                 <button
                   key={p.label}
                   onClick={() => setInputStr(p.value)}
+                  aria-pressed={inputStr === p.value}
                   className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors ${
                     inputStr === p.value
                       ? 'bg-[#0A3324] text-[#34E89A] border-[#34E89A]'
@@ -261,7 +274,7 @@ export const TwosComplementCard: React.FC = () => {
               </p>
 
               {step.equationLines && step.equationLines.length > 0 && (
-                <div className="bg-[#0A3324] text-[#34E89A] p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto border border-[#1F6B4C]/40">
+                <div className="bg-[#0A3324] text-[#34E89A] p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto scrollbar-none border border-[#1F6B4C]/40">
                   {step.equationLines.map((line, lIdx) => (
                     <div key={lIdx} className="whitespace-pre-wrap">{line}</div>
                   ))}

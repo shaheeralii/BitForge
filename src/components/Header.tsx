@@ -1,14 +1,17 @@
 import React from 'react';
-import { Binary, Calculator, Cpu, Type, Sparkles, SquareSigma } from 'lucide-react';
+import { Binary, Calculator, Cpu, Type, Sparkles, SquareSigma, History } from 'lucide-react';
+import { useHistory } from '../context/HistoryContext';
 
 export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations';
 
 interface HeaderProps {
   activeMode: AppMode;
   onModeChange: (mode: AppMode) => void;
+  onOpenHistory: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
+export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpenHistory }) => {
+  const { entries } = useHistory();
   const modes = [
     {
       id: 'converter' as AppMode,
@@ -60,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
       </div>
 
       {/* Center Navigation Tabs */}
-      <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[#34E89A]/15 text-xs font-semibold overflow-x-auto max-w-full">
+      <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[#34E89A]/15 text-xs font-semibold overflow-x-auto scrollbar-none max-w-full">
         {modes.map(mode => {
           const Icon = mode.icon;
           const isActive = activeMode === mode.id;
@@ -68,6 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
             <button
               key={mode.id}
               onClick={() => onModeChange(mode.id)}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md whitespace-nowrap transition-all duration-150 ${
                 isActive
                   ? 'bg-[#34E89A] text-[#0A3324] shadow-sm shadow-[#34E89A]/40 font-bold'
@@ -82,12 +86,25 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange }) => {
       </nav>
 
       {/* System Status Indicators */}
-      <div className="hidden lg:flex items-center gap-3 text-xs font-mono">
-        <div className="flex items-center gap-2 px-2.5 py-1 bg-black/25 backdrop-blur-sm text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30">
+      <div className="flex items-center gap-3 text-xs font-mono shrink-0">
+        <button
+          onClick={onOpenHistory}
+          className="relative flex items-center gap-1.5 px-2.5 py-1.5 bg-black/25 backdrop-blur-sm hover:bg-[#0A3324] text-[#D9FFF4]/80 hover:text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30 transition-colors"
+          title="Conversion History"
+        >
+          <History className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">History</span>
+          {entries.length > 0 && (
+            <span className="ml-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-[#34E89A] text-[#0A3324] text-[9px] font-bold">
+              {entries.length > 99 ? '99+' : entries.length}
+            </span>
+          )}
+        </button>
+        <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 bg-black/25 backdrop-blur-sm text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30">
           <div className="w-2 h-2 bg-[#34E89A] rounded-full animate-pulse"></div>
           ENGINE ACTIVE
         </div>
-        <div className="text-[#D9FFF4]/60 text-xs">
+        <div className="hidden lg:block text-[#D9FFF4]/60 text-xs">
           64-BIT EXACT
         </div>
       </div>

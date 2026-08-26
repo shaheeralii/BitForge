@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BaseType, ConversionResult } from '../types';
 import { BASE_OPTIONS } from '../utils/converter';
 import { Copy, Check, Target, ChevronRight } from 'lucide-react';
+import { useHistory } from '../context/HistoryContext';
 
 interface LiveBasesGridProps {
   conversion: ConversionResult;
@@ -17,12 +18,22 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
   customRadix,
 }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { addEntry } = useHistory();
 
-  const copyToClipboard = (text: string, key: string) => {
+  const copyToClipboard = (text: string, key: string, cardName: string) => {
     if (!text || text === 'Error') return;
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+
+    addEntry({
+      mode: 'converter',
+      operation: `${BASE_OPTIONS[conversion.sourceBase]?.name || conversion.sourceBase} \u2192 ${cardName}`,
+      input: conversion.sourceValue,
+      inputLabel: BASE_OPTIONS[conversion.sourceBase]?.name || `Base ${conversion.sourceBase}`,
+      output: text,
+      outputLabel: cardName,
+    });
   };
 
   const cards: {
@@ -154,7 +165,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                   <button
                     onClick={e => {
                       e.stopPropagation();
-                      copyToClipboard(card.value, card.id);
+                      copyToClipboard(card.value, card.id, card.name);
                     }}
                     disabled={card.value === 'Error'}
                     className={`p-2 rounded-lg transition-all shrink-0 ${

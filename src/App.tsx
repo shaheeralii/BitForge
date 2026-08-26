@@ -13,6 +13,7 @@ import { PresetsBar } from './components/PresetsBar';
 import { Footer } from './components/Footer';
 import { FlowWaveBackground } from './components/FlowWaveBackground';
 import { BinaryOperationsCard } from './components/BinaryOperationsCard';
+import { HistoryPanel } from './components/HistoryPanel';
 import { Calculator, Zap, BookOpen } from 'lucide-react';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
   const [targetBase, setTargetBase] = useState<BaseType>('2');
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [customRadix, setCustomRadix] = useState<number>(12);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
 
   // Auto detect logic
   const autoDetect = useMemo(() => {
@@ -63,7 +65,7 @@ export default function App() {
 
       <div className="relative z-10">
         {/* Top Header */}
-        <Header activeMode={activeMode} onModeChange={setActiveMode} />
+        <Header activeMode={activeMode} onModeChange={setActiveMode} onOpenHistory={() => setIsHistoryOpen(true)} />
 
         {/* Main Container */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -108,7 +110,7 @@ export default function App() {
               />
 
               {/* Quick Reference Cheat Sheet Footer Card */}
-              <div className="bg-white dark:glass-panel rounded-xl border border-slate-200 dark:border-transparent p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm dark:mint-glow">
+              <div className="bg-white dark:bg-[#072818]/60 dark:backdrop-blur-[18px] rounded-xl border border-slate-200 dark:border-[#34E89A]/[0.14] p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm dark:shadow-[0_8px_30px_-8px_rgba(52,232,154,0.25)]">
                 <div className="flex items-start gap-3">
                   <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
                     <Calculator className="w-4 h-4" />
@@ -174,6 +176,17 @@ export default function App() {
       <div className="relative z-10">
         <Footer />
       </div>
+
+      {/* Conversion History Slide-Over */}
+      <HistoryPanel
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onReuseConverterEntry={(value) => {
+          setInputVal(value);
+          setIsLocked(false);
+          setActiveMode('converter');
+        }}
+      />
     </div>
   );
 }

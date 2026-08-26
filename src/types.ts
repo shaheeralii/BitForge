@@ -64,3 +64,17 @@ export interface PresetItem {
   category: 'common' | 'signed' | 'fraction' | 'networking' | 'color';
   description?: string;
 }
+
+export type HistoryMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations';
+
+export interface HistoryEntry {
+  id: string;
+  timestamp: number;
+  mode: HistoryMode;
+  operation: string;
+  input: string;
+  inputLabel: string;
+  output: string;
+  outputLabel: string;
+}
+

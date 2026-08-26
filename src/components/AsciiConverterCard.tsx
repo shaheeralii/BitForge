@@ -1,17 +1,28 @@
 import React, { useState } from 'react';
 import { textToNumberSystems } from '../utils/converter';
 import { Type, Copy, Check } from 'lucide-react';
+import { useHistory } from '../context/HistoryContext';
 
 export const AsciiConverterCard: React.FC = () => {
   const [text, setText] = useState<string>('Hello World!');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { addEntry } = useHistory();
 
   const converted = textToNumberSystems(text);
 
-  const copyVal = (val: string, key: string) => {
+  const copyVal = (val: string, key: string, outputLabel: string) => {
     navigator.clipboard.writeText(val);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+
+    addEntry({
+      mode: 'ascii',
+      operation: `Text \u2192 ${outputLabel}`,
+      input: text,
+      inputLabel: 'Text',
+      output: val,
+      outputLabel,
+    });
   };
 
   return (
@@ -54,7 +65,7 @@ export const AsciiConverterCard: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-[#34E89A]">
             <span className="font-bold">8-Bit Binary Stream</span>
             <button
-              onClick={() => copyVal(converted.fullBinary, 'fullBin')}
+              onClick={() => copyVal(converted.fullBinary, 'fullBin', '8-Bit Binary Stream')}
               className="p-1 text-slate-400 hover:text-white"
             >
               {copiedKey === 'fullBin' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -70,7 +81,7 @@ export const AsciiConverterCard: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-[#34E89A]">
             <span className="font-bold">Hexadecimal Bytes</span>
             <button
-              onClick={() => copyVal(converted.fullHex, 'fullHex')}
+              onClick={() => copyVal(converted.fullHex, 'fullHex', 'Hexadecimal Bytes')}
               className="p-1 text-slate-400 hover:text-white"
             >
               {copiedKey === 'fullHex' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -90,7 +101,7 @@ export const AsciiConverterCard: React.FC = () => {
             Character-by-Character Encoding Table
           </h3>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40">
+          <div className="overflow-x-auto scrollbar-none rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40">
             <table className="w-full text-left font-mono text-xs">
               <thead className="bg-[#F4FAF9] dark:bg-[#0A2E1D] text-[#1F6B4C] dark:text-[#D9FFF4] border-b border-slate-200 dark:border-[#1F6B4C]/40">
                 <tr>
