@@ -98,7 +98,21 @@ npm run preview      # preview the production build
 
 All notable changes to this project are documented below, newest first.
 
-### v2.5.0 — Premium Emerald UI & Binary Operations
+### v3.0.0 — Performance Overhaul & Conversion History
+
+**Fixed**
+- **Background performance** — the animated Three.js scene was rendering two entirely dead post-processing passes every frame (nothing was ever assigned to the layers they read from, so they composited pure black with zero visual effect). Removed both, along with cutting the particle-field geometry from ~120,000 vertices to ~4,700, disabling an unused shadow map, fixing a resize bug in the mote shader's resolution uniform, and capping device pixel ratio — eliminating the input lag and navigation stutter introduced in v2.0.0.
+- Added a tab-visibility pause and `prefers-reduced-motion` handling so the render loop stops entirely when the tab is hidden or motion is disabled at the OS level, instead of continuing to render in the background.
+- Fixed real GPU resource leaks — geometries and materials were never disposed on unmount/remount.
+- **Binary Operations bit-index labeling** — the trace table's bit-position column and its LSB/MSB labels were computed from inverted conventions, so labels landed on the wrong rows.
+- **Invisible dark-mode info panel** — the Number Converter's bottom reference panel was unreadable (near-white text on a white background) due to a Tailwind dark-variant that silently failed to compile for a custom utility class.
+- **Inconsistent scrollbars** — hidden-scrollbar styling was only applied to one of several scrollable containers (including the main mode-navigation bar); now applied consistently everywhere content can overflow horizontally.
+- Minor UI/UX pass: corrected a stale version number in the footer, fixed a non-functional entrance animation on the welcome banner, and added `aria-current`/`aria-pressed` states to mode tabs, base selectors, and toggle buttons for screen-reader clarity.
+
+**Added**
+- **Conversion History** — a searchable, filterable history panel (opened from the header, with a live count badge) recording input, output, and operation across all five tools. Entries persist across sessions via `localStorage`, support per-entry removal or bulk clearing, and Number Converter entries can be reused with one click. Logged automatically whenever a result is copied.
+
+### v2.0.0 — Premium Emerald UI & Binary Operations
 
 **Added**
 - **Binary Operations mode** — bit-accurate binary add, subtract, multiply, and divide, each with a full step-by-step derivation table (ripple-carry adder, two's-complement subtraction, shift-and-add multiplication, restoring long division) and carry/borrow/overflow flags. Powered by a new `BigInt`-based arithmetic engine (`utils/binaryOps.ts`) supporting 4- to 64-bit widths.
@@ -128,29 +142,13 @@ All notable changes to this project are documented below, newest first.
 
 - Signed operand support (currently unsigned magnitudes) in Binary Operations, plus AND / OR / XOR / rotate
 - Expanded character encoding support (Unicode / UTF-8)
-- Conversion history and export/share functionality
 - Keyboard shortcuts for faster input
 
 ---
 
-## 📸 Screenshots
-
-<table>
-  <tr>
-    <td><img width="1905" height="995" alt="1" src="https://github.com/user-attachments/assets/62e17018-4f88-4b36-b42b-9dda2d8e09ca" /></td>
-    <td><img width="1919" height="996" alt="2" src="https://github.com/user-attachments/assets/5a52972d-9ad4-4dfa-89b4-37d2fc0a7f12" /></td>
-  </tr>
-  <tr>
-    <td><img width="1906" height="996" alt="3" src="https://github.com/user-attachments/assets/a5423ea4-cbe8-4ee8-b09f-1d565d9855a6" /></td>
-    <td><img width="1905" height="996" alt="4" src="https://github.com/user-attachments/assets/bb816817-6e7f-4f98-9ba2-b57de1460b77" /></td>
-  </tr>
-</table>
-
-> Screenshots reflect the pre-v2.5 UI — refresh with new captures once the emerald redesign is live.
-
----
 
 ## Author
 
-**Syed Shaheer Ali**
-BSCS Undergrad @ Bahria University
+**Syed Shaheer Ali**  
+BSCS, 1st Year    
+Bahria University Karachi
