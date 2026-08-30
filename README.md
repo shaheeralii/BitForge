@@ -141,7 +141,6 @@ All notable changes to this project are documented below, newest first.
 - Several clickable elements were built from `<div>`s with no keyboard support. The homepage feature cards are now real `<button>` elements; the base-selector cards (which contain a nested interactive control, so can't themselves be a `<button>`) now use `role="button"` with full keyboard handling.
 - Icon-only buttons throughout the app (copy, close, remove, reuse, shortcuts, history) had no accessible name for assistive technology; all now carry descriptive `aria-label`s.
 - The Activity History panel and Keyboard Shortcuts dialog didn't manage focus at all: opening one didn't move focus into it, <kbd>Tab</kbd> could escape to the page behind it, and closing didn't return focus to whatever opened it. Both now auto-focus on open, trap <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> within the dialog, and restore focus on close, via a new shared `useFocusTrap` hook.
-
 ### v3.0.0 — Performance Overhaul & Conversion History
 
 **Fixed**
@@ -180,6 +179,16 @@ All notable changes to this project are documented below, newest first.
 - Text & ASCII encoder with binary/hex/octal byte streams
 - Step-by-step derivations for every conversion
 ---
+
+## Future Improvements
+
+- Signed operand support (currently unsigned magnitudes) in Binary Operations, plus AND / OR / XOR / rotate
+- Expanded character encoding support (Unicode / UTF-8)
+- Keyboard shortcuts for faster input
+
+---
+
+
 ## Author
 **Syed Shaheer Ali**  
 BSCS, 1st Year    
