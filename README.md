@@ -1,6 +1,7 @@
-# ⚙️ BitForge
+<img width="6440" height="1640" alt="banner" src="https://github.com/user-attachments/assets/5d1032ad-915a-4461-8537-643b6253a91e" />
 
-> An interactive toolkit for exploring number systems, binary arithmetic, bit-level manipulation, and text encoding — with every result backed by a live, step-by-step derivation.
+
+> An interactive toolkit for exploring number systems, binary arithmetic, bit-level manipulation, and text encoding; with every result backed by a live, step-by-step derivation.
 
 **[🚀 Live Demo](https://bitforge-tool.vercel.app/)**
 
