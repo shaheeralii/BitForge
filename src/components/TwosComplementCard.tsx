@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { calculateTwosComplement } from '../utils/converter';
 import { Cpu, Copy, Check, AlertCircle, Info } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
+import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
+import { ShareButton } from './ShareButton';
+import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
+
+import { copyTextSafe } from '../utils/shareUtils';
 
 export const TwosComplementCard: React.FC = () => {
   const [inputStr, setInputStr] = useState<string>('-42');
   const [bitWidth, setBitWidth] = useState<number>(8);
   const [copied, setCopied] = useState<boolean>(false);
+  const [copyFailed, setCopyFailed] = useState<boolean>(false);
   const { addEntry } = useHistory();
+  const setSafeTimeout = useAutoResetTimer();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Parse numeric value allowing direct typing of '-' or '+'
   const cleanedStr = inputStr.trim();
@@ -41,11 +49,16 @@ export const TwosComplementCard: React.FC = () => {
     }
   };
 
-  const copyResult = () => {
+  const copyResult = async () => {
     if (result.binaryStr !== 'Overflow') {
-      navigator.clipboard.writeText(result.binaryStr);
+      const ok = await copyTextSafe(result.binaryStr);
+      if (!ok) {
+        setCopyFailed(true);
+        setSafeTimeout(() => setCopyFailed(false), 2000);
+        return;
+      }
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setSafeTimeout(() => setCopied(false), 2000);
 
       addEntry({
         mode: 'twos_complement',
@@ -57,6 +70,12 @@ export const TwosComplementCard: React.FC = () => {
       });
     }
   };
+
+  useRegisterShortcutTarget({
+    focusInput: () => inputRef.current?.focus(),
+    copyResult,
+    clearInput: () => setInputStr('0'),
+  });
 
   // Quick preset samples for current bit width
   const presets = [
@@ -114,7 +133,7 @@ export const TwosComplementCard: React.FC = () => {
         {/* Left Input Field */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
+            <label htmlFor="bitforge-twos-complement-input" className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
               Signed Decimal Input
             </label>
             <span className="text-[11px] font-mono text-[#1F6B4C] dark:text-slate-400">
@@ -124,6 +143,8 @@ export const TwosComplementCard: React.FC = () => {
 
           <div className="relative flex items-center">
             <input
+              ref={inputRef}
+              id="bitforge-twos-complement-input"
               type="text"
               inputMode="numeric"
               value={inputStr}
@@ -211,28 +232,55 @@ export const TwosComplementCard: React.FC = () => {
             <div className="text-[11px] text-slate-300 font-sans">
               Representation for <span className="font-mono font-bold text-[#D9FFF4]">{numVal}</span>
             </div>
-            <button
-              onClick={copyResult}
-              disabled={result.binaryStr === 'Overflow'}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                copied
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-[#1F6B4C] hover:bg-[#34E89A] hover:text-[#0A3324] text-white'
-              }`}
-              title="Copy Binary Output"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copy Binary</span>
-                </>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyResult}
+                disabled={result.binaryStr === 'Overflow'}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  copied
+                    ? 'bg-emerald-500 text-white'
+                    : copyFailed
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-[#1F6B4C] hover:bg-[#34E89A] hover:text-[#0A3324] text-white'
+                }`}
+                title={copyFailed ? 'Copy failed \u2014 clipboard unavailable' : 'Copy Binary Output'}
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Copied!</span>
+                  </>
+                ) : copyFailed ? (
+                  <>
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Failed</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Binary</span>
+                  </>
+                )}
+              </button>
+              {result.binaryStr !== 'Overflow' && (
+                <ShareButton
+                  label="Share"
+                  shareTitle="BitForge Two's Complement"
+                  getText={() =>
+                    `BitForge Two's Complement (${bitWidth}-bit)\nSigned Decimal: ${numVal}\nBinary: ${result.binaryStr}\nHex: 0x${result.hexStr}`
+                  }
+                  historyEntry={() => ({
+                    mode: 'twos_complement',
+                    operation: `Shared ${bitWidth}-bit Two's Complement`,
+                    input: numVal.toString(),
+                    inputLabel: 'Signed Decimal',
+                    output: result.binaryStr,
+                    outputLabel: `${bitWidth}-bit Two's Complement`,
+                  })}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 bg-black/20 text-[#D9FFF4]/80 hover:text-[#34E89A] border border-[#34E89A]/20 hover:border-[#34E89A]/50"
+                />
               )}
-            </button>
+            </div>
           </div>
         </div>
 

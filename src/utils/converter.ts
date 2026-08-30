@@ -204,6 +204,12 @@ export function isValidForRadix(input: string, radix: number): boolean {
   const parts = noSign.split('.');
   if (parts.length > 2) return false; // Multiple decimal points
 
+  const [integerPart, fractionPart = ''] = parts;
+  // A number must contain at least one digit somewhere. This rejects a lone
+  // ".", "+.", or "-." while still allowing ".5" and "5." (both empty parts
+  // means there were no digits at all, just a decimal point).
+  if (!integerPart && !fractionPart) return false;
+
   for (const part of parts) {
     for (const char of part) {
       const val = DIGITS.indexOf(char.toUpperCase());
@@ -457,37 +463,60 @@ function generateStepBreakdown(params: StepGenParams): StepDetail[] {
     return steps;
   }
 
-  // Shortcut 1: Binary <-> Octal (3-bit grouping)
-  if ((srcRadix === 2 && targetRadix === 8) || (srcRadix === 8 && targetRadix === 2)) {
-    if (srcRadix === 2 && targetRadix === 8) {
-      steps.push(...generateBinaryToOctalSteps(parsed.integerStr, parsed.fractionStr));
-      return steps;
-    } else if (srcRadix === 8 && targetRadix === 2) {
-      steps.push(...generateOctalToBinarySteps(parsed.integerStr, parsed.fractionStr));
-      return steps;
-    }
+  // The remaining derivations all operate on the unsigned magnitude
+  // (parsed.integerStr / parsed.fractionStr never include a sign). Make that
+  // explicit up front for negative inputs so the reader isn't left wondering
+  // where the sign went, then reattach it at the end.
+  if (parsed.isNegative) {
+    const magnitude = parsed.fractionStr
+      ? `${parsed.integerStr}.${parsed.fractionStr}`
+      : parsed.integerStr;
+    steps.push({
+      title: 'Step 0: Separate Sign and Magnitude',
+      type: 'info',
+      explanation:
+        'The input is negative. The sign is set aside and the derivation below converts only the unsigned magnitude; the sign is reattached to the final result at the end.',
+      equationLines: [
+        `Input: \u2212${magnitude}`,
+        `Sign: \u2212 (negative)`,
+        `Magnitude: ${magnitude}`,
+      ],
+    });
   }
+
+  // Shortcut 1: Binary <-> Octal (3-bit grouping)
+  if (srcRadix === 2 && targetRadix === 8) {
+    steps.push(...generateBinaryToOctalSteps(parsed.integerStr, parsed.fractionStr));
+  } else if (srcRadix === 8 && targetRadix === 2) {
+    steps.push(...generateOctalToBinarySteps(parsed.integerStr, parsed.fractionStr));
 
   // Shortcut 2: Binary <-> Hexadecimal (4-bit nibble grouping)
-  if ((srcRadix === 2 && targetRadix === 16) || (srcRadix === 16 && targetRadix === 2)) {
-    if (srcRadix === 2 && targetRadix === 16) {
-      steps.push(...generateBinaryToHexSteps(parsed.integerStr, parsed.fractionStr));
-      return steps;
-    } else if (srcRadix === 16 && targetRadix === 2) {
-      steps.push(...generateHexToBinarySteps(parsed.integerStr, parsed.fractionStr));
-      return steps;
+  } else if (srcRadix === 2 && targetRadix === 16) {
+    steps.push(...generateBinaryToHexSteps(parsed.integerStr, parsed.fractionStr));
+  } else if (srcRadix === 16 && targetRadix === 2) {
+    steps.push(...generateHexToBinarySteps(parsed.integerStr, parsed.fractionStr));
+
+  // General Path:
+  } else {
+    // Step 1: Convert Source Base -> Decimal (Base 10) (if source is not already Base 10)
+    if (srcRadix !== 10) {
+      steps.push(...generateBaseToDecimalSteps(sanitizedInput, srcRadix, parsed));
+    }
+
+    // Step 2: Convert Decimal (Base 10) -> Target Base (if target is not Base 10)
+    if (targetRadix !== 10) {
+      steps.push(...generateDecimalToBaseSteps(denaryInt, denaryFrac, targetRadix, resultStr));
     }
   }
 
-  // General Path:
-  // Step 1: Convert Source Base -> Decimal (Base 10) (if source is not already Base 10)
-  if (srcRadix !== 10) {
-    steps.push(...generateBaseToDecimalSteps(sanitizedInput, srcRadix, parsed));
-  }
-
-  // Step 2: Convert Decimal (Base 10) -> Target Base (if target is not Base 10)
-  if (targetRadix !== 10) {
-    steps.push(...generateDecimalToBaseSteps(denaryInt, denaryFrac, targetRadix, resultStr));
+  if (parsed.isNegative) {
+    steps.push({
+      title: 'Final Step: Reattach Sign',
+      type: 'info',
+      explanation:
+        'The negative sign set aside in Step 0 is reapplied to the converted magnitude to produce the final signed result.',
+      finalResult: resultStr,
+    });
   }
 
   return steps;
@@ -691,39 +720,90 @@ function generateDecimalToBaseSteps(
  * Binary -> Octal Direct 3-Bit Grouping
  */
 function generateBinaryToOctalSteps(intBin: string, fracBin: string): StepDetail[] {
-  // Pad integer left to multiple of 3
+  const steps: StepDetail[] = [];
+
+  // Integer part: pad on the LEFT to a multiple of 3, group right-to-left
+  // starting from the binary point.
   const intPadLen = Math.ceil(intBin.length / 3) * 3 || 3;
   const paddedInt = intBin.padStart(intPadLen, '0');
 
   const intGroups: string[] = [];
-  const octalDigits: string[] = [];
-  const tableRows: (string | number)[][] = [];
+  const octalIntDigits: string[] = [];
+  const intTableRows: (string | number)[][] = [];
 
   for (let i = 0; i < paddedInt.length; i += 3) {
     const chunk = paddedInt.slice(i, i + 3);
     const octVal = parseInt(chunk, 2);
     intGroups.push(chunk);
-    octalDigits.push(octVal.toString());
+    octalIntDigits.push(octVal.toString());
 
-    tableRows.push([chunk, `${chunk[0]}×4 + ${chunk[1]}×2 + ${chunk[2]}×1`, octVal]);
+    intTableRows.push([chunk, `${chunk[0]}×4 + ${chunk[1]}×2 + ${chunk[2]}×1`, octVal]);
   }
 
-  return [
-    {
-      title: 'Direct Fast Step: 3-Bit Binary Grouping to Octal',
+  steps.push({
+    title: fracBin
+      ? 'Direct Fast Step: 3-Bit Binary Grouping to Octal (Integer Part)'
+      : 'Direct Fast Step: 3-Bit Binary Grouping to Octal',
+    type: 'bitgroup',
+    explanation: 'Since 8 = 2³, every 3 binary bits correspond directly to 1 octal digit. Pad the integer part on the left to a multiple of 3 bits, then group right-to-left starting from the binary point:',
+    tableData: {
+      headers: ['Binary 3-Bit Triplet', 'Weight Calculation (4-2-1)', 'Octal Digit'],
+      rows: intTableRows,
+    },
+    equationLines: [
+      `Grouped Binary: ${intGroups.join('  |  ')}`,
+      `Octal Digits:    ${octalIntDigits.join('     |  ')}`,
+    ],
+    finalResult: octalIntDigits.join(''),
+  });
+
+  if (fracBin) {
+    // Fractional part: pad on the RIGHT to a multiple of 3, group
+    // left-to-right starting from the binary point.
+    const fracPadLen = Math.ceil(fracBin.length / 3) * 3;
+    const paddedFrac = fracBin.padEnd(fracPadLen, '0');
+
+    const fracGroups: string[] = [];
+    const octalFracDigits: string[] = [];
+    const fracTableRows: (string | number)[][] = [];
+
+    for (let i = 0; i < paddedFrac.length; i += 3) {
+      const chunk = paddedFrac.slice(i, i + 3);
+      const octVal = parseInt(chunk, 2);
+      fracGroups.push(chunk);
+      octalFracDigits.push(octVal.toString());
+
+      fracTableRows.push([chunk, `${chunk[0]}×4 + ${chunk[1]}×2 + ${chunk[2]}×1`, octVal]);
+    }
+
+    steps.push({
+      title: 'Direct Fast Step: 3-Bit Binary Grouping to Octal (Fractional Part)',
       type: 'bitgroup',
-      explanation: 'Since 8 = 2³, every 3 binary bits correspond directly to 1 octal digit. Group binary bits from right-to-left in triplets of 3:',
+      explanation: 'Pad the fractional part on the right to a multiple of 3 bits, then group left-to-right starting from the binary point:',
       tableData: {
         headers: ['Binary 3-Bit Triplet', 'Weight Calculation (4-2-1)', 'Octal Digit'],
-        rows: tableRows,
+        rows: fracTableRows,
       },
       equationLines: [
-        `Grouped Binary: ${intGroups.join('  |  ')}`,
-        `Octal Digits:    ${octalDigits.join('     |  ')}`,
+        `Grouped Binary: ${fracGroups.join('  |  ')}`,
+        `Octal Digits:    ${octalFracDigits.join('     |  ')}`,
       ],
-      finalResult: octalDigits.join(''),
-    },
-  ];
+      finalResult: octalFracDigits.join(''),
+    });
+
+    steps.push({
+      title: 'Combine Across the Binary Point',
+      type: 'info',
+      explanation: 'Join the integer-part and fractional-part octal digits at the binary point to form the final result:',
+      equationLines: [
+        `${intGroups.join('')} . ${fracGroups.join('')}  (binary, grouped)`,
+        `${octalIntDigits.join('')} . ${octalFracDigits.join('')}  (octal)`,
+      ],
+      finalResult: `${octalIntDigits.join('')}.${octalFracDigits.join('')}`,
+    });
+  }
+
+  return steps;
 }
 
 /**
@@ -742,9 +822,11 @@ function generateOctalToBinarySteps(intOct: string, fracOct: string): StepDetail
     binaryTriplets.push(binChunk);
   }
 
-  return [
+  const steps: StepDetail[] = [
     {
-      title: 'Direct Fast Step: Octal Digits to 3-Bit Binary Triplets',
+      title: fracOct
+        ? 'Direct Fast Step: Octal Digits to 3-Bit Binary Triplets (Integer Part)'
+        : 'Direct Fast Step: Octal Digits to 3-Bit Binary Triplets',
       type: 'bitgroup',
       explanation: 'Expand each individual Octal digit into its exact 3-bit binary equivalent:',
       tableData: {
@@ -758,6 +840,48 @@ function generateOctalToBinarySteps(intOct: string, fracOct: string): StepDetail
       finalResult: binaryTriplets.join(''),
     },
   ];
+
+  if (fracOct) {
+    const fracTableRows: (string | number)[][] = [];
+    const fracBinaryTriplets: string[] = [];
+
+    for (let i = 0; i < fracOct.length; i++) {
+      const octDigit = fracOct[i];
+      const val = parseInt(octDigit, 8);
+      const binChunk = val.toString(2).padStart(3, '0');
+
+      fracTableRows.push([octDigit, val, binChunk]);
+      fracBinaryTriplets.push(binChunk);
+    }
+
+    steps.push({
+      title: 'Direct Fast Step: Octal Digits to 3-Bit Binary Triplets (Fractional Part)',
+      type: 'bitgroup',
+      explanation: 'Expand each fractional Octal digit into its exact 3-bit binary equivalent, left-to-right from the binary point:',
+      tableData: {
+        headers: ['Octal Digit', 'Decimal Value', '3-Bit Binary Representation'],
+        rows: fracTableRows,
+      },
+      equationLines: [
+        `Octal Digits:   ${fracOct.split('').join('      ')}`,
+        `Binary Triplets: ${fracBinaryTriplets.join('  ')}`,
+      ],
+      finalResult: fracBinaryTriplets.join(''),
+    });
+
+    steps.push({
+      title: 'Combine Across the Point',
+      type: 'info',
+      explanation: 'Join the integer-part and fractional-part binary triplets at the binary point to form the final result:',
+      equationLines: [
+        `${intOct} . ${fracOct}  (octal)`,
+        `${binaryTriplets.join('')} . ${fracBinaryTriplets.join('')}  (binary, grouped)`,
+      ],
+      finalResult: `${binaryTriplets.join('')}.${fracBinaryTriplets.join('')}`,
+    });
+  }
+
+  return steps;
 }
 
 /**
@@ -786,11 +910,13 @@ function generateBinaryToHexSteps(intBin: string, fracBin: string): StepDetail[]
     ]);
   }
 
-  return [
+  const steps: StepDetail[] = [
     {
-      title: 'Direct Fast Step: 4-Bit Nibble Grouping to Hexadecimal',
+      title: fracBin
+        ? 'Direct Fast Step: 4-Bit Nibble Grouping to Hexadecimal (Integer Part)'
+        : 'Direct Fast Step: 4-Bit Nibble Grouping to Hexadecimal',
       type: 'bitgroup',
-      explanation: 'Since 16 = 2⁴, every 4 binary bits (a Nibble) correspond directly to 1 hexadecimal digit. Group binary bits from right-to-left in quads of 4:',
+      explanation: 'Since 16 = 2⁴, every 4 binary bits (a Nibble) correspond directly to 1 hexadecimal digit. Pad the integer part on the left to a multiple of 4 bits, then group right-to-left starting from the binary point:',
       tableData: {
         headers: ['4-Bit Nibble', 'Weight Calculation (8-4-2-1)', 'Decimal Value', 'Hex Digit'],
         rows: tableRows,
@@ -802,6 +928,58 @@ function generateBinaryToHexSteps(intBin: string, fracBin: string): StepDetail[]
       finalResult: hexDigits.join(''),
     },
   ];
+
+  if (fracBin) {
+    const fracPadLen = Math.ceil(fracBin.length / 4) * 4;
+    const paddedFrac = fracBin.padEnd(fracPadLen, '0');
+
+    const fracGroups: string[] = [];
+    const hexFracDigits: string[] = [];
+    const fracTableRows: (string | number)[][] = [];
+
+    for (let i = 0; i < paddedFrac.length; i += 4) {
+      const chunk = paddedFrac.slice(i, i + 4);
+      const val = parseInt(chunk, 2);
+      const hexChar = DIGITS[val];
+      fracGroups.push(chunk);
+      hexFracDigits.push(hexChar);
+
+      fracTableRows.push([
+        chunk,
+        `${chunk[0]}×8 + ${chunk[1]}×4 + ${chunk[2]}×2 + ${chunk[3]}×1`,
+        val,
+        hexChar,
+      ]);
+    }
+
+    steps.push({
+      title: 'Direct Fast Step: 4-Bit Nibble Grouping to Hexadecimal (Fractional Part)',
+      type: 'bitgroup',
+      explanation: 'Pad the fractional part on the right to a multiple of 4 bits, then group left-to-right starting from the binary point:',
+      tableData: {
+        headers: ['4-Bit Nibble', 'Weight Calculation (8-4-2-1)', 'Decimal Value', 'Hex Digit'],
+        rows: fracTableRows,
+      },
+      equationLines: [
+        `Grouped Nibbles: ${fracGroups.join('  |  ')}`,
+        `Hexadecimal:     ${hexFracDigits.join('     |  ')}`,
+      ],
+      finalResult: hexFracDigits.join(''),
+    });
+
+    steps.push({
+      title: 'Combine Across the Binary Point',
+      type: 'info',
+      explanation: 'Join the integer-part and fractional-part hex digits at the binary point to form the final result:',
+      equationLines: [
+        `${groups.join('')} . ${fracGroups.join('')}  (binary, grouped)`,
+        `${hexDigits.join('')} . ${hexFracDigits.join('')}  (hexadecimal)`,
+      ],
+      finalResult: `${hexDigits.join('')}.${hexFracDigits.join('')}`,
+    });
+  }
+
+  return steps;
 }
 
 /**
@@ -820,9 +998,11 @@ function generateHexToBinarySteps(intHex: string, fracHex: string): StepDetail[]
     binaryQuads.push(binChunk);
   }
 
-  return [
+  const steps: StepDetail[] = [
     {
-      title: 'Direct Fast Step: Hexadecimal to 4-Bit Binary Quads',
+      title: fracHex
+        ? 'Direct Fast Step: Hexadecimal to 4-Bit Binary Quads (Integer Part)'
+        : 'Direct Fast Step: Hexadecimal to 4-Bit Binary Quads',
       type: 'bitgroup',
       explanation: 'Expand each Hexadecimal character into its exact 4-bit nibble binary representation:',
       tableData: {
@@ -836,6 +1016,48 @@ function generateHexToBinarySteps(intHex: string, fracHex: string): StepDetail[]
       finalResult: binaryQuads.join(''),
     },
   ];
+
+  if (fracHex) {
+    const fracTableRows: (string | number)[][] = [];
+    const fracBinaryQuads: string[] = [];
+
+    for (let i = 0; i < fracHex.length; i++) {
+      const hexChar = fracHex[i];
+      const val = DIGITS.indexOf(hexChar);
+      const binChunk = val.toString(2).padStart(4, '0');
+
+      fracTableRows.push([hexChar, val, binChunk]);
+      fracBinaryQuads.push(binChunk);
+    }
+
+    steps.push({
+      title: 'Direct Fast Step: Hexadecimal to 4-Bit Binary Quads (Fractional Part)',
+      type: 'bitgroup',
+      explanation: 'Expand each fractional Hexadecimal character into its exact 4-bit nibble binary representation, left-to-right from the binary point:',
+      tableData: {
+        headers: ['Hex Character', 'Decimal Value', '4-Bit Binary Nibble'],
+        rows: fracTableRows,
+      },
+      equationLines: [
+        `Hex Input:   ${fracHex.split('').join('       ')}`,
+        `Binary Quads: ${fracBinaryQuads.join('  ')}`,
+      ],
+      finalResult: fracBinaryQuads.join(''),
+    });
+
+    steps.push({
+      title: 'Combine Across the Point',
+      type: 'info',
+      explanation: 'Join the integer-part and fractional-part binary quads at the binary point to form the final result:',
+      equationLines: [
+        `${intHex} . ${fracHex}  (hexadecimal)`,
+        `${binaryQuads.join('')} . ${fracBinaryQuads.join('')}  (binary, grouped)`,
+      ],
+      finalResult: `${binaryQuads.join('')}.${fracBinaryQuads.join('')}`,
+    });
+  }
+
+  return steps;
 }
 
 /**
@@ -937,10 +1159,27 @@ export function calculateTwosComplement(numValue: number, bitWidth = 8): {
   };
 }
 
+export interface CharEncoding {
+  /** The character (Unicode code point) as typed by the user. */
+  char: string;
+  /** True if this character's code point is within the 0-127 ASCII range. */
+  isAscii: boolean;
+  /** The UTF-8 bytes that represent this character (1-4 bytes). */
+  bytes: number[];
+}
+
 /**
- * Text (ASCII / UTF-8) to Hex/Binary/Decimal converter
+ * Text to UTF-8 byte-level Hex/Binary/Decimal/Octal converter.
+ *
+ * Text is encoded as UTF-8 (via TextEncoder), not read as raw UTF-16 code
+ * units. Standard ASCII characters (0-127) always encode to exactly one byte
+ * and behave exactly as a classic ASCII table would predict. Characters
+ * outside that range encode to 2-4 UTF-8 bytes, which are grouped under
+ * their originating character rather than being reported as a single
+ * (incorrect) 8-bit value.
  */
 export function textToNumberSystems(text: string): {
+  characters: CharEncoding[];
   asciiCodes: number[];
   binaryList: string[];
   hexList: string[];
@@ -948,20 +1187,32 @@ export function textToNumberSystems(text: string): {
   fullBinary: string;
   fullHex: string;
 } {
+  const encoder = new TextEncoder();
+  const characters: CharEncoding[] = [];
   const asciiCodes: number[] = [];
   const binaryList: string[] = [];
   const hexList: string[] = [];
   const octalList: string[] = [];
 
-  for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    asciiCodes.push(code);
-    binaryList.push(code.toString(2).padStart(8, '0'));
-    hexList.push(code.toString(16).toUpperCase().padStart(2, '0'));
-    octalList.push(code.toString(8).padStart(3, '0'));
+  // Iterate by Unicode code point (not UTF-16 code unit) so surrogate pairs
+  // (e.g. emoji) are treated as a single character.
+  for (const char of Array.from(text)) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    const bytes = Array.from(encoder.encode(char));
+    const isAscii = codePoint <= 0x7f;
+
+    characters.push({ char, isAscii, bytes });
+
+    for (const byte of bytes) {
+      asciiCodes.push(byte);
+      binaryList.push(byte.toString(2).padStart(8, '0'));
+      hexList.push(byte.toString(16).toUpperCase().padStart(2, '0'));
+      octalList.push(byte.toString(8).padStart(3, '0'));
+    }
   }
 
   return {
+    characters,
     asciiCodes,
     binaryList,
     hexList,

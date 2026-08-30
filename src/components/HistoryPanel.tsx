@@ -1,7 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useHistory } from '../context/HistoryContext';
 import { HistoryMode } from '../types';
-import { History, X, Search, Trash2, ArrowRight, RotateCcw, Calculator, Binary, Cpu, Type, SquareSigma } from 'lucide-react';
+import { History, X, Search, Trash2, ArrowRight, RotateCcw, Calculator, Binary, Cpu, Type, SquareSigma, Download, ChevronDown } from 'lucide-react';
+import { ShareButton } from './ShareButton';
+import { downloadTextFile, historyToCSV, historyToJSON, historyToTXT } from '../utils/downloadUtils';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -30,6 +33,56 @@ function timeAgo(ts: number): string {
   return new Date(ts).toLocaleDateString();
 }
 
+const ExportDropdown: React.FC<{ entries: import('../types').HistoryEntry[]; scopeLabel: string }> = ({ entries, scopeLabel }) => {
+  const [open, setOpen] = useState(false);
+  const [justExported, setJustExported] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const doExport = (format: 'txt' | 'csv' | 'json') => {
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    if (format === 'txt') downloadTextFile(`bitforge-history-${stamp}.txt`, historyToTXT(entries), 'text/plain');
+    if (format === 'csv') downloadTextFile(`bitforge-history-${stamp}.csv`, historyToCSV(entries), 'text/csv');
+    if (format === 'json') downloadTextFile(`bitforge-history-${stamp}.json`, historyToJSON(entries), 'application/json');
+    setOpen(false);
+    setJustExported(format.toUpperCase());
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setJustExported(null), 2200);
+  };
+
+  return (
+    <div className="relative flex-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        disabled={entries.length === 0}
+        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-black/20 hover:bg-[#0A3324] text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#1F6B4C]/40 hover:border-[#34E89A]/40 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <Download className="w-3.5 h-3.5" />
+        <span>{justExported ? `Exported ${justExported}` : `Export ${scopeLabel}`}</span>
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="absolute bottom-full left-0 right-0 mb-1.5 rounded-lg border border-[#34E89A]/20 bg-[#041A11] shadow-xl z-50 overflow-hidden py-1">
+            {(['txt', 'csv', 'json'] as const).map(fmt => (
+              <button
+                key={fmt}
+                onClick={() => doExport(fmt)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#D9FFF4] hover:bg-white/5 transition-colors text-left uppercase font-mono"
+              >
+                <Download className="w-3.5 h-3.5 text-[#34E89A]" />
+                {fmt}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onReuseConverterEntry }) => {
   const { entries, removeEntry, clearAll, clearMode } = useHistory();
   const [query, setQuery] = useState('');
@@ -56,6 +109,9 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
     return Array.from(s);
   }, [entries]);
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, isOpen);
+
   if (!isOpen) return null;
 
   return (
@@ -69,16 +125,18 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
 
       {/* Slide-over panel */}
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Conversion history"
+        aria-label="Activity history"
+        tabIndex={-1}
         className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#041A11] border-l border-[#34E89A]/20 shadow-2xl z-50 flex flex-col animate-fadeIn"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#1F6B4C]/30 shrink-0">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-[#34E89A]" />
-            <h2 className="text-sm font-bold text-[#D9FFF4] uppercase tracking-wider">Conversion History</h2>
+            <h2 className="text-sm font-bold text-[#D9FFF4] uppercase tracking-wider">Activity History</h2>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0A3324] text-[#34E89A] border border-[#34E89A]/30">
               {entries.length}
             </span>
@@ -87,6 +145,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
             onClick={onClose}
             className="p-1.5 text-[#D9FFF4]/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
             title="Close history"
+            aria-label="Close activity history"
           >
             <X className="w-4 h-4" />
           </button>
@@ -101,6 +160,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search history..."
+              aria-label="Search activity history"
               className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded-lg bg-black/25 border border-[#34E89A]/15 text-[#D9FFF4] placeholder:text-[#D9FFF4]/30 outline-none focus:border-[#34E89A]/50 transition-colors"
             />
           </div>
@@ -170,6 +230,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
                         }}
                         className="p-1 text-[#D9FFF4]/50 hover:text-[#34E89A] rounded transition-colors"
                         title="Reuse this input in the converter"
+                        aria-label={`Reuse "${entry.input}" in the converter`}
                       >
                         <RotateCcw className="w-3 h-3" />
                       </button>
@@ -178,6 +239,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
                       onClick={() => removeEntry(entry.id)}
                       className="p-1 text-[#D9FFF4]/50 hover:text-rose-400 rounded transition-colors"
                       title="Remove this entry"
+                      aria-label={`Remove ${meta.label} entry: ${entry.operation}`}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -204,7 +266,16 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
 
         {/* Footer */}
         {entries.length > 0 && (
-          <div className="px-4 py-3 border-t border-[#1F6B4C]/30 shrink-0">
+          <div className="px-4 py-3 border-t border-[#1F6B4C]/30 shrink-0 space-y-2">
+            <div className="flex items-center gap-2">
+              <ExportDropdown entries={filtered} scopeLabel={modeFilter === 'all' && !query ? 'All' : `${filtered.length} Shown`} />
+              <ShareButton
+                label="Share"
+                shareTitle="BitForge Activity History"
+                getText={() => historyToTXT(filtered)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors bg-black/20 hover:bg-[#0A3324] text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#1F6B4C]/40 hover:border-[#34E89A]/40"
+              />
+            </div>
             <button
               onClick={() => (modeFilter === 'all' ? clearAll() : clearMode(modeFilter))}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-black/20 hover:bg-rose-950/40 text-[#D9FFF4]/70 hover:text-rose-300 border border-[#1F6B4C]/40 hover:border-rose-900/60 text-xs font-semibold transition-colors"

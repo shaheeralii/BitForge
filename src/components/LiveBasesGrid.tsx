@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { BaseType, ConversionResult } from '../types';
 import { BASE_OPTIONS } from '../utils/converter';
-import { Copy, Check, Target, ChevronRight } from 'lucide-react';
+import { copyTextSafe } from '../utils/shareUtils';
+import { Copy, Check, Target, ChevronRight, AlertCircle } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
+import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
+import { ShareButton } from './ShareButton';
+import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
 
 interface LiveBasesGridProps {
   conversion: ConversionResult;
@@ -18,13 +22,20 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
   customRadix,
 }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   const { addEntry } = useHistory();
+  const setSafeTimeout = useAutoResetTimer();
 
-  const copyToClipboard = (text: string, key: string, cardName: string) => {
+  const copyToClipboard = async (text: string, key: string, cardName: string) => {
     if (!text || text === 'Error') return;
-    navigator.clipboard.writeText(text);
+    const ok = await copyTextSafe(text);
+    if (!ok) {
+      setFailedKey(key);
+      setSafeTimeout(() => setFailedKey(null), 2000);
+      return;
+    }
     setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
+    setSafeTimeout(() => setCopiedKey(null), 2000);
 
     addEntry({
       mode: 'converter',
@@ -86,15 +97,38 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
     },
   ];
 
+  const targetCard = cards.find(c => c.id === targetBase);
+  useRegisterShortcutTarget({
+    copyResult: targetCard ? () => copyToClipboard(targetCard.value, targetCard.id, targetCard.name) : undefined,
+  });
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
           Real-Time Conversion Matrix
         </h2>
-        <span className="text-xs text-[#1F6B4C] dark:text-slate-400 font-medium">
-          Click any card to focus step-by-step math derivation
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:inline text-xs text-[#1F6B4C] dark:text-slate-400 font-medium">
+            Click any card to focus step-by-step math derivation
+          </span>
+          <ShareButton
+            label="Share"
+            shareTitle="BitForge Conversion"
+            getText={() =>
+              `BitForge Conversion\nInput: ${conversion.sourceValue} (${BASE_OPTIONS[conversion.sourceBase]?.name})\n\n` +
+              cards.map(c => `${c.name}: ${c.prefix}${c.value}`).join('\n')
+            }
+            historyEntry={() => ({
+              mode: 'converter',
+              operation: `Shared full conversion matrix`,
+              input: conversion.sourceValue,
+              inputLabel: BASE_OPTIONS[conversion.sourceBase]?.name || `Base ${conversion.sourceBase}`,
+              output: cards.map(c => `${c.prefix}${c.value}`).join(', '),
+              outputLabel: 'All Bases',
+            })}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -102,6 +136,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
           const isTarget = targetBase === card.id;
           const isSource = conversion.sourceBase === card.id;
           const isCopied = copiedKey === card.id;
+          const isFailed = failedKey === card.id;
 
           // Percentage indicator for visual radix scale
           const radixPercent = Math.min(100, Math.max(10, (card.radix / 16) * 100));
@@ -109,8 +144,19 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
           return (
             <div
               key={card.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectTargetBase(card.id)}
-              className={`group relative bg-white dark:bg-[#072818] p-5 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between ${
+              onKeyDown={e => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectTargetBase(card.id);
+                }
+              }}
+              aria-pressed={isTarget}
+              aria-label={`View step-by-step derivation for ${card.name}`}
+              className={`group relative bg-white dark:bg-[#072818] p-5 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-[#34E89A] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#041A11] ${
                 isTarget
                   ? 'border-[#34E89A] dark:border-[#34E89A] ring-2 ring-[#34E89A]/30 shadow-md bg-gradient-to-b from-white to-[#D9FFF4]/20 dark:from-[#072818] dark:to-[#0A3324]/40'
                   : 'border-slate-200 dark:border-[#1F6B4C]/40 hover:border-[#34E89A]/60 shadow-sm'
@@ -171,11 +217,14 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                     className={`p-2 rounded-lg transition-all shrink-0 ${
                       isCopied
                         ? 'bg-emerald-600 text-white'
+                        : isFailed
+                        ? 'bg-rose-600 text-white'
                         : 'bg-[#F4FAF9] dark:bg-[#0A2E1D] text-[#1F6B4C] dark:text-slate-300 hover:text-[#0A3324] dark:hover:text-[#34E89A] border border-slate-200 dark:border-[#1F6B4C]/50 hover:bg-slate-100 dark:hover:bg-[#0A3324]'
                     }`}
-                    title="Copy converted value"
+                    title={isFailed ? 'Copy failed \u2014 clipboard unavailable' : 'Copy converted value'}
+                    aria-label={isCopied ? `Copied ${card.name} value` : isFailed ? 'Copy failed — clipboard unavailable' : `Copy ${card.name} value`}
                   >
-                    {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {isCopied ? <Check className="w-3.5 h-3.5" /> : isFailed ? <AlertCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { BaseType, AutoDetectResult } from '../types';
 import { BASE_OPTIONS } from '../utils/converter';
 import { Check, Lock, Unlock, X, Sparkles, AlertCircle } from 'lucide-react';
+import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
 
 interface ConversionInputProps {
   inputVal: string;
@@ -29,6 +30,11 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
   errorMessage,
 }) => {
   const baseKeys: BaseType[] = ['10', '2', '8', '16', 'custom'];
+  const mainInputRef = useRef<HTMLInputElement>(null);
+
+  useRegisterShortcutTarget({
+    focusInput: () => mainInputRef.current?.focus(),
+  });
 
   return (
     <div className="bg-white dark:bg-[#072818] rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40 p-5 sm:p-6 shadow-sm transition-all space-y-5">
@@ -36,7 +42,7 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
       {/* Top Bar: Source Base Selector & Auto Detect Status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
+          <label htmlFor="bitforge-main-input" className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
             Primary Source Input
           </label>
           <button
@@ -81,6 +87,8 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
       {/* Main Large Input Field */}
       <div className="relative group">
         <input
+          ref={mainInputRef}
+          id="bitforge-main-input"
           type="text"
           value={inputVal}
           onChange={e => onInputChange(e.target.value)}
@@ -101,6 +109,7 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
               onClick={() => onInputChange('')}
               className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#0A3324] rounded-lg transition-colors"
               title="Clear Input"
+              aria-label="Clear input"
             >
               <X className="w-5 h-5" />
             </button>
