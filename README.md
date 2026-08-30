@@ -180,15 +180,6 @@ All notable changes to this project are documented below, newest first.
 - Step-by-step derivations for every conversion
 ---
 
-## Future Improvements
-
-- Signed operand support (currently unsigned magnitudes) in Binary Operations, plus AND / OR / XOR / rotate
-- Expanded character encoding support (Unicode / UTF-8)
-- Keyboard shortcuts for faster input
-
----
-
-
 ## Author
 **Syed Shaheer Ali**  
 BSCS, 1st Year    
