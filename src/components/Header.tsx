@@ -1,6 +1,7 @@
 import React from 'react';
-import { Binary, Calculator, Cpu, Type, Sparkles, SquareSigma, History } from 'lucide-react';
+import { Binary, Calculator, Cpu, Type, SquareSigma, History, Keyboard } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
+import { BitForgeLogo } from './BitForgeLogo';
 
 export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations';
 
@@ -8,9 +9,10 @@ interface HeaderProps {
   activeMode: AppMode;
   onModeChange: (mode: AppMode) => void;
   onOpenHistory: () => void;
+  onOpenShortcutsHelp: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpenHistory }) => {
+export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpenHistory, onOpenShortcutsHelp }) => {
   const { entries } = useHistory();
   const modes = [
     {
@@ -44,15 +46,13 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
     <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[#041A11]/55 backdrop-blur-xl text-white border-b border-[#34E89A]/15 shadow-lg shadow-black/30 sticky top-0 z-30 transition-colors gap-3">
       {/* Branding */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-gradient-to-tr from-[#34E89A] to-[#D9FFF4] rounded-lg flex items-center justify-center text-[#0A3324] font-mono font-black text-lg shadow-sm shadow-[#34E89A]/30">
-          BF
-        </div>
+        <BitForgeLogo className="w-9 h-9 shrink-0" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold tracking-tight text-white font-mono flex items-center gap-1.5">
               BitForge
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-semibold bg-[#34E89A]/20 text-[#34E89A] border border-[#34E89A]/30">
-                v2.5
+                v4.0.0
               </span>
             </h1>
           </div>
@@ -88,9 +88,18 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
       {/* System Status Indicators */}
       <div className="flex items-center gap-3 text-xs font-mono shrink-0">
         <button
+          onClick={onOpenShortcutsHelp}
+          className="p-2 bg-black/25 backdrop-blur-sm hover:bg-[#0A3324] text-[#D9FFF4]/70 hover:text-[#34E89A] rounded-full border border-[#34E89A]/30 transition-colors"
+          title="Keyboard shortcuts (?)"
+          aria-label="Keyboard shortcuts"
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+        </button>
+        <button
           onClick={onOpenHistory}
           className="relative flex items-center gap-1.5 px-2.5 py-1.5 bg-black/25 backdrop-blur-sm hover:bg-[#0A3324] text-[#D9FFF4]/80 hover:text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30 transition-colors"
-          title="Conversion History"
+          title="Activity History (H)"
+          aria-label="Activity history"
         >
           <History className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">History</span>
@@ -103,9 +112,6 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
         <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 bg-black/25 backdrop-blur-sm text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30">
           <div className="w-2 h-2 bg-[#34E89A] rounded-full animate-pulse"></div>
           ENGINE ACTIVE
-        </div>
-        <div className="hidden lg:block text-[#D9FFF4]/60 text-xs">
-          64-BIT EXACT
         </div>
       </div>
     </header>

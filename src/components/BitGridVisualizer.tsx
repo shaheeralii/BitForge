@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Binary, RotateCcw, ArrowLeft, ArrowRight, Zap, Copy, Check } from 'lucide-react';
+import { Binary, RotateCcw, ArrowLeft, ArrowRight, Zap, Copy, Check, AlertCircle } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
+import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
+import { ShareButton } from './ShareButton';
+import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
+import { copyTextSafe } from '../utils/shareUtils';
 
 export const BitGridVisualizer: React.FC = () => {
   const [bitWidth, setBitWidth] = useState<8 | 16 | 32>(16);
@@ -13,7 +17,9 @@ export const BitGridVisualizer: React.FC = () => {
   });
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   const { addEntry } = useHistory();
+  const setSafeTimeout = useAutoResetTimer();
 
   const handleWidthChange = (newWidth: 8 | 16 | 32) => {
     setBitWidth(newWidth);
@@ -56,10 +62,15 @@ export const BitGridVisualizer: React.FC = () => {
   const octalVal = unsignedBigInt.toString(8);
   const denaryVal = unsignedBigInt.toString();
 
-  const copyVal = (val: string, key: string, outputLabel: string) => {
-    navigator.clipboard.writeText(val);
+  const copyVal = async (val: string, key: string, outputLabel: string) => {
+    const ok = await copyTextSafe(val);
+    if (!ok) {
+      setFailedKey(key);
+      setSafeTimeout(() => setFailedKey(null), 2000);
+      return;
+    }
     setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
+    setSafeTimeout(() => setCopiedKey(null), 2000);
 
     addEntry({
       mode: 'bitgrid',
@@ -70,6 +81,11 @@ export const BitGridVisualizer: React.FC = () => {
       outputLabel,
     });
   };
+
+  useRegisterShortcutTarget({
+    copyResult: () => copyVal(denaryVal, 'denary', 'Unsigned Denary'),
+    clearInput: clearBits,
+  });
 
   return (
     <div className="bg-white dark:bg-[#072818] rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
@@ -195,6 +211,26 @@ export const BitGridVisualizer: React.FC = () => {
       </div>
 
       {/* Live Calculated Output Grid */}
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-slate-400">
+          Live Calculated Output
+        </span>
+        <ShareButton
+          label="Share"
+          shareTitle="BitForge Bit Grid"
+          getText={() =>
+            `BitForge Bit Grid (${bitWidth}-bit)\nBinary: ${binaryString}\nUnsigned Denary: ${denaryVal}\nSigned (2's Comp): ${signedVal.toString()}\nHexadecimal: 0x${hexVal}\nOctal: 0o${octalVal}`
+          }
+          historyEntry={() => ({
+            mode: 'bitgrid',
+            operation: `Shared ${bitWidth}-bit grid state`,
+            input: binaryString,
+            inputLabel: `${bitWidth}-bit Binary`,
+            output: `Denary ${denaryVal} / Signed ${signedVal.toString()} / 0x${hexVal} / 0o${octalVal}`,
+            outputLabel: 'All Representations',
+          })}
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
         
         {/* Unsigned Decimal */}
@@ -210,8 +246,9 @@ export const BitGridVisualizer: React.FC = () => {
             <button
               onClick={() => copyVal(denaryVal, 'denary', 'Unsigned Denary')}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
+              aria-label={copiedKey === 'denary' ? 'Copied unsigned denary value' : failedKey === 'denary' ? 'Copy failed — clipboard unavailable' : 'Copy unsigned denary value'}
             >
-              {copiedKey === 'denary' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              {copiedKey === 'denary' ? <Check className="w-4 h-4 text-emerald-500" /> : failedKey === 'denary' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -229,8 +266,9 @@ export const BitGridVisualizer: React.FC = () => {
             <button
               onClick={() => copyVal(signedVal.toString(), 'signed', "Signed (2's Comp)")}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
+              aria-label={copiedKey === 'signed' ? "Copied signed two's complement value" : failedKey === 'signed' ? 'Copy failed — clipboard unavailable' : "Copy signed two's complement value"}
             >
-              {copiedKey === 'signed' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              {copiedKey === 'signed' ? <Check className="w-4 h-4 text-emerald-500" /> : failedKey === 'signed' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -248,8 +286,9 @@ export const BitGridVisualizer: React.FC = () => {
             <button
               onClick={() => copyVal(`0x${hexVal}`, 'hex', 'Hexadecimal')}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
+              aria-label={copiedKey === 'hex' ? 'Copied hexadecimal value' : failedKey === 'hex' ? 'Copy failed — clipboard unavailable' : 'Copy hexadecimal value'}
             >
-              {copiedKey === 'hex' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              {copiedKey === 'hex' ? <Check className="w-4 h-4 text-emerald-500" /> : failedKey === 'hex' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -267,8 +306,9 @@ export const BitGridVisualizer: React.FC = () => {
             <button
               onClick={() => copyVal(`0o${octalVal}`, 'octal', 'Octal')}
               className="p-1.5 text-[#1F6B4C] hover:text-[#0A3324] dark:hover:text-[#34E89A]"
+              aria-label={copiedKey === 'octal' ? 'Copied octal value' : failedKey === 'octal' ? 'Copy failed — clipboard unavailable' : 'Copy octal value'}
             >
-              {copiedKey === 'octal' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              {copiedKey === 'octal' ? <Check className="w-4 h-4 text-emerald-500" /> : failedKey === 'octal' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { getPerfTier, PerfTier } from '../utils/devicePerf';
 
 // ---------------------------------------------------------------------------
 // Fixed parameters (baked in, per spec)
@@ -33,13 +34,20 @@ const pointerStrength = 0.9;
 
 // Perf caps. The look is driven by additive point sprites + the warp
 // fragment shader below, not by raw vertex/pixel counts, so these can be
-// kept low without changing how the scene reads visually.
-const MAX_DPR = 2;
+// kept low without changing how the scene reads visually. Values below are
+// the 'high' tier (capable desktops); see getPerfTier() usage in the
+// constructor for the lighter 'low' tier applied on mobile/low-power
+// devices.
+const MAX_DPR_HIGH = 1.5;
+const MAX_DPR_LOW = 1;
 // Sphere used purely as a point cloud. The original (200, 600) segment
 // counts produced ~120k vertices for a decorative background layer; the
 // same particle-field impression holds at a small fraction of that.
-const SPHERE_WIDTH_SEGMENTS = 48;
-const SPHERE_HEIGHT_SEGMENTS = 96;
+const SPHERE_WIDTH_SEGMENTS_HIGH = 48;
+const SPHERE_HEIGHT_SEGMENTS_HIGH = 96;
+const SPHERE_WIDTH_SEGMENTS_LOW = 28;
+const SPHERE_HEIGHT_SEGMENTS_LOW = 56;
+const ATMO_COUNT_LOW = 120;
 
 const Lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -184,8 +192,10 @@ export class FlowWaveScene {
   private moteMat: THREE.ShaderMaterial;
   private motePts: THREE.Points;
 
-  private finalPass: ShaderPass;
-  private composer: EffectComposer;
+  private finalPass: ShaderPass | null;
+  private composer: EffectComposer | null;
+  private tier: PerfTier;
+  private maxDpr: number;
 
   private scrollTarget = 0;
   private scrollSmooth = 0;
@@ -197,6 +207,7 @@ export class FlowWaveScene {
   private t0 = performance.now() / 1000;
   private appearStart = performance.now();
   private rafId = 0;
+  private resizeRafId = 0;
   private disposed = false;
 
   // When the tab is hidden or the user prefers reduced motion, the render
@@ -215,8 +226,11 @@ export class FlowWaveScene {
     this.reducedMotion = typeof window.matchMedia === 'function'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR));
+    this.tier = getPerfTier();
+    this.maxDpr = this.tier === 'low' ? MAX_DPR_LOW : MAX_DPR_HIGH;
+
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'default' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.maxDpr));
     // Nothing in this scene casts or receives shadows; leaving shadow
     // mapping enabled just adds cost for no visual benefit.
     this.renderer.shadowMap.enabled = false;
@@ -231,7 +245,9 @@ export class FlowWaveScene {
 
     // ---- Points sheet -----------------------------------------------------
     this.group = new THREE.Group();
-    this.sphereGeo = new THREE.SphereGeometry(4.2, SPHERE_WIDTH_SEGMENTS, SPHERE_HEIGHT_SEGMENTS);
+    const sphereWidthSegments = this.tier === 'low' ? SPHERE_WIDTH_SEGMENTS_LOW : SPHERE_WIDTH_SEGMENTS_HIGH;
+    const sphereHeightSegments = this.tier === 'low' ? SPHERE_HEIGHT_SEGMENTS_LOW : SPHERE_HEIGHT_SEGMENTS_HIGH;
+    this.sphereGeo = new THREE.SphereGeometry(4.2, sphereWidthSegments, sphereHeightSegments);
     this.uniforms = {
       uTime: { value: 0 },
       uStream: { value: 0 },
@@ -263,7 +279,7 @@ export class FlowWaveScene {
     this.scene.add(this.group);
 
     // ---- Ambient motes ------------------------------------------------------
-    const N = Math.round(atmoCount);
+    const N = Math.round(this.tier === 'low' ? ATMO_COUNT_LOW : atmoCount);
     const positions = new Float32Array(N * 3);
     const sizes = new Float32Array(N);
     const seeds = new Float32Array(N);
@@ -296,28 +312,38 @@ export class FlowWaveScene {
     this.scene.add(this.motePts);
 
     // ---- Postprocessing -----------------------------------------------------
-    // A single composer: render the scene, then run it through the flame/warp
-    // composite shader. (Two extra bloom composers previously ran here but
-    // rendered nothing visible — see FINAL_FRAGMENT comment above.)
-    const renderPass = new RenderPass(this.scene, this.camera);
+    // The flame/warp composite pass runs a fairly involved fragment shader
+    // across every pixel of the canvas, every frame — the single most
+    // expensive thing in this scene at higher DPR. On lower-powered devices
+    // (see getPerfTier()) it's skipped entirely rather than simplified: the
+    // scene renders directly (renderer.render below in tick()) with no
+    // EffectComposer, no extra render-target allocation, and no full-screen
+    // shader pass. The point-cloud wave and ambient motes — the actual
+    // visual identity of the background — are unaffected either way.
+    if (this.tier === 'low') {
+      this.composer = null;
+      this.finalPass = null;
+    } else {
+      const renderPass = new RenderPass(this.scene, this.camera);
 
-    const finalUniforms = {
-      iTime: { value: 0 },
-      tDiffuse: { value: null },
-      uBg: { value: hexToVec3(bgColor) },
-      uFlameA: { value: hexToVec3(flameColor) },
-      uFlameB: { value: hexToVec3(flameColor2) },
-      uFlameAmt: { value: flameAmt },
-    };
-    this.finalPass = new ShaderPass({
-      uniforms: finalUniforms,
-      vertexShader: FINAL_VERTEX,
-      fragmentShader: FINAL_FRAGMENT,
-    } as any);
+      const finalUniforms = {
+        iTime: { value: 0 },
+        tDiffuse: { value: null },
+        uBg: { value: hexToVec3(bgColor) },
+        uFlameA: { value: hexToVec3(flameColor) },
+        uFlameB: { value: hexToVec3(flameColor2) },
+        uFlameAmt: { value: flameAmt },
+      };
+      this.finalPass = new ShaderPass({
+        uniforms: finalUniforms,
+        vertexShader: FINAL_VERTEX,
+        fragmentShader: FINAL_FRAGMENT,
+      } as any);
 
-    this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(renderPass);
-    this.composer.addPass(this.finalPass);
+      this.composer = new EffectComposer(this.renderer);
+      this.composer.addPass(renderPass);
+      this.composer.addPass(this.finalPass);
+    }
 
     this.bindEvents();
     this.resize();
@@ -326,9 +352,9 @@ export class FlowWaveScene {
       // Render a single static frame and stop; no rAF loop, no listeners
       // driving continuous motion.
       this.renderFrame(0, { x: 0, y: 0 });
-      this.composer.render();
+      this.renderScene();
     } else {
-      this.loop();
+      this.startLoop();
     }
 
     // If the preference changes mid-session, start/stop the loop to match.
@@ -341,19 +367,19 @@ export class FlowWaveScene {
   private onMotionPrefChange = (e: MediaQueryListEvent) => {
     this.reducedMotion = e.matches;
     if (this.reducedMotion) {
-      cancelAnimationFrame(this.rafId);
+      this.stopLoop();
     } else if (!this.disposed) {
-      this.loop();
+      this.startLoop();
     }
   };
 
   private onVisibilityChange = () => {
     if (document.hidden) {
-      cancelAnimationFrame(this.rafId);
+      this.stopLoop();
     } else if (!this.disposed && !this.reducedMotion) {
       // Resync timers so a long hidden period doesn't produce a big jump.
       this.t0 = performance.now() / 1000;
-      this.loop();
+      this.startLoop();
     }
   };
 
@@ -373,7 +399,16 @@ export class FlowWaveScene {
     this.POINTER.active = false;
   };
 
-  private onResize = () => this.resize();
+  private onResize = () => {
+    // Mobile browsers fire several resize events in quick succession when
+    // the address bar shows/hides during scroll; coalesce to at most one
+    // actual resize (which recreates render targets) per animation frame.
+    if (this.resizeRafId) return;
+    this.resizeRafId = requestAnimationFrame(() => {
+      this.resizeRafId = 0;
+      this.resize();
+    });
+  };
 
   private bindEvents() {
     window.addEventListener('scroll', this.onScroll, { passive: true });
@@ -385,15 +420,27 @@ export class FlowWaveScene {
 
   private resize() {
     const w = window.innerWidth, h = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio, MAX_DPR);
+    const dpr = Math.min(window.devicePixelRatio, this.maxDpr);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.composer.setPixelRatio(dpr);
-    this.composer.setSize(w, h);
+    if (this.composer) {
+      this.composer.setPixelRatio(dpr);
+      this.composer.setSize(w, h);
+    }
     this.moteMat.uniforms.uRes.value.set(w * dpr, h * dpr);
     this.onScroll();
+  }
+
+  /** Renders through the post-process composer when available (high tier),
+   * or renders the scene directly otherwise (low tier — see constructor). */
+  private renderScene() {
+    if (this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   private updatePointerWorld() {
@@ -439,10 +486,12 @@ export class FlowWaveScene {
 
     this.moteMat.uniforms.uTime.value = t * atmoSpeed * 8.0;
     this.motePts.position.copy(this.camera.position);
-    this.finalPass.uniforms.iTime.value = t;
+    if (this.finalPass) {
+      this.finalPass.uniforms.iTime.value = t;
+    }
   }
 
-  private loop = () => {
+  private tick = () => {
     if (this.disposed) return;
     this.scrollSmooth = Lerp(this.scrollSmooth, this.scrollTarget, 0.10);
     this.scrollCurrent = Lerp(this.scrollCurrent, this.scrollSmooth, 0.06);
@@ -450,14 +499,34 @@ export class FlowWaveScene {
     this.mouse.y = Lerp(this.mouse.y, this.mouseTarget.y, 0.06);
     this.renderFrame(this.scrollCurrent, this.mouse);
 
-    this.composer.render();
+    this.renderScene();
 
-    this.rafId = requestAnimationFrame(this.loop);
+    this.rafId = requestAnimationFrame(this.tick);
+  };
+
+  /**
+   * Starts the render loop if it isn't already running. Guarding on
+   * `this.rafId` here (rather than calling requestAnimationFrame
+   * unconditionally from each caller) is what prevents overlapping
+   * visibility/reduced-motion events from spawning a second, untracked
+   * rAF chain that would silently double the per-frame render cost.
+   */
+  private startLoop() {
+    if (this.disposed || this.rafId) return;
+    this.rafId = requestAnimationFrame(this.tick);
+  }
+
+  private stopLoop() {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
+    }
   };
 
   dispose() {
     this.disposed = true;
-    cancelAnimationFrame(this.rafId);
+    this.stopLoop();
+    if (this.resizeRafId) cancelAnimationFrame(this.resizeRafId);
     window.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseout', this.onMouseOut);
@@ -469,7 +538,7 @@ export class FlowWaveScene {
     this.pointsMat.dispose();
     this.moteGeo.dispose();
     this.moteMat.dispose();
-    this.composer.dispose();
+    this.composer?.dispose();
     this.renderer.dispose();
   }
 }

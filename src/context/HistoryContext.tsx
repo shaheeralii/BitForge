@@ -4,6 +4,8 @@ import { HistoryEntry, HistoryMode } from '../types';
 const STORAGE_KEY = 'bitforge_conversion_history';
 const MAX_ENTRIES = 200;
 
+const VALID_MODES: readonly HistoryMode[] = ['converter', 'bitgrid', 'twos_complement', 'ascii', 'operations'];
+
 interface HistoryContextValue {
   entries: HistoryEntry[];
   addEntry: (entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => void;
@@ -14,13 +16,40 @@ interface HistoryContextValue {
 
 const HistoryContext = createContext<HistoryContextValue | null>(null);
 
+/**
+ * Runtime type guard for a single stored history entry. Guards against
+ * malformed or outdated localStorage data (e.g. from a previous schema
+ * version) reaching application state and causing a downstream crash when a
+ * component reads a field that isn't actually there.
+ */
+function isHistoryEntry(value: unknown): value is HistoryEntry {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+
+  return (
+    typeof v.id === 'string' &&
+    v.id.length > 0 &&
+    typeof v.timestamp === 'number' &&
+    Number.isFinite(v.timestamp) &&
+    typeof v.mode === 'string' &&
+    (VALID_MODES as string[]).includes(v.mode) &&
+    typeof v.operation === 'string' &&
+    typeof v.input === 'string' &&
+    typeof v.inputLabel === 'string' &&
+    typeof v.output === 'string' &&
+    typeof v.outputLabel === 'string'
+  );
+}
+
 function loadFromStorage(): HistoryEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed;
+    // Discard malformed entries individually rather than rejecting the
+    // whole list, so one bad/outdated entry doesn't wipe out valid history.
+    return parsed.filter(isHistoryEntry);
   } catch {
     // Corrupt or inaccessible storage shouldn't take down the app.
     return [];

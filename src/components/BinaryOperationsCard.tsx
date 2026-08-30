@@ -1,13 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Plus, Minus, X, Divide, AlertTriangle, Sigma, Table as TableIcon, Hash, Copy, Check } from 'lucide-react';
 import {
   BinaryOperator,
   BitWidth,
+  AddSubResult,
+  MultiplyResult,
+  DivideResult,
   parseBinaryOperand,
   computeBinaryOperation,
   bitsToSignedBigInt,
 } from '../utils/binaryOps';
 import { useHistory } from '../context/HistoryContext';
+import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
+import { ShareButton } from './ShareButton';
+import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
+import { copyTextSafe } from '../utils/shareUtils';
 
 const WIDTHS: BitWidth[] = [4, 8, 16, 32, 64];
 const OPERATORS: { id: BinaryOperator; icon: React.ElementType; label: string }[] = [
@@ -48,6 +55,15 @@ export const BinaryOperationsCard: React.FC = () => {
   }, [bothValid, parsedA.bits, parsedB.bits, width, operator]);
 
   const opMeta = OPERATORS.find(o => o.id === operator)!;
+  const operandARef = useRef<HTMLInputElement>(null);
+
+  useRegisterShortcutTarget({
+    focusInput: () => operandARef.current?.focus(),
+    clearInput: () => {
+      setRawA('0');
+      setRawB('0');
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -87,7 +103,7 @@ export const BinaryOperationsCard: React.FC = () => {
 
         {/* Operand + operator row */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
-          <OperandField label="Operand A" value={rawA} onChange={setRawA} parsed={parsedA} />
+          <OperandField label="Operand A" value={rawA} onChange={setRawA} parsed={parsedA} inputRef={operandARef} />
 
           <div className="flex md:flex-col items-center justify-center gap-1.5 pt-1 md:pt-6">
             {OPERATORS.map(op => {
@@ -98,6 +114,8 @@ export const BinaryOperationsCard: React.FC = () => {
                   key={op.id}
                   onClick={() => setOperator(op.id)}
                   title={op.label}
+                  aria-label={op.label}
+                  aria-pressed={active}
                   className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${
                     active
                       ? 'bg-[#34E89A] text-[#0A3324] border-[#34E89A] shadow-sm shadow-[#34E89A]/40'
@@ -135,10 +153,15 @@ const OperandField: React.FC<{
   value: string;
   onChange: (v: string) => void;
   parsed: ReturnType<typeof parseBinaryOperand>;
-}> = ({ label, value, onChange, parsed }) => (
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+}> = ({ label, value, onChange, parsed, inputRef }) => {
+  const inputId = `bitforge-operand-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  return (
   <div className="space-y-1.5">
-    <label className="text-[11px] font-bold uppercase tracking-wider text-[#D9FFF4]/60">{label}</label>
+    <label htmlFor={inputId} className="text-[11px] font-bold uppercase tracking-wider text-[#D9FFF4]/60">{label}</label>
     <input
+      ref={inputRef}
+      id={inputId}
       value={value}
       onChange={e => onChange(e.target.value)}
       spellCheck={false}
@@ -155,7 +178,8 @@ const OperandField: React.FC<{
       </p>
     )}
   </div>
-);
+  );
+};
 
 const Chip: React.FC<{ label: string; value: string; tone?: 'ok' | 'warn' }> = ({ label, value, tone = 'ok' }) => (
   <div
@@ -184,53 +208,64 @@ const ResultSummary: React.FC<{
 }) => {
   const { addEntry } = useHistory();
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const setSafeTimeout = useAutoResetTimer();
 
-  if (result.kind === 'divide' && result.data.divideByZero) {
-    return (
-      <div className="glass-panel mint-glow rounded-xl p-6 text-center">
-        <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-red-300" />
-        <p className="text-sm font-bold text-red-300">Division by zero is undefined.</p>
-        <p className="text-xs text-[#D9FFF4]/60 mt-1">Operand B must be non-zero to compute A ÷ B.</p>
-      </div>
-    );
-  }
+  // Every hook in this component must run unconditionally on every render
+  // (Rules of Hooks) — so the divide-by-zero case is handled as a plain
+  // branch in what gets computed/rendered below, not as an early return
+  // before hooks like useRegisterShortcutTarget have run. An early return
+  // here previously caused React to see a different number of hooks called
+  // between a "divide by zero" render and a normal render of the same
+  // component instance (e.g. changing operand B from 0 to nonzero while
+  // dividing), which crashes with "Rendered more hooks than during the
+  // previous render."
+  const isDivByZero = result.kind === 'divide' && result.data.divideByZero;
 
-  let resultBits: string;
+  let resultBits = '';
   let extraChips: React.ReactNode = null;
 
-  if (result.kind === 'addsub') {
-    const d = result.data;
-    resultBits = d.resultBits;
-    extraChips = (
-      <>
-        <Chip label="Final Carry" value={d.finalCarryOut} />
-        {d.operator === '-' && <Chip label="Borrow" value={d.borrow ? 'Yes (A < B)' : 'No'} tone={d.borrow ? 'warn' : 'ok'} />}
-        <Chip label="Unsigned Overflow" value={d.unsignedOverflow ? 'Yes' : 'No'} tone={d.unsignedOverflow ? 'warn' : 'ok'} />
-        <Chip label="Signed Overflow" value={d.signedOverflow ? 'Yes' : 'No'} tone={d.signedOverflow ? 'warn' : 'ok'} />
-      </>
-    );
-  } else if (result.kind === 'multiply') {
-    const d = result.data;
-    resultBits = d.resultBits;
-    extraChips = (
-      <>
-        <Chip label={`Full Product (${width * 2}-bit)`} value={groupNibbles(d.fullProductBits)} />
-        <Chip label={`Fits in ${width}-bit`} value={d.overflow ? 'No — truncated' : 'Yes'} tone={d.overflow ? 'warn' : 'ok'} />
-      </>
-    );
-  } else {
-    const d = result.data;
-    resultBits = d.quotientBits;
-    extraChips = <Chip label="Remainder" value={`${groupNibbles(d.remainderBits)} (${d.decimalRemainder.toString()})`} />;
+  if (!isDivByZero) {
+    if (result.kind === 'addsub') {
+      const d = result.data;
+      resultBits = d.resultBits;
+      extraChips = (
+        <>
+          <Chip label="Final Carry" value={d.finalCarryOut} />
+          {d.operator === '-' && <Chip label="Borrow" value={d.borrow ? 'Yes (A < B)' : 'No'} tone={d.borrow ? 'warn' : 'ok'} />}
+          <Chip label="Unsigned Overflow" value={d.unsignedOverflow ? 'Yes' : 'No'} tone={d.unsignedOverflow ? 'warn' : 'ok'} />
+          <Chip label="Signed Overflow" value={d.signedOverflow ? 'Yes' : 'No'} tone={d.signedOverflow ? 'warn' : 'ok'} />
+        </>
+      );
+    } else if (result.kind === 'multiply') {
+      const d = result.data;
+      resultBits = d.resultBits;
+      extraChips = (
+        <>
+          <Chip label={`Full Product (${width * 2}-bit)`} value={groupNibbles(d.fullProductBits)} />
+          <Chip label={`Fits in ${width}-bit`} value={d.overflow ? 'No — truncated' : 'Yes'} tone={d.overflow ? 'warn' : 'ok'} />
+        </>
+      );
+    } else {
+      const d = result.data;
+      resultBits = d.quotientBits;
+      extraChips = <Chip label="Remainder" value={`${groupNibbles(d.remainderBits)} (${d.decimalRemainder.toString()})`} />;
+    }
   }
 
-  const signedVal = bitsToSignedBigInt(resultBits, width);
-  const unsignedVal = BigInt('0b' + resultBits);
+  const signedVal = isDivByZero ? 0n : bitsToSignedBigInt(resultBits, width);
+  const unsignedVal = isDivByZero ? 0n : BigInt('0b' + resultBits);
 
-  const copyResult = () => {
-    navigator.clipboard.writeText(resultBits);
+  const copyResult = async () => {
+    if (isDivByZero) return;
+    const ok = await copyTextSafe(resultBits);
+    if (!ok) {
+      setCopyFailed(true);
+      setSafeTimeout(() => setCopyFailed(false), 2000);
+      return;
+    }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setSafeTimeout(() => setCopied(false), 2000);
 
     addEntry({
       mode: 'operations',
@@ -242,6 +277,18 @@ const ResultSummary: React.FC<{
     });
   };
 
+  useRegisterShortcutTarget({ copyResult: isDivByZero ? undefined : copyResult });
+
+  if (isDivByZero) {
+    return (
+      <div className="glass-panel mint-glow rounded-xl p-6 text-center">
+        <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-red-300" />
+        <p className="text-sm font-bold text-red-300">Division by zero is undefined.</p>
+        <p className="text-xs text-[#D9FFF4]/60 mt-1">Operand B must be non-zero to compute A ÷ B.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-panel mint-glow rounded-xl p-5 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -249,18 +296,37 @@ const ResultSummary: React.FC<{
           <opMeta.icon className="w-3.5 h-3.5 text-[#34E89A]" />
           Result — A {opMeta.id} B
         </div>
-        <button
-          onClick={copyResult}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-            copied
-              ? 'bg-emerald-500 text-white'
-              : 'bg-black/20 text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#34E89A]/15 hover:border-[#34E89A]/40'
-          }`}
-          title="Copy result"
-        >
-          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-          <span>{copied ? 'Copied!' : 'Copy'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={copyResult}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+              copied
+                ? 'bg-emerald-500 text-white'
+                : copyFailed
+                ? 'bg-rose-600 text-white'
+                : 'bg-black/20 text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#34E89A]/15 hover:border-[#34E89A]/40'
+            }`}
+            title={copyFailed ? 'Copy failed \u2014 clipboard unavailable' : 'Copy result'}
+          >
+            {copied ? <Check className="w-3 h-3" /> : copyFailed ? <AlertTriangle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            <span>{copied ? 'Copied!' : copyFailed ? 'Failed' : 'Copy'}</span>
+          </button>
+          <ShareButton
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors bg-black/20 text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#34E89A]/15 hover:border-[#34E89A]/40"
+            shareTitle="BitForge Binary Operation"
+            getText={() =>
+              `BitForge Binary Operation (${width}-bit)\nA = ${rawA.trim() || '0'}\nB = ${rawB.trim() || '0'}\nOperation: A ${opMeta.id} B\nResult: ${groupNibbles(resultBits)}\nUnsigned: ${unsignedVal.toString()}\nSigned: ${signedVal.toString()}\nHex: ${bitsToHex(resultBits)}`
+            }
+            historyEntry={() => ({
+              mode: 'operations',
+              operation: `Shared A ${opMeta.id} B (${width}-bit)`,
+              input: `A=${rawA.trim() || '0'}  B=${rawB.trim() || '0'}`,
+              inputLabel: `${width}-bit Operands`,
+              output: groupNibbles(resultBits),
+              outputLabel: `Result (${opMeta.label})`,
+            })}
+          />
+        </div>
       </div>
 
       <div className="font-mono text-2xl sm:text-3xl tracking-widest text-[#34E89A] break-all">
@@ -297,7 +363,7 @@ const ResultTrace: React.FC<{ result: ReturnType<typeof computeBinaryOperation>;
 const thClass = 'px-3 py-2 text-left font-bold text-[#34E89A]/80 uppercase tracking-wider text-[10px]';
 const tdClass = 'px-3 py-2 border-t border-[#34E89A]/10 text-[#D9FFF4]';
 
-const AddSubTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> extends { kind: 'addsub'; data: infer D } ? D : never }> = ({ data }) => {
+const AddSubTrace: React.FC<{ data: AddSubResult }> = ({ data }) => {
   const rowsMsbFirst = [...data.rows].reverse();
   return (
     <div className="space-y-3">
@@ -355,7 +421,7 @@ const AddSubTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> ex
   );
 };
 
-const MultiplyTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> extends { kind: 'multiply'; data: infer D } ? D : never }> = ({ data }) => (
+const MultiplyTrace: React.FC<{ data: MultiplyResult }> = ({ data }) => (
   <div className="space-y-3">
     <p className="text-xs text-[#D9FFF4]/70 leading-relaxed">
       Shift-and-add multiplication: for every bit of B (LSB → MSB), if the bit is 1, add A shifted left by
@@ -386,7 +452,7 @@ const MultiplyTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> 
   </div>
 );
 
-const DivideTrace: React.FC<{ data: ReturnType<typeof computeBinaryOperation> extends { kind: 'divide'; data: infer D } ? D : never }> = ({ data }) => (
+const DivideTrace: React.FC<{ data: DivideResult }> = ({ data }) => (
   <div className="space-y-3">
     <p className="text-xs text-[#D9FFF4]/70 leading-relaxed">
       Restoring binary long division: process each bit of A from MSB → LSB. Shift the remainder left and

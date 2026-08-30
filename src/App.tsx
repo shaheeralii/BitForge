@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BaseType, PresetItem } from './types';
 import { autoDetectBase, convertNumber } from './utils/converter';
 import { Header, AppMode } from './components/Header';
@@ -14,6 +14,9 @@ import { Footer } from './components/Footer';
 import { FlowWaveBackground } from './components/FlowWaveBackground';
 import { BinaryOperationsCard } from './components/BinaryOperationsCard';
 import { HistoryPanel } from './components/HistoryPanel';
+import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog';
+import { useRegisterShortcutTarget, useShortcutTargetRef } from './context/ShortcutTargetContext';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Calculator, Zap, BookOpen } from 'lucide-react';
 
 export default function App() {
@@ -24,6 +27,53 @@ export default function App() {
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [customRadix, setCustomRadix] = useState<number>(12);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState<boolean>(false);
+
+  const shortcutTargetRef = useShortcutTargetRef();
+
+  // History and the Shortcuts guide are mutually exclusive overlays;
+  // opening one always closes the other so they can never stack (which
+  // would leave two backdrops and ambiguous close-on-click behavior).
+  // Wrapped in useCallback with stable setState identities so these don't
+  // get new references on every App render (e.g. every keystroke in the
+  // Converter), which would otherwise tear down and re-add the global
+  // keydown listener on every render.
+  const openHistory = useCallback(() => {
+    setIsShortcutsHelpOpen(false);
+    setIsHistoryOpen(true);
+  }, []);
+  const closeHistory = useCallback(() => setIsHistoryOpen(false), []);
+  const toggleHistory = useCallback(() => {
+    setIsShortcutsHelpOpen(false);
+    setIsHistoryOpen(o => !o);
+  }, []);
+  const openShortcutsHelp = useCallback(() => {
+    setIsHistoryOpen(false);
+    setIsShortcutsHelpOpen(true);
+  }, []);
+  const closeShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(false), []);
+  const toggleShortcutsHelp = useCallback(() => {
+    setIsHistoryOpen(false);
+    setIsShortcutsHelpOpen(o => !o);
+  }, []);
+
+  useKeyboardShortcuts({
+    targetRef: shortcutTargetRef,
+    isHistoryOpen,
+    isHelpOpen: isShortcutsHelpOpen,
+    onToggleHistory: toggleHistory,
+    onCloseHistory: closeHistory,
+    onToggleHelp: toggleShortcutsHelp,
+    onCloseHelp: closeShortcutsHelp,
+  });
+
+  // Converter mode owns inputVal directly, so its "clear" shortcut target
+  // is registered here; "focus input" and "copy result" are registered by
+  // ConversionInput and LiveBasesGrid respectively, since they own those
+  // DOM refs / copy logic.
+  useRegisterShortcutTarget(
+    activeMode === 'converter' ? { clearInput: () => setInputVal('') } : {}
+  );
 
   // Auto detect logic
   const autoDetect = useMemo(() => {
@@ -65,7 +115,12 @@ export default function App() {
 
       <div className="relative z-10">
         {/* Top Header */}
-        <Header activeMode={activeMode} onModeChange={setActiveMode} onOpenHistory={() => setIsHistoryOpen(true)} />
+        <Header
+          activeMode={activeMode}
+          onModeChange={setActiveMode}
+          onOpenHistory={openHistory}
+          onOpenShortcutsHelp={openShortcutsHelp}
+        />
 
         {/* Main Container */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -177,16 +232,19 @@ export default function App() {
         <Footer />
       </div>
 
-      {/* Conversion History Slide-Over */}
+      {/* Activity History Slide-Over */}
       <HistoryPanel
         isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
+        onClose={closeHistory}
         onReuseConverterEntry={(value) => {
           setInputVal(value);
           setIsLocked(false);
           setActiveMode('converter');
         }}
       />
+
+      {/* Keyboard Shortcuts Guide */}
+      <ShortcutsHelpDialog isOpen={isShortcutsHelpOpen} onClose={closeShortcutsHelp} />
     </div>
   );
 }

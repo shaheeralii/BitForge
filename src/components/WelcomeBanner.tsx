@@ -97,9 +97,10 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
         {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
           {/* Card 1: Number Converter */}
-          <div 
+          <button
+            type="button"
             onClick={() => onNavigate('converter')}
-            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm"
+            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm w-full text-left"
           >
             <div className="flex items-center justify-between">
               <div className="p-1.5 rounded-lg bg-[#0A3324] group-hover:bg-[#34E89A] text-[#34E89A] group-hover:text-[#0A3324] transition-colors">
@@ -113,12 +114,13 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Convert Decimal, Binary, Hex, Octal, and custom Radix (2–36) with instant step-by-step arithmetic proofs.
             </p>
-          </div>
+          </button>
 
           {/* Card 2: 32-Bit Grid */}
-          <div 
+          <button
+            type="button"
             onClick={() => onNavigate('bitgrid')}
-            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm"
+            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm w-full text-left"
           >
             <div className="flex items-center justify-between">
               <div className="p-1.5 rounded-lg bg-[#0A3324] group-hover:bg-[#34E89A] text-[#34E89A] group-hover:text-[#0A3324] transition-colors">
@@ -132,12 +134,13 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Click individual bits to flip weights (8/16/32-bit), test bit shifts, and inspect live 2's complement evaluations.
             </p>
-          </div>
+          </button>
 
           {/* Card 3: Two's Complement */}
-          <div 
+          <button
+            type="button"
             onClick={() => onNavigate('twos_complement')}
-            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm"
+            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm w-full text-left"
           >
             <div className="flex items-center justify-between">
               <div className="p-1.5 rounded-lg bg-[#0A3324] group-hover:bg-[#34E89A] text-[#34E89A] group-hover:text-[#0A3324] transition-colors">
@@ -151,12 +154,13 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Directly enter negative integers to see inversion, adding 1, overflow boundaries, and sign bit mechanics.
             </p>
-          </div>
+          </button>
 
           {/* Card 4: Text & ASCII */}
-          <div 
+          <button
+            type="button"
             onClick={() => onNavigate('ascii')}
-            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm"
+            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm w-full text-left"
           >
             <div className="flex items-center justify-between">
               <div className="p-1.5 rounded-lg bg-[#0A3324] group-hover:bg-[#34E89A] text-[#34E89A] group-hover:text-[#0A3324] transition-colors">
@@ -170,12 +174,13 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Convert strings into byte streams, viewing ASCII code points across Binary, Hex, and Octal formats.
             </p>
-          </div>
+          </button>
 
           {/* Card 5: Binary Operations */}
-          <div 
+          <button
+            type="button"
             onClick={() => onNavigate('operations')}
-            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm"
+            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm w-full text-left"
           >
             <div className="flex items-center justify-between">
               <div className="p-1.5 rounded-lg bg-[#0A3324] group-hover:bg-[#34E89A] text-[#34E89A] group-hover:text-[#0A3324] transition-colors">
@@ -189,7 +194,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Add, subtract, multiply, and divide raw binary values with full bit-by-bit derivations and overflow flags.
             </p>
-          </div>
+          </button>
         </div>
 
         {/* Navigation Quick Guide & Actions */}
