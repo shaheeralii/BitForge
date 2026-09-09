@@ -2,6 +2,7 @@ import React from 'react';
 import { BaseType, ConversionResult, StepDetail } from '../types';
 import { BASE_OPTIONS } from '../utils/converter';
 import { BookOpen, Calculator, HelpCircle, ArrowRight, Table, Binary } from 'lucide-react';
+import { DerivationDisclosure } from './DerivationDisclosure';
 
 interface StepByStepBreakdownProps {
   conversion: ConversionResult;
@@ -35,49 +36,57 @@ export const StepByStepBreakdown: React.FC<StepByStepBreakdownProps> = ({
     : BASE_OPTIONS[targetBase]?.name || `Base ${targetBase}`;
 
   return (
-    <div className="bg-white dark:bg-[#072818] rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40 p-5 sm:p-6 shadow-sm space-y-6">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#1F6B4C]/30 pb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A]">
-            <BookOpen className="w-5 h-5" />
+    <div className="bg-white dark:bg-[#072818] rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40 p-5 sm:p-6 shadow-sm">
+      <DerivationDisclosure
+        toggleLabel="Toggle step-by-step derivation"
+        bar={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-display font-semibold text-[#0A3324] dark:text-[#D9FFF4] uppercase tracking-wide">
+                  Step-by-Step Derivation
+                </h2>
+                <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80">
+                  Rigorous derivation converting <span className="font-semibold text-[#0A3324] dark:text-[#D9FFF4]">{srcName}</span> to <span className="font-semibold text-[#0AA15F] dark:text-[#34E89A]">{tgtName}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-mono font-bold bg-[#F4FAF9] dark:bg-[#0A2E1D] px-3 py-1.5 rounded-md text-[#0A3324] dark:text-[#D9FFF4] border border-slate-200 dark:border-[#1F6B4C]/40">
+              <span>{conversion.normalizedSource}</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#34E89A]" />
+              <span className="text-[#0AA15F] dark:text-[#34E89A]">
+                {targetBase === '2' ? conversion.binary
+                 : targetBase === '8' ? conversion.octal
+                 : targetBase === '16' ? conversion.hexadecimal
+                 : targetBase === 'custom' ? conversion.customBaseValue
+                 : conversion.denary}
+              </span>
+              <span className="hidden sm:inline text-[10px] font-sans font-semibold uppercase tracking-wide text-[#1F6B4C] dark:text-[#34E89A]/70 border-l border-slate-200 dark:border-[#1F6B4C]/40 pl-2 ml-0.5">
+                {conversion.steps.length} {conversion.steps.length === 1 ? 'step' : 'steps'}
+              </span>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-[#0A3324] dark:text-[#D9FFF4] uppercase tracking-wider">
-              Step-by-Step Derivation
-            </h2>
-            <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80">
-              Rigorous derivation converting <span className="font-semibold text-[#0A3324] dark:text-[#D9FFF4]">{srcName}</span> to <span className="font-semibold text-[#0AA15F] dark:text-[#34E89A]">{tgtName}</span>
-            </p>
+        }
+      >
+        <div className="border-t border-slate-100 dark:border-[#1F6B4C]/30 pt-4 space-y-4">
+          {/* List of Steps */}
+          <div className="space-y-4">
+            {conversion.steps.map((step, idx) => (
+              <StepCard key={idx} step={step} index={idx + 1} />
+            ))}
+          </div>
+
+          {/* Footer Verification Notice */}
+          <div className="pt-4 border-t border-slate-100 dark:border-[#1F6B4C]/30 italic text-[#1F6B4C] dark:text-slate-400 text-[11px] font-mono flex items-center justify-between">
+            <span>BitForge Engine Logic verified</span>
+            <span>Math Core 64-Bit Exact</span>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 text-xs font-mono font-bold bg-[#F4FAF9] dark:bg-[#0A2E1D] px-3 py-1.5 rounded-md text-[#0A3324] dark:text-[#D9FFF4] border border-slate-200 dark:border-[#1F6B4C]/40">
-          <span>{conversion.normalizedSource}</span>
-          <ArrowRight className="w-3.5 h-3.5 text-[#34E89A]" />
-          <span className="text-[#0AA15F] dark:text-[#34E89A]">
-            {targetBase === '2' ? conversion.binary
-             : targetBase === '8' ? conversion.octal
-             : targetBase === '16' ? conversion.hexadecimal
-             : targetBase === 'custom' ? conversion.customBaseValue
-             : conversion.denary}
-          </span>
-        </div>
-      </div>
-
-      {/* List of Steps */}
-      <div className="space-y-4">
-        {conversion.steps.map((step, idx) => (
-          <StepCard key={idx} step={step} index={idx + 1} />
-        ))}
-      </div>
-
-      {/* Footer Verification Notice */}
-      <div className="pt-4 border-t border-slate-100 dark:border-[#1F6B4C]/30 italic text-[#1F6B4C] dark:text-slate-400 text-[11px] font-mono flex items-center justify-between">
-        <span>BitForge Engine Logic verified</span>
-        <span>Math Core 64-Bit Exact</span>
-      </div>
+      </DerivationDisclosure>
     </div>
   );
 };

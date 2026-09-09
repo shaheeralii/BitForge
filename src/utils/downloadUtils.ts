@@ -16,11 +16,27 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/**
+ * Neutralizes spreadsheet formula injection. Many spreadsheet applications
+ * (Excel, Google Sheets, LibreOffice) treat a cell as a formula if it starts
+ * with =, +, -, or @ — so a history entry like `=cmd|'/c calc'!A1` typed
+ * into the ASCII/text tool would silently become an executable formula when
+ * the exported CSV is opened, not inert text. Prefixing with a leading
+ * apostrophe is the standard mitigation: spreadsheet apps render it as plain
+ * text while dropping the apostrophe itself from the visible value. This
+ * only applies to CSV — JSON/TXT exports aren't opened by spreadsheet
+ * software and stay untouched so they remain semantically exact.
+ */
+function neutralizeFormulaInjection(val: string): string {
+  return /^[=+\-@]/.test(val) ? `'${val}` : val;
+}
+
 function csvEscape(val: string): string {
-  if (/[",\n]/.test(val)) {
-    return `"${val.replace(/"/g, '""')}"`;
+  const safe = neutralizeFormulaInjection(val);
+  if (/[",\n]/.test(safe)) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return val;
+  return safe;
 }
 
 export function historyToCSV(entries: HistoryEntry[]): string {

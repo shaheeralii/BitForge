@@ -12,7 +12,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss)
 ![Three.js](https://img.shields.io/badge/Three.js-r143-000000?style=flat-square&logo=three.js)
 
-BitForge brings base conversion, bit-level manipulation, binary arithmetic, two's complement, and ASCII/UTF-8 encoding into one browser-based tool — built for anyone who'd rather *see* a conversion happen than read about it. Everything runs entirely client-side; there's no application backend involved.
+BitForge brings base conversion, bit-level manipulation, binary arithmetic, two's complement, floating-point representation, and ASCII/UTF-8 encoding into one browser-based tool — built for anyone who'd rather *see* a conversion happen than read about it. The six core tools run entirely client-side; the only server-side piece is a small Edge Function powering the optional **BitForge AI** learning assistant.
 
 ---
 
@@ -25,8 +25,9 @@ BitForge brings base conversion, bit-level manipulation, binary arithmetic, two'
 | 🧩 **Interactive Bit Grid** | A clickable 8/16/32-bit matrix. Toggle bits directly or use Invert, Shift Left/Right, Clear, and Set All. Live unsigned, signed, hex, and octal readouts, each copyable. |
 | ➕ **Two's Complement Engine** | Enter a signed decimal integer and get its two's complement binary/hex at a chosen width, with range/overflow detection, an invert-and-add-one breakdown, and boundary-value presets. |
 | 🔤 **Text & UTF-8 Encoding** | Encode text into real UTF-8 bytes — decimal, binary, hex, and octal per byte, plus combined byte streams for the full string — correctly handling accented characters, emoji, and anything outside plain ASCII, with each character flagged as ASCII or not. |
+| 🎚️ **Floating-Point Explorer** | See how a decimal number is stored as sign, exponent, and fraction bits, or decode an existing bit pattern back to decimal. Supports the standard Binary16/32/64 formats and a fully configurable Custom Format, with a short plain-language explanation up front and full derivation, rounding, and special-value details available on demand. |
 
-**Also included:** a searchable, persistent Activity History across all five tools; one-click copy and share (Web Share API, with a clipboard fallback) for any result; a keyboard-shortcut reference dialog (`?`); and an animated background that adapts its rendering cost to the device it's running on.
+**Also included:** a searchable, persistent Activity History across all six tools; one-click copy and share (Web Share API, with a clipboard fallback) for any result; a keyboard-shortcut reference dialog (`?`); an animated background that adapts its rendering cost to the device it's running on; and **BitForge AI**, a lightweight chat assistant that teaches number-system and encoding concepts, backing any direct conversion or two's-complement question with BitForge's own verified calculation rather than the model's own arithmetic.
 
 ---
 
@@ -56,6 +57,7 @@ BitForge/
 │   ├── App.tsx                       # Root component, mode routing & layout
 │   ├── index.css                     # Global styles, theme tokens, glass utilities
 │   ├── types.ts                      # Shared TypeScript types
+│   ├── version.ts                    # Single source of truth for the app version string
 │   ├── utils/
 │   │   ├── converter.ts              # Base conversion, auto-detection & two's complement
 │   │   ├── binaryOps.ts              # Bit-accurate add/sub/mul/div engine + step traces
@@ -83,6 +85,7 @@ BitForge/
 │       ├── ConversionInput.tsx       # Base input & auto-detect panel
 │       ├── LiveBasesGrid.tsx         # All-bases live output grid
 │       ├── StepByStepBreakdown.tsx   # Conversion derivation steps
+│       ├── DerivationDisclosure.tsx  # Shared closed-by-default toggle for derivation panels
 │       ├── BinaryOperationsCard.tsx  # Binary arithmetic UI + derivation tables
 │       ├── BitGridVisualizer.tsx     # Interactive bit grid (8/16/32-bit)
 │       ├── TwosComplementCard.tsx    # Signed integer / two's complement engine
@@ -111,11 +114,48 @@ npm run build       # outputs to dist/
 npm run preview      # preview the production build
 ```
 
+### BitForge AI setup (optional)
+
+The five core tools work with zero configuration. To also run **BitForge AI** locally or in your
+own Vercel deployment, copy `.env.example` to `.env.local` and fill in:
+
+| Variable | Where to get it |
+|---|---|
+| `GEMINI_API_KEY` | A free key from [Google AI Studio](https://aistudio.google.com/apikey) |
+| `GEMINI_MODEL` *(optional)* | Overrides the Gemini model used by `/api/chat`. Defaults to a current stable GA model — see `.env.example` before assuming the default hasn't been deprecated ([deprecation schedule](https://ai.google.dev/gemini-api/docs/deprecations)) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | A free Redis database at [Upstash](https://console.upstash.com/redis) (used only for rate limiting; if omitted, the endpoint runs without rate limiting, but if set and later unreachable, `/api/chat` fails closed rather than letting requests through unmetered) |
+
+On Vercel, set the same variables under **Project Settings → Environment Variables** — the
+`/api/chat` Edge Function picks them up automatically, and the API key never reaches the browser.
+
 ---
 
 ## Changelog
 
 All notable changes to this project are documented below, newest first.
+
+### v5.0.0 — User-Readiness, Trust, AI Learning Assistant & Polish Pass
+
+**Added**
+- **Floating-Point Explorer** — a sixth core mode covering IEEE 754-style floating-point representation, treated as one page with Sign, Binary Conversion, Normalization, Exponent & Bias, and Fraction as inspectable subsections rather than separate top-level tools. Supports the standard Binary16/32/64 formats plus a fully configurable Custom Format (exponent/fraction bit widths), with progressive disclosure — a short explanation is always visible, with detailed derivations, rounding analysis, and special-value exploration available behind expandable "Show details" controls.
+  - New generalized `utils/floatingPoint.ts` engine supporting arbitrary sign/exponent/fraction bit-width formats with software round-to-nearest-even, verified against native `DataView` ground truth for Binary32/Binary64 and known bit patterns for Binary16, and covered by a large Vitest suite.
+
+**Added**
+- **BitForge AI** — an in-app chat assistant (floating launcher, bottom-right) that teaches number-system and encoding concepts. Direct conversion or two's-complement questions are answered using BitForge's own verified conversion engine rather than the model's own arithmetic; requests are handled by a Vercel Edge Function (`/api/chat`) so the AI provider's API key never reaches the browser, with Upstash-backed rate limiting and no server-side storage of conversations.
+- **About**, **Help / FAQ**, **Privacy**, and **Disclaimer** pages, accessible from the footer.
+- MIT `LICENSE` and a `robots.txt`.
+
+**Hardened (pre-deployment security review)**
+- BitForge's verified-calculation context is now passed to Gemini exclusively via the system instruction, a channel user input can never write to — closing a prompt-injection path where a user could type their own fake "VERIFIED CALCULATION" line and have it treated as trustworthy. User-supplied text is also sanitized to strip literal occurrences of that marker as defense in depth.
+- Gemini authentication moved from the `?key=` URL query parameter to the `x-goog-api-key` header, so the key can't end up in access logs, browser history, or a `Referer` header.
+- Rate limiting now fails **closed**: if Upstash is configured but becomes unreachable at request time, `/api/chat` rejects the request (503) instead of silently letting it through unmetered. (If Upstash isn't configured at all — e.g. local development — that's treated as an intentional, known state, not a failure.)
+- Gemini model is now read from an env var (`GEMINI_MODEL`) with a currently-stable GA fallback, rather than a hardcoded model ID that can silently start 404ing after a deprecation.
+
+**Polish pass**
+- The Step-by-Step Derivation panel on the Number Converter, Two's Complement, and Binary Operations tools is now a closed-by-default disclosure (`DerivationDisclosure`) — the math is one click away instead of always taking up the page.
+- Introduced a small typographic hierarchy: Orbitron for the brand name and tool/section headings, JetBrains Mono for the version badge, navigation labels, and all numeric/code-style output (via a single Tailwind theme override), and the existing sans-serif retained for body copy and large onboarding headings.
+- The app version is now defined once in `src/version.ts` and imported by the Header, Footer, and About section, instead of being hand-typed in three places.
+- Refreshed the About / Help & FAQ / Privacy / Disclaimer content for clarity and consistency; page `<title>` and metadata updated to "BitForge - Number Systems Toolkit".
 
 ### v4.0.0 — Correctness Audit, Accessibility Pass & Adaptive Performance
 

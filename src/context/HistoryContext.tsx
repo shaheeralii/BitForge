@@ -1,10 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { HistoryEntry, HistoryMode } from '../types';
+import { BaseType, HistoryEntry, HistoryMode } from '../types';
 
 const STORAGE_KEY = 'bitforge_conversion_history';
 const MAX_ENTRIES = 200;
 
-const VALID_MODES: readonly HistoryMode[] = ['converter', 'bitgrid', 'twos_complement', 'ascii', 'operations'];
+const VALID_MODES: readonly HistoryMode[] = ['converter', 'bitgrid', 'twos_complement', 'ascii', 'operations', 'floating_point'];
+const VALID_BASES: readonly BaseType[] = ['10', '2', '8', '16', 'custom'];
 
 interface HistoryContextValue {
   entries: HistoryEntry[];
@@ -37,7 +38,11 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
     typeof v.input === 'string' &&
     typeof v.inputLabel === 'string' &&
     typeof v.output === 'string' &&
-    typeof v.outputLabel === 'string'
+    typeof v.outputLabel === 'string' &&
+    // Both are optional (older stored entries won't have them), but if
+    // present they must be well-formed rather than blindly trusted.
+    (v.sourceBase === undefined || (VALID_BASES as string[]).includes(v.sourceBase as string)) &&
+    (v.customRadix === undefined || (typeof v.customRadix === 'number' && Number.isFinite(v.customRadix)))
   );
 }
 

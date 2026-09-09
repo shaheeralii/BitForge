@@ -277,6 +277,98 @@ export function decimalIntToBase(value: bigint, radix: number): string {
 }
 
 /**
+ * Exact long division of numerator/denominator (both non-negative BigInts,
+ * numerator < denominator) into decimal digits, using only integer
+ * arithmetic. Detects a repeating cycle by tracking remainders we've already
+ * seen — the standard technique for exposing recurring decimals. Because
+ * this never touches a JS `number`, it can't produce floating-point noise
+ * like the "0.1999999999" artifacts a Math-based approach would.
+ */
+function longDivisionDecimal(
+  numerator: bigint,
+  denominator: bigint,
+  maxDigits: number
+): { digits: string; repeatStart: number | null; isExact: boolean } {
+  let remainder = numerator % denominator;
+  const seenAt = new Map<string, number>();
+  let digits = '';
+  let repeatStart: number | null = null;
+  let pos = 0;
+
+  while (remainder !== 0n && pos < maxDigits) {
+    const key = remainder.toString();
+    const priorPos = seenAt.get(key);
+    if (priorPos !== undefined) {
+      repeatStart = priorPos;
+      break;
+    }
+    seenAt.set(key, pos);
+    remainder *= 10n;
+    const digit = remainder / denominator;
+    digits += digit.toString();
+    remainder %= denominator;
+    pos++;
+  }
+
+  return { digits, repeatStart, isExact: remainder === 0n && repeatStart === null };
+}
+
+export interface ExactFractionResult {
+  /** Digits to render after the decimal point, e.g. "428571" — repeating
+   * part (if any) is NOT wrapped here; use `repeatStart` to mark it. */
+  digits: string;
+  /** Index into `digits` where the repeating cycle begins, or null if the
+   * fraction terminates exactly (or no cycle was found within the digit
+   * budget). */
+  repeatStart: number | null;
+  /** True if `digits` is the complete, exact decimal representation. */
+  isExact: boolean;
+  /** Ready-to-display string, e.g. "0.5", "0.41(6)", or "0.3333333333…" */
+  display: string;
+}
+
+/**
+ * Converts a fractional-part digit string in an arbitrary source radix
+ * (e.g. "6" in base 7, meaning 6/7) into an exact decimal representation,
+ * using BigInt numerator/denominator throughout — no floating point at any
+ * step. This is what BitForge shows the user as the "decimal" value of a
+ * source fraction, so it must never show float rounding artifacts.
+ */
+export function fractionDigitsToExactDecimal(
+  fracDigits: string,
+  radix: number,
+  maxDigits = 12
+): ExactFractionResult {
+  if (!fracDigits) {
+    return { digits: '', repeatStart: null, isExact: true, display: '' };
+  }
+
+  const bigRadix = BigInt(radix);
+  let numerator = 0n;
+  for (const ch of fracDigits) {
+    numerator = numerator * bigRadix + BigInt(DIGITS.indexOf(ch));
+  }
+  const denominator = bigRadix ** BigInt(fracDigits.length);
+
+  const { digits, repeatStart, isExact } = longDivisionDecimal(numerator, denominator, maxDigits);
+
+  let display: string;
+  if (!digits) {
+    display = '0';
+  } else if (isExact) {
+    display = digits;
+  } else if (repeatStart !== null) {
+    display = `${digits.slice(0, repeatStart)}(${digits.slice(repeatStart)})`;
+  } else {
+    // No cycle closed within the digit budget (denominator's period is
+    // longer than maxDigits) — show what we have and mark it as truncated.
+    display = `${digits}…`;
+  }
+
+  return { digits, repeatStart, isExact, display };
+}
+
+/**
  * Convert Decimal Fraction number (0.xxx) to target base string
  */
 export function decimalFracToBase(value: number, radix: number, maxDigits = 10): string {
@@ -355,12 +447,13 @@ export function convertNumber(
 
   // Generate values for standard target bases
   const intDenary = parsed.integerVal.toString();
-  // Use toFixed (not toString) to avoid scientific notation on very small fractions,
-  // then trim trailing zeros introduced by the fixed-precision expansion.
-  const fracDenary =
-    parsed.fractionVal > 0
-      ? parsed.fractionVal.toFixed(15).replace(/^0/, '').replace(/0+$/, '').replace(/^\.$/, '')
-      : ''; // e.g. ".625"
+  // Exact BigInt-based long division (see fractionDigitsToExactDecimal) —
+  // not the raw `fractionVal` float, which can carry visible rounding noise
+  // like ".42857142857142855" for non-power-of-two source radixes such as a
+  // custom base. Non-terminating results are shown with repeating-decimal
+  // parentheses, e.g. "0.41(6)", rather than an unexplained truncated float.
+  const exactDenaryFraction = fractionDigitsToExactDecimal(parsed.fractionStr, srcRadix);
+  const fracDenary = exactDenaryFraction.display ? '.' + exactDenaryFraction.display : '';
   const denaryStr = signPrefix + intDenary + fracDenary;
 
   const intBin = decimalIntToBase(parsed.integerVal, 2);
@@ -539,11 +632,16 @@ function generateBaseToDecimalSteps(
   const equationTerms: string[] = [];
   let currentPower = cleanInt.length - 1;
 
+  const bigRadixForWeights = BigInt(radix);
   for (let i = 0; i < cleanInt.length; i++) {
     const digitChar = cleanInt[i];
     const digitVal = DIGITS.indexOf(digitChar);
-    const weight = Math.pow(radix, currentPower);
-    const termValue = BigInt(digitVal) * BigInt(Math.pow(radix, currentPower));
+    // Exact BigInt exponentiation — Math.pow() loses precision past 2^53,
+    // which would silently disagree with the exact BigInt total shown as
+    // the final result for large numbers or large custom radixes. The
+    // visible derivation must always agree exactly with the real answer.
+    const weight = bigRadixForWeights ** BigInt(currentPower);
+    const termValue = BigInt(digitVal) * weight;
 
     intRows.push([
       digitChar,
@@ -576,6 +674,8 @@ function generateBaseToDecimalSteps(
   if (cleanFrac) {
     const fracRows: (string | number)[][] = [];
     const fracTerms: string[] = [];
+    const maxFractionDigits = 12;
+    const exactFrac = fractionDigitsToExactDecimal(cleanFrac, radix, maxFractionDigits);
 
     for (let i = 0; i < cleanFrac.length; i++) {
       const digitChar = cleanFrac[i];
@@ -605,9 +705,11 @@ function generateBaseToDecimalSteps(
       },
       equationLines: [
         `Fractional Sum: ${fracTerms.join(' + ')}`,
-        `Decimal Fractional Total ≈ ${parsed.fractionVal.toString()}`,
+        exactFrac.isExact
+          ? `Decimal Fractional Total = 0.${exactFrac.display}`
+          : `Decimal Fractional Total ≈ 0.${exactFrac.display} (does not terminate — shown to ${maxFractionDigits} digits${exactFrac.repeatStart !== null ? ', repeating part in parentheses' : ''})`,
       ],
-      finalResult: (parsed.integerVal.toString() + '.' + parsed.fractionVal.toString().substring(2)),
+      finalResult: `${parsed.integerVal.toString()}.${exactFrac.display}`,
     });
   }
 

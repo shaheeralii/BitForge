@@ -9,6 +9,16 @@ interface UseKeyboardShortcutsOptions {
   onCloseHistory: () => void;
   onToggleHelp: () => void;
   onCloseHelp: () => void;
+  /**
+   * True while any *other* modal/panel is open (the Info dialog, the AI
+   * chat panel, etc.) that manages its own Escape-to-close locally. While
+   * true, this hook only tracks focus restoration concerns and does not
+   * fire letter shortcuts or toggle History/Help — a dialog should behave
+   * like an isolated interaction context, not compete with the shortcuts
+   * of the page underneath it. Escape itself is left to the open dialog's
+   * own handler in that case.
+   */
+  isOtherModalOpen?: boolean;
 }
 
 function isEditableElement(el: Element | null): boolean {
@@ -33,11 +43,17 @@ export function useKeyboardShortcuts({
   onCloseHistory,
   onToggleHelp,
   onCloseHelp,
+  isOtherModalOpen = false,
 }: UseKeyboardShortcutsOptions) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Never fight the browser/OS over modified key combos.
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // Another dialog (Info, AI chat, etc.) owns the interaction right now
+      // and handles its own Escape locally — don't also toggle History/Help
+      // or run page-level shortcuts underneath it.
+      if (isOtherModalOpen) return;
 
       if (e.key === 'Escape') {
         if (isHelpOpen) {
@@ -74,5 +90,14 @@ export function useKeyboardShortcuts({
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [targetRef, isHistoryOpen, isHelpOpen, onToggleHistory, onCloseHistory, onToggleHelp, onCloseHelp]);
+  }, [
+    targetRef,
+    isHistoryOpen,
+    isHelpOpen,
+    onToggleHistory,
+    onCloseHistory,
+    onToggleHelp,
+    onCloseHelp,
+    isOtherModalOpen,
+  ]);
 }

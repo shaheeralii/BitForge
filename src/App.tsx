@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { BaseType, PresetItem } from './types';
+import { BaseType, HistoryEntry, PresetItem } from './types';
 import { autoDetectBase, convertNumber } from './utils/converter';
 import { Header, AppMode } from './components/Header';
 import { ConversionInput } from './components/ConversionInput';
@@ -13,8 +13,11 @@ import { PresetsBar } from './components/PresetsBar';
 import { Footer } from './components/Footer';
 import { FlowWaveBackground } from './components/FlowWaveBackground';
 import { BinaryOperationsCard } from './components/BinaryOperationsCard';
+import { FloatingPointCard } from './components/FloatingPointCard';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog';
+import { InfoDialog, InfoSection } from './components/InfoDialog';
+import { ChatAssistant } from './components/ChatAssistant';
 import { useRegisterShortcutTarget, useShortcutTargetRef } from './context/ShortcutTargetContext';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Calculator, Zap, BookOpen } from 'lucide-react';
@@ -28,34 +31,60 @@ export default function App() {
   const [customRadix, setCustomRadix] = useState<number>(12);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState<boolean>(false);
+  const [isInfoOpen, setIsInfoOpen] = useState<boolean>(false);
+  const [infoSection, setInfoSection] = useState<InfoSection>('about');
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
 
   const shortcutTargetRef = useShortcutTargetRef();
 
-  // History and the Shortcuts guide are mutually exclusive overlays;
-  // opening one always closes the other so they can never stack (which
-  // would leave two backdrops and ambiguous close-on-click behavior).
+  // History, the Shortcuts guide, and the Info dialog are mutually exclusive
+  // overlays; opening one always closes the others so they can never stack
+  // (which would leave two backdrops and ambiguous close-on-click behavior).
   // Wrapped in useCallback with stable setState identities so these don't
   // get new references on every App render (e.g. every keystroke in the
   // Converter), which would otherwise tear down and re-add the global
   // keydown listener on every render.
   const openHistory = useCallback(() => {
     setIsShortcutsHelpOpen(false);
+    setIsInfoOpen(false);
+    setIsChatOpen(false);
     setIsHistoryOpen(true);
   }, []);
   const closeHistory = useCallback(() => setIsHistoryOpen(false), []);
   const toggleHistory = useCallback(() => {
     setIsShortcutsHelpOpen(false);
+    setIsInfoOpen(false);
+    setIsChatOpen(false);
     setIsHistoryOpen(o => !o);
   }, []);
   const openShortcutsHelp = useCallback(() => {
     setIsHistoryOpen(false);
+    setIsInfoOpen(false);
+    setIsChatOpen(false);
     setIsShortcutsHelpOpen(true);
   }, []);
   const closeShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(false), []);
   const toggleShortcutsHelp = useCallback(() => {
     setIsHistoryOpen(false);
+    setIsInfoOpen(false);
+    setIsChatOpen(false);
     setIsShortcutsHelpOpen(o => !o);
   }, []);
+  const openInfo = useCallback((section: InfoSection) => {
+    setIsHistoryOpen(false);
+    setIsShortcutsHelpOpen(false);
+    setIsChatOpen(false);
+    setInfoSection(section);
+    setIsInfoOpen(true);
+  }, []);
+  const closeInfo = useCallback(() => setIsInfoOpen(false), []);
+  const openChat = useCallback(() => {
+    setIsHistoryOpen(false);
+    setIsShortcutsHelpOpen(false);
+    setIsInfoOpen(false);
+    setIsChatOpen(true);
+  }, []);
+  const closeChat = useCallback(() => setIsChatOpen(false), []);
 
   useKeyboardShortcuts({
     targetRef: shortcutTargetRef,
@@ -65,6 +94,7 @@ export default function App() {
     onCloseHistory: closeHistory,
     onToggleHelp: toggleShortcutsHelp,
     onCloseHelp: closeShortcutsHelp,
+    isOtherModalOpen: isInfoOpen || isChatOpen,
   });
 
   // Converter mode owns inputVal directly, so its "clear" shortcut target
@@ -224,27 +254,58 @@ export default function App() {
           {/* Binary Arithmetic Operations Mode */}
           {activeMode === 'operations' && <BinaryOperationsCard />}
 
+          {/* IEEE 754 Floating-Point Representation Mode */}
+          {activeMode === 'floating_point' && <FloatingPointCard />}
+
         </main>
       </div>
 
       {/* System Status Footer Bar */}
       <div className="relative z-10">
-        <Footer />
+        <Footer onOpenInfo={openInfo} />
       </div>
 
       {/* Activity History Slide-Over */}
       <HistoryPanel
         isOpen={isHistoryOpen}
         onClose={closeHistory}
-        onReuseConverterEntry={(value) => {
-          setInputVal(value);
-          setIsLocked(false);
+        onReuseConverterEntry={(entry: HistoryEntry) => {
+          setInputVal(entry.input);
+          if (entry.sourceBase) {
+            // A known source base was saved with this entry — restore it
+            // and lock it in, so the same entry always reproduces the same
+            // calculation rather than being handed back to auto-detect,
+            // which could land on a different interpretation than the one
+            // originally used (e.g. a value entered explicitly as binary
+            // that would otherwise auto-detect as decimal).
+            setSourceBase(entry.sourceBase);
+            setIsLocked(true);
+            if (entry.sourceBase === 'custom' && entry.customRadix) {
+              setCustomRadix(entry.customRadix);
+            }
+          } else {
+            // Older entries saved before this metadata existed — fall back
+            // to the previous behavior rather than restoring a base we
+            // don't actually know.
+            setIsLocked(false);
+          }
           setActiveMode('converter');
         }}
       />
 
       {/* Keyboard Shortcuts Guide */}
       <ShortcutsHelpDialog isOpen={isShortcutsHelpOpen} onClose={closeShortcutsHelp} />
+
+      {/* About / Help / Privacy / Disclaimer */}
+      <InfoDialog
+        isOpen={isInfoOpen}
+        activeSection={infoSection}
+        onSectionChange={setInfoSection}
+        onClose={closeInfo}
+      />
+
+      {/* AI Learning Assistant */}
+      <ChatAssistant isOpen={isChatOpen} onOpen={openChat} onClose={closeChat} />
     </div>
   );
 }

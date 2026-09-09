@@ -15,6 +15,7 @@ import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
 import { ShareButton } from './ShareButton';
 import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
 import { copyTextSafe } from '../utils/shareUtils';
+import { DerivationDisclosure } from './DerivationDisclosure';
 
 const WIDTHS: BitWidth[] = [4, 8, 16, 32, 64];
 const OPERATORS: { id: BinaryOperator; icon: React.ElementType; label: string }[] = [
@@ -74,7 +75,7 @@ export const BinaryOperationsCard: React.FC = () => {
             <Sigma className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-[#EAFFF6] uppercase tracking-wider">
+            <h2 className="text-sm font-display font-semibold text-[#EAFFF6] uppercase tracking-wide">
               Binary Arithmetic Operations
             </h2>
             <p className="text-xs text-[#34E89A]/80">
@@ -242,16 +243,29 @@ const ResultSummary: React.FC<{
       resultBits = d.resultBits;
       extraChips = (
         <>
-          <Chip label={`Full Product (${width * 2}-bit)`} value={groupNibbles(d.fullProductBits)} />
+          <Chip label={`Full Product (unsigned, ${width * 2}-bit)`} value={groupNibbles(d.fullProductBits)} />
           <Chip label={`Fits in ${width}-bit`} value={d.overflow ? 'No — truncated' : 'Yes'} tone={d.overflow ? 'warn' : 'ok'} />
         </>
       );
     } else {
       const d = result.data;
       resultBits = d.quotientBits;
-      extraChips = <Chip label="Remainder" value={`${groupNibbles(d.remainderBits)} (${d.decimalRemainder.toString()})`} />;
+      extraChips = <Chip label="Remainder (unsigned)" value={`${groupNibbles(d.remainderBits)} (${d.decimalRemainder.toString()})`} />;
     }
   }
+
+  // Multiply/divide are computed as unsigned fixed-width shift-and-add /
+  // restoring-division on the raw bit patterns — they do not decode either
+  // operand as two's complement first. For multiplication, the low `width`
+  // bits of the result happen to agree with true signed multiplication
+  // (a property of modular arithmetic), so a two's-complement reading of the
+  // *truncated* result is still valid — but the full (double-width) product
+  // above is the unsigned product, not the signed one. For division, signed
+  // and unsigned division of the same bit pattern generally give different
+  // quotients/remainders for negative operands, so the quotient/remainder
+  // here are only correct under an unsigned reading. Either way, this needs
+  // to be explicit rather than implied by an unlabeled "Signed Decimal" chip.
+  const isUnsignedOnlyOp = result.kind === 'multiply' || result.kind === 'divide';
 
   const signedVal = isDivByZero ? 0n : bitsToSignedBigInt(resultBits, width);
   const unsignedVal = isDivByZero ? 0n : BigInt('0b' + resultBits);
@@ -333,9 +347,22 @@ const ResultSummary: React.FC<{
         {groupNibbles(resultBits)}
       </div>
 
+      {isUnsignedOnlyOp && (
+        <p className="text-[11px] leading-snug text-[#D9FFF4]/60 bg-black/20 border border-[#34E89A]/15 rounded-md px-2.5 py-1.5">
+          <span className="font-semibold text-[#D9FFF4]/80">Unsigned fixed-width result.</span>{' '}
+          {result.kind === 'multiply'
+            ? "A and B are multiplied as unsigned magnitudes. The truncated result's two's-complement reading below still matches true signed multiplication, but the Full Product above is the unsigned double-width product."
+            : "A and B are divided as unsigned magnitudes. For negative two's-complement operands, this quotient/remainder will not match true signed division."}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <Chip label="Unsigned Decimal" value={unsignedVal.toString()} />
-        <Chip label="Signed Decimal (2's complement)" value={signedVal.toString()} />
+        <Chip
+          label={result.kind === 'divide' ? "Signed Decimal (2's complement reading)" : "Signed Decimal (2's complement)"}
+          value={signedVal.toString()}
+          tone={result.kind === 'divide' ? 'warn' : undefined}
+        />
         <Chip label="Hexadecimal" value={bitsToHex(resultBits)} />
         {extraChips}
       </div>
@@ -347,15 +374,22 @@ const ResultTrace: React.FC<{ result: ReturnType<typeof computeBinaryOperation>;
   if (result.kind === 'divide' && result.data.divideByZero) return null;
 
   return (
-    <div className="glass-panel rounded-xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#D9FFF4]/60">
-        <TableIcon className="w-3.5 h-3.5 text-[#34E89A]" />
-        Step-by-Step Derivation
-      </div>
-
-      {result.kind === 'addsub' && <AddSubTrace data={result.data} />}
-      {result.kind === 'multiply' && <MultiplyTrace data={result.data} />}
-      {result.kind === 'divide' && !result.data.divideByZero && <DivideTrace data={result.data} />}
+    <div className="glass-panel rounded-xl p-5 sm:p-6">
+      <DerivationDisclosure
+        toggleLabel="Toggle step-by-step derivation"
+        bar={
+          <div className="flex items-center gap-2 text-xs font-display font-semibold uppercase tracking-wide text-[#D9FFF4]/70">
+            <TableIcon className="w-3.5 h-3.5 text-[#34E89A]" />
+            Step-by-Step Derivation
+          </div>
+        }
+      >
+        <div className="pt-1">
+          {result.kind === 'addsub' && <AddSubTrace data={result.data} />}
+          {result.kind === 'multiply' && <MultiplyTrace data={result.data} />}
+          {result.kind === 'divide' && !result.data.divideByZero && <DivideTrace data={result.data} />}
+        </div>
+      </DerivationDisclosure>
     </div>
   );
 };

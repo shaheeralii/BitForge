@@ -65,7 +65,7 @@ export interface PresetItem {
   description?: string;
 }
 
-export type HistoryMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations';
+export type HistoryMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations' | 'floating_point';
 
 export interface HistoryEntry {
   id: string;
@@ -76,5 +76,26 @@ export interface HistoryEntry {
   inputLabel: string;
   output: string;
   outputLabel: string;
+  /**
+   * The exact source base the calculation used, when `mode` is 'converter'.
+   * Reusing a history entry restores this alongside `input` so the same
+   * entry always reproduces the same calculation, rather than handing the
+   * raw input string back to auto-detection to reinterpret — which can land
+   * on a different base than the one originally used (e.g. an explicitly
+   * chosen 'custom' or binary source for a value that reads as decimal by
+   * default). Optional so older stored entries without it still validate.
+   */
+  sourceBase?: BaseType;
+  /** The custom radix in effect, when `sourceBase` is 'custom'. */
+  customRadix?: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  /** Set when this assistant message represents a failed request, so the UI can offer a retry. */
+  isError?: boolean;
+  timestamp: number;
 }
 

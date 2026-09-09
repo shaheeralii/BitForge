@@ -11,9 +11,27 @@ export const AsciiConverterCard: React.FC = () => {
   const [text, setText] = useState<string>('Hello World!');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [wasTruncated, setWasTruncated] = useState(false);
   const { addEntry } = useHistory();
   const setSafeTimeout = useAutoResetTimer();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Each character renders its own row in the per-character breakdown table
+  // below, so an unbounded paste turns directly into an unbounded amount of
+  // DOM work. This is a plain text-conversion tool, not a document editor —
+  // 500 characters is generous for any educational example while keeping a
+  // pasted novel from freezing the tab.
+  const MAX_TEXT_LENGTH = 500;
+
+  const handleTextChange = (value: string) => {
+    if (value.length > MAX_TEXT_LENGTH) {
+      setText(value.slice(0, MAX_TEXT_LENGTH));
+      setWasTruncated(true);
+      setSafeTimeout(() => setWasTruncated(false), 2500);
+    } else {
+      setText(value);
+    }
+  };
 
   const converted = textToNumberSystems(text);
 
@@ -53,7 +71,7 @@ export const AsciiConverterCard: React.FC = () => {
             <Type className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-[#0A3324] dark:text-[#D9FFF4]">
+            <h2 className="text-base font-display font-semibold tracking-wide text-[#0A3324] dark:text-[#D9FFF4]">
               Text & UTF-8 Encoding
             </h2>
             <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80 mt-0.5">
@@ -90,10 +108,17 @@ export const AsciiConverterCard: React.FC = () => {
           id="bitforge-ascii-input"
           type="text"
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={e => handleTextChange(e.target.value)}
+          maxLength={MAX_TEXT_LENGTH}
           placeholder="Enter text..."
+          aria-describedby={wasTruncated ? 'bitforge-ascii-truncated' : undefined}
           className="w-full font-mono text-lg font-bold px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-[#1F6B4C]/60 bg-slate-50 dark:bg-[#030D08] text-[#0A3324] dark:text-[#D9FFF4] outline-none focus:border-[#34E89A] focus:ring-2 focus:ring-[#34E89A]/20 transition-all"
         />
+        {wasTruncated && (
+          <p id="bitforge-ascii-truncated" role="status" className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+            Trimmed to {MAX_TEXT_LENGTH} characters — that's the limit for this tool.
+          </p>
+        )}
       </div>
 
       {/* Stream Summary Cards */}
@@ -138,7 +163,7 @@ export const AsciiConverterCard: React.FC = () => {
       {/* Character-by-Character Table */}
       {text.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
+          <h3 className="text-xs font-display font-medium uppercase tracking-wide text-[#1F6B4C] dark:text-[#34E89A]">
             Character-by-Character Encoding Table
           </h3>
 

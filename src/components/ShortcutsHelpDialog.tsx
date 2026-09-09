@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Keyboard, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface ShortcutRow {
   keys: string[];
@@ -26,6 +27,7 @@ interface ShortcutsHelpDialogProps {
 export const ShortcutsHelpDialog: React.FC<ShortcutsHelpDialogProps> = ({ isOpen, onClose }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, isOpen);
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -44,7 +46,7 @@ export const ShortcutsHelpDialog: React.FC<ShortcutsHelpDialogProps> = ({ isOpen
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#1F6B4C]/30">
             <div className="flex items-center gap-2">
               <Keyboard className="w-4 h-4 text-[#34E89A]" />
-              <h2 className="text-sm font-bold text-[#D9FFF4] uppercase tracking-wider">Keyboard Shortcuts</h2>
+              <h2 className="text-sm font-display font-semibold text-[#D9FFF4] uppercase tracking-wide">Keyboard Shortcuts</h2>
             </div>
             <button
               onClick={onClose}
