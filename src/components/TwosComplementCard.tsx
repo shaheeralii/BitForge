@@ -5,6 +5,7 @@ import { useHistory } from '../context/HistoryContext';
 import { useRegisterShortcutTarget } from '../context/ShortcutTargetContext';
 import { ShareButton } from './ShareButton';
 import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
+import { DerivationDisclosure } from './DerivationDisclosure';
 
 import { copyTextSafe } from '../utils/shareUtils';
 
@@ -98,7 +99,7 @@ export const TwosComplementCard: React.FC = () => {
               <Cpu className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#0A3324] dark:text-[#D9FFF4]">
+              <h2 className="text-base font-display font-semibold tracking-wide text-[#0A3324] dark:text-[#D9FFF4]">
                 Signed Two's Complement Engine
               </h2>
               <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80 mt-0.5 font-medium">
@@ -287,16 +288,20 @@ export const TwosComplementCard: React.FC = () => {
       </div>
 
       {/* Step by Step Derivation Cards */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
-            Step-by-Step Derivation Breakdown
-          </h3>
-          <span className="text-[11px] text-[#1F6B4C] dark:text-slate-400 font-mono">
-            {numVal < 0 ? 'Negative Path: Invert Bits + 1' : 'Positive Path: Direct Binary Form'}
-          </span>
-        </div>
-
+      <div className="pt-2">
+        <DerivationDisclosure
+          toggleLabel="Toggle step-by-step derivation breakdown"
+          bar={
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-display font-semibold uppercase tracking-wide text-[#1F6B4C] dark:text-[#34E89A]">
+                Step-by-Step Derivation Breakdown
+              </h3>
+              <span className="text-[11px] text-[#1F6B4C] dark:text-slate-400 font-mono">
+                {numVal < 0 ? 'Negative Path: Invert Bits + 1' : 'Positive Path: Direct Binary Form'}
+              </span>
+            </div>
+          }
+        >
         <div className="space-y-3">
           {result.steps.map((step, idx) => (
             <div
@@ -338,6 +343,7 @@ export const TwosComplementCard: React.FC = () => {
             </div>
           ))}
         </div>
+        </DerivationDisclosure>
       </div>
 
     </div>

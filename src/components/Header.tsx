@@ -1,9 +1,10 @@
 import React from 'react';
-import { Binary, Calculator, Cpu, Type, SquareSigma, History, Keyboard } from 'lucide-react';
+import { Binary, Calculator, Cpu, Type, SquareSigma, History, Keyboard, Layers3 } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
 import { BitForgeLogo } from './BitForgeLogo';
+import { APP_VERSION } from '../version';
 
-export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations';
+export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations' | 'floating_point';
 
 interface HeaderProps {
   activeMode: AppMode;
@@ -22,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
     },
     {
       id: 'bitgrid' as AppMode,
-      label: '32-Bit Grid',
+      label: 'Bit Grid',
       icon: Binary,
     },
     {
@@ -40,6 +41,11 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
       label: 'Binary Operations',
       icon: SquareSigma,
     },
+    {
+      id: 'floating_point' as AppMode,
+      label: 'Floating Point',
+      icon: Layers3,
+    },
   ];
 
   return (
@@ -49,10 +55,10 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
         <BitForgeLogo className="w-9 h-9 shrink-0" />
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold tracking-tight text-white font-mono flex items-center gap-1.5">
+            <h1 className="text-lg font-display font-bold uppercase tracking-wide text-white flex items-center gap-1.5">
               BitForge
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-semibold bg-[#34E89A]/20 text-[#34E89A] border border-[#34E89A]/30">
-                v4.0.0
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] normal-case font-mono font-semibold tracking-wide bg-[#34E89A]/20 text-[#34E89A] border border-[#34E89A]/30">
+                v{APP_VERSION}
               </span>
             </h1>
           </div>
@@ -63,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
       </div>
 
       {/* Center Navigation Tabs */}
-      <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[#34E89A]/15 text-xs font-semibold overflow-x-auto scrollbar-none max-w-full">
+      <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[#34E89A]/15 text-xs font-mono font-medium tracking-tight overflow-x-auto scrollbar-none max-w-full">
         {modes.map(mode => {
           const Icon = mode.icon;
           const isActive = activeMode === mode.id;
@@ -109,10 +115,6 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
             </span>
           )}
         </button>
-        <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 bg-black/25 backdrop-blur-sm text-[#34E89A] text-xs font-medium rounded-full border border-[#34E89A]/30">
-          <div className="w-2 h-2 bg-[#34E89A] rounded-full animate-pulse"></div>
-          ENGINE ACTIVE
-        </div>
       </div>
     </header>
   );

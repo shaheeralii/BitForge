@@ -11,7 +11,8 @@ import {
   HelpCircle, 
   Compass, 
   CheckCircle2,
-  SquareSigma
+  SquareSigma,
+  Layers3
 } from 'lucide-react';
 
 interface WelcomeBannerProps {
@@ -72,7 +73,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white font-mono tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-white font-sans tracking-tight">
                   Welcome to BitForge
                 </h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#34E89A]/20 text-[#34E89A] border border-[#34E89A]/40 uppercase tracking-wide">
@@ -95,7 +96,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 pt-1">
           {/* Card 1: Number Converter */}
           <button
             type="button"
@@ -116,7 +117,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             </p>
           </button>
 
-          {/* Card 2: 32-Bit Grid */}
+          {/* Card 2: Bit Grid */}
           <button
             type="button"
             onClick={() => onNavigate('bitgrid')}
@@ -129,7 +130,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
               <ArrowRight className="w-3.5 h-3.5 text-[#D9FFF4]/40 group-hover:text-[#34E89A] group-hover:translate-x-0.5 transition-all" />
             </div>
             <h3 className="text-xs font-bold text-white group-hover:text-[#34E89A] transition-colors">
-              32-Bit Grid Matrix
+              Bit Grid
             </h3>
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Click individual bits to flip weights (8/16/32-bit), test bit shifts, and inspect live 2's complement evaluations.
@@ -193,6 +194,26 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             </h3>
             <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
               Add, subtract, multiply, and divide raw binary values with full bit-by-bit derivations and overflow flags.
+            </p>
+          </button>
+
+          {/* Card 6: Floating Point */}
+          <button
+            type="button"
+            onClick={() => onNavigate('floating_point')}
+            className="group cursor-pointer p-3.5 rounded-xl bg-[#072818]/80 hover:bg-[#0A3324] border border-[#1F6B4C]/50 hover:border-[#34E89A] transition-all space-y-1.5 shadow-sm w-full text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-1.5 rounded-lg bg-[#0A3324] group-hover:bg-[#34E89A] text-[#34E89A] group-hover:text-[#0A3324] transition-colors">
+                <Layers3 className="w-4 h-4" />
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-[#D9FFF4]/40 group-hover:text-[#34E89A] group-hover:translate-x-0.5 transition-all" />
+            </div>
+            <h3 className="text-xs font-bold text-white group-hover:text-[#34E89A] transition-colors">
+              Floating Point
+            </h3>
+            <p className="text-[11px] text-[#D9FFF4]/75 leading-normal">
+              See how a number is stored as sign, exponent, and fraction bits — Binary16, Binary32, Binary64, or a format you design yourself.
             </p>
           </button>
         </div>

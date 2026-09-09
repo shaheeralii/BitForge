@@ -3,14 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#041A11" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="mask-icon" href="/favicon.svg" color="#34E89A" />
-    <title>BitForge — Interactive Number Systems & Encoding Toolkit</title>
-    <meta name="description" content="BitForge — Interactive Number Systems & Encoding Toolkit for multi-base conversions, 32-bit grid inspection, two's complement, and ASCII encoding." />
-    <meta property="og:title" content="BitForge — Interactive Number Systems & Encoding Toolkit" />
-    <meta property="og:description" content="BitForge — Interactive Number Systems & Encoding Toolkit for multi-base conversions, 32-bit grid inspection, two's complement, and ASCII encoding." />
+
+    <!-- Brand/UI typography: Orbitron (display) + JetBrains Mono (technical/code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>BitForge - Number Systems Toolkit</title>
+    <meta name="description" content="BitForge - Number Systems Toolkit for multi-base conversions, an 8/16/32-bit grid visualizer, two's complement, binary arithmetic, and UTF-8 text encoding." />
+    <meta name="application-name" content="BitForge - Number Systems Toolkit" />
+    <meta property="og:site_name" content="BitForge - Number Systems Toolkit" />
+    <meta property="og:title" content="BitForge - Number Systems Toolkit" />
+    <meta property="og:description" content="BitForge - Number Systems Toolkit for multi-base conversions, an 8/16/32-bit grid visualizer, two's complement, binary arithmetic, and UTF-8 text encoding." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BitForge - Number Systems Toolkit" />
+    <meta name="twitter:description" content="BitForge - Number Systems Toolkit for multi-base conversions, an 8/16/32-bit grid visualizer, two's complement, binary arithmetic, and UTF-8 text encoding." />
+    <!--
+      Intentionally omitted: <link rel="canonical"> and og:url (need the
+      actual production domain — see the review notes) and og:image (needs a
+      real social-preview asset; there isn't one in /public yet). Adding
+      guessed or placeholder values for these would itself be the kind of
+      misleading metadata this pass was meant to fix.
+    -->
   </head>
   <body>
     <div id="root"></div>

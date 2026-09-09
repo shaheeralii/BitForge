@@ -1,6 +1,23 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Typography system
+ * -----------------
+ * - `font-display` (Orbitron): the brand wordmark and tool/section headings —
+ *   a geometric, technical-instrument feel without being decorative.
+ * - `font-mono` is re-pointed at JetBrains Mono (from the default generic
+ *   monospace stack) so every existing numeric/code-like readout, plus
+ *   compact UI/navigation labels, picks up the same technical typeface
+ *   app-wide without having to touch every call site individually.
+ * - Body copy keeps Tailwind's default sans stack — this pass is additive
+ *   typographic hierarchy, not a replacement of the reading experience.
+ */
+@theme {
+  --font-display: 'Orbitron', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
 @layer utilities {
   .scrollbar-none::-webkit-scrollbar {
     display: none;

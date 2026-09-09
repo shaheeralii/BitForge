@@ -1,15 +1,19 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useHistory } from '../context/HistoryContext';
-import { HistoryMode } from '../types';
-import { History, X, Search, Trash2, ArrowRight, RotateCcw, Calculator, Binary, Cpu, Type, SquareSigma, Download, ChevronDown } from 'lucide-react';
+import { HistoryEntry, HistoryMode } from '../types';
+import { History, X, Search, Trash2, ArrowRight, RotateCcw, Calculator, Binary, Cpu, Type, SquareSigma, Download, ChevronDown, Layers3 } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import { downloadTextFile, historyToCSV, historyToJSON, historyToTXT } from '../utils/downloadUtils';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface HistoryPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onReuseConverterEntry: (input: string) => void;
+  // Passes the full entry (not just the raw input string) so the caller can
+  // restore the original source base / custom radix rather than handing the
+  // string back to auto-detection to reinterpret.
+  onReuseConverterEntry: (entry: HistoryEntry) => void;
 }
 
 const MODE_META: Record<HistoryMode, { label: string; icon: React.ElementType }> = {
@@ -18,6 +22,7 @@ const MODE_META: Record<HistoryMode, { label: string; icon: React.ElementType }>
   twos_complement: { label: "Two's Complement", icon: Cpu },
   ascii: { label: 'Text & ASCII', icon: Type },
   operations: { label: 'Binary Operations', icon: SquareSigma },
+  floating_point: { label: 'Floating Point', icon: Layers3 },
 };
 
 function timeAgo(ts: number): string {
@@ -111,6 +116,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
 
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, isOpen);
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -136,7 +142,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#1F6B4C]/30 shrink-0">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-[#34E89A]" />
-            <h2 className="text-sm font-bold text-[#D9FFF4] uppercase tracking-wider">Activity History</h2>
+            <h2 className="text-sm font-display font-semibold text-[#D9FFF4] uppercase tracking-wide">Activity History</h2>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0A3324] text-[#34E89A] border border-[#34E89A]/30">
               {entries.length}
             </span>
@@ -225,7 +231,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
                     {entry.mode === 'converter' && (
                       <button
                         onClick={() => {
-                          onReuseConverterEntry(entry.input);
+                          onReuseConverterEntry(entry);
                           onClose();
                         }}
                         className="p-1 text-[#D9FFF4]/50 hover:text-[#34E89A] rounded transition-colors"

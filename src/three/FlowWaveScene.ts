@@ -4,6 +4,37 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { getPerfTier, PerfTier } from '../utils/devicePerf';
 
+/** Uniforms for the point-cloud wave shader material. */
+interface PointsUniforms {
+  [key: string]: THREE.IUniform<unknown>;
+  uTime: THREE.IUniform<number>;
+  uStream: THREE.IUniform<number>;
+  uAppear: THREE.IUniform<number>;
+  uColLow: THREE.IUniform<THREE.Vector3>;
+  uColHigh: THREE.IUniform<THREE.Vector3>;
+  uOpacity: THREE.IUniform<number>;
+  uSize: THREE.IUniform<number>;
+  uBrightness: THREE.IUniform<number>;
+  uWaveHeight: THREE.IUniform<number>;
+  uFlow: THREE.IUniform<number>;
+  uScale: THREE.IUniform<number>;
+  uCursor: THREE.IUniform<THREE.Vector3>;
+  uRepelRadius: THREE.IUniform<number>;
+  uRepelStrength: THREE.IUniform<number>;
+  uActivity: THREE.IUniform<number>;
+}
+
+/** Uniforms for the full-screen flame/warp composite pass. */
+interface FinalPassUniforms {
+  [key: string]: THREE.IUniform<unknown>;
+  iTime: THREE.IUniform<number>;
+  tDiffuse: THREE.IUniform<THREE.Texture | null>;
+  uBg: THREE.IUniform<THREE.Vector3>;
+  uFlameA: THREE.IUniform<THREE.Vector3>;
+  uFlameB: THREE.IUniform<THREE.Vector3>;
+  uFlameAmt: THREE.IUniform<number>;
+}
+
 // ---------------------------------------------------------------------------
 // Fixed parameters (baked in, per spec)
 // ---------------------------------------------------------------------------
@@ -184,7 +215,7 @@ export class FlowWaveScene {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private group: THREE.Group;
-  private uniforms: any;
+  private uniforms!: PointsUniforms;
 
   private sphereGeo: THREE.SphereGeometry;
   private pointsMat: THREE.ShaderMaterial;
@@ -326,7 +357,7 @@ export class FlowWaveScene {
     } else {
       const renderPass = new RenderPass(this.scene, this.camera);
 
-      const finalUniforms = {
+      const finalUniforms: FinalPassUniforms = {
         iTime: { value: 0 },
         tDiffuse: { value: null },
         uBg: { value: hexToVec3(bgColor) },
@@ -338,7 +369,7 @@ export class FlowWaveScene {
         uniforms: finalUniforms,
         vertexShader: FINAL_VERTEX,
         fragmentShader: FINAL_FRAGMENT,
-      } as any);
+      });
 
       this.composer = new EffectComposer(this.renderer);
       this.composer.addPass(renderPass);
@@ -538,6 +569,13 @@ export class FlowWaveScene {
     this.pointsMat.dispose();
     this.moteGeo.dispose();
     this.moteMat.dispose();
+    // EffectComposer.dispose() only frees its own render targets, not the
+    // materials owned by passes added to it — ShaderPass wraps our final
+    // composite shader in its own ShaderMaterial (compiled GPU program) that
+    // nothing else references, so it must be disposed explicitly here or it
+    // leaks on every WebGL context-loss/restore cycle (each of which tears
+    // down and reconstructs the whole scene).
+    this.finalPass?.material.dispose();
     this.composer?.dispose();
     this.renderer.dispose();
   }

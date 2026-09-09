@@ -7,7 +7,7 @@ import { useAutoResetTimer } from '../hooks/useAutoResetTimer';
 import { copyTextSafe } from '../utils/shareUtils';
 
 export const BitGridVisualizer: React.FC = () => {
-  const [bitWidth, setBitWidth] = useState<8 | 16 | 32>(16);
+  const [bitWidth, setBitWidth] = useState<8 | 16 | 32>(8);
   // Bits array indexed 0 (MSB) to bitWidth - 1 (LSB)
   const [bits, setBits] = useState<number[]>(() => {
     // Default value e.g. 0x00A5 = 165
@@ -98,7 +98,7 @@ export const BitGridVisualizer: React.FC = () => {
               <Binary className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#0A3324] dark:text-[#D9FFF4]">
+              <h2 className="text-base font-display font-semibold tracking-wide text-[#0A3324] dark:text-[#D9FFF4]">
                 Interactive Bit Grid Matrix
               </h2>
               <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80 mt-0.5 font-medium">

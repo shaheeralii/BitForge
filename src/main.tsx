@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { HistoryProvider } from './context/HistoryContext';
 import { ShortcutTargetProvider } from './context/ShortcutTargetContext';
+import { ChatProvider } from './context/ChatContext';
 import { getPerfTier } from './utils/devicePerf';
 import './index.css';
 
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HistoryProvider>
       <ShortcutTargetProvider>
-        <App />
+        <ChatProvider>
+          <App />
+        </ChatProvider>
       </ShortcutTargetProvider>
     </HistoryProvider>
   </StrictMode>,
