@@ -21,13 +21,13 @@ export const BitForgeLogo: React.FC<BitForgeLogoProps> = ({ className = 'w-9 h-9
   >
     <defs>
       <linearGradient id="bitforge-plate" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#0A3324" />
-        <stop offset="1" stopColor="#072818" />
+        <stop offset="0" stopColor="var(--bf-chip)" />
+        <stop offset="1" stopColor="var(--bf-surface)" />
       </linearGradient>
     </defs>
     <rect x="2" y="2" width="96" height="96" rx="22" fill="url(#bitforge-plate)" />
     {/* Scattered bit pixels */}
-    <g fill="#D9FFF4" opacity="0.9">
+    <g fill="var(--bf-heading)" opacity="0.9">
       <rect x="10" y="8" width="7" height="7" rx="1" />
       <rect x="20" y="6" width="5" height="5" rx="1" />
       <rect x="8" y="19" width="6" height="6" rx="1" />
@@ -35,9 +35,9 @@ export const BitForgeLogo: React.FC<BitForgeLogoProps> = ({ className = 'w-9 h-9
       <rect x="6" y="29" width="5" height="5" rx="1" />
     </g>
     {/* Anvil base */}
-    <polygon points="28,86 76,86 66,95 38,95" fill="#1F6B4C" />
+    <polygon points="28,86 76,86 66,95 38,95" fill="var(--bf-muted)" />
     {/* Blocky "B", built from rectangular strokes */}
-    <g fill="#34E89A">
+    <g fill="var(--bf-accent)">
       <rect x="24" y="20" width="9" height="60" />
       <rect x="24" y="20" width="24" height="9" />
       <rect x="41" y="20" width="9" height="25" />
@@ -46,11 +46,11 @@ export const BitForgeLogo: React.FC<BitForgeLogoProps> = ({ className = 'w-9 h-9
       <rect x="24" y="71" width="28" height="9" />
     </g>
     {/* "F" rendered as flag/pennant shapes */}
-    <g fill="#D9FFF4">
+    <g fill="var(--bf-heading)">
       <polygon points="58,24 84,16 84,25 64,33" />
       <polygon points="58,45 76,39 76,48 62,54" />
     </g>
     {/* Spark */}
-    <path d="M84 76 L88 80 L84 84 L80 80 Z" fill="#D9FFF4" />
+    <path d="M84 76 L88 80 L84 84 L80 80 Z" fill="var(--bf-heading)" />
   </svg>
 );

@@ -61,8 +61,8 @@ export const PRESETS: PresetItem[] = [
 export const PresetsBar: React.FC<PresetsBarProps> = ({ onSelectPreset }) => {
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-      <div className="flex items-center gap-1.5 text-[#1F6B4C] dark:text-[#34E89A] font-bold uppercase tracking-wider shrink-0 mr-1">
-        <Bookmark className="w-3.5 h-3.5 text-[#34E89A]" />
+      <div className="flex items-center gap-1.5 text-[var(--bf-muted)] dark:text-[var(--bf-accent)] font-bold uppercase tracking-wider shrink-0 mr-1">
+        <Bookmark className="w-3.5 h-3.5 text-[var(--bf-accent)]" />
         <span>Quick Presets:</span>
       </div>
 
@@ -70,7 +70,7 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({ onSelectPreset }) => {
         <button
           key={idx}
           onClick={() => onSelectPreset(p)}
-          className="shrink-0 px-3 py-1.5 rounded-lg bg-white dark:bg-[#0A2E1D] hover:bg-[#D9FFF4] hover:text-[#0A3324] dark:hover:bg-[#0A3324] dark:hover:text-[#34E89A] text-[#0A3324] dark:text-[#D9FFF4] border border-slate-200 dark:border-[#1F6B4C]/40 transition-all font-medium shadow-xs"
+          className="shrink-0 px-3 py-1.5 rounded-lg bg-white dark:bg-[var(--bf-chip-alt)] hover:bg-[var(--bf-heading)] hover:text-[var(--bf-chip)] dark:hover:bg-[var(--bf-chip)] dark:hover:text-[var(--bf-accent)] text-[var(--bf-chip)] dark:text-[var(--bf-heading)] border border-slate-200 dark:border-[var(--bf-muted)]/40 transition-all font-medium shadow-xs"
           title={p.description}
         >
           {p.label}

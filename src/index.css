@@ -1,4 +1,22 @@
 @import "tailwindcss";
+
+/*
+ * Self-hosted brand/technical typefaces (Orbitron + JetBrains Mono), latin
+ * subset only — this app has no non-Latin UI copy, so the other Google
+ * Fonts subsets (cyrillic, greek, vietnamese, etc.) would just be dead
+ * weight. Previously loaded from fonts.googleapis.com/fonts.gstatic.com at
+ * request time; now bundled locally via @fontsource so there's no
+ * third-party font request at all. Each @font-face already ships with
+ * `font-display: swap` from the package itself.
+ */
+@import "@fontsource/orbitron/latin-500.css";
+@import "@fontsource/orbitron/latin-600.css";
+@import "@fontsource/orbitron/latin-700.css";
+@import "@fontsource/jetbrains-mono/latin-400.css";
+@import "@fontsource/jetbrains-mono/latin-500.css";
+@import "@fontsource/jetbrains-mono/latin-600.css";
+@import "@fontsource/jetbrains-mono/latin-700.css";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
@@ -29,19 +47,19 @@
 
   /* Premium glass surface — sits above the FlowWave canvas */
   .glass-panel {
-    background: rgba(7, 40, 24, 0.55);
+    background: rgb(var(--bf-surface-rgb) / 55%);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(52, 232, 154, 0.14);
+    border: 1px solid rgb(var(--bf-accent-rgb) / 14%);
   }
   .glass-panel-solid {
-    background: rgba(4, 26, 17, 0.72);
+    background: rgb(var(--bf-overlay-rgb) / 72%);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
-    border: 1px solid rgba(52, 232, 154, 0.14);
+    border: 1px solid rgb(var(--bf-accent-rgb) / 14%);
   }
   .mint-glow {
-    box-shadow: 0 0 0 1px rgba(52, 232, 154, 0.12), 0 8px 30px -8px rgba(52, 232, 154, 0.25);
+    box-shadow: 0 0 0 1px rgb(var(--bf-accent-rgb) / 12%), 0 8px 30px -8px rgb(var(--bf-accent-rgb) / 25%);
   }
 
   /* "animate-fadeIn" is referenced in components but isn't a built-in
@@ -63,10 +81,10 @@ html[data-fx="reduced"] [class*="backdrop-blur"] {
   -webkit-backdrop-filter: none !important;
 }
 html[data-fx="reduced"] .glass-panel {
-  background: rgba(7, 40, 24, 0.92);
+  background: rgb(var(--bf-surface-rgb) / 92%);
 }
 html[data-fx="reduced"] .glass-panel-solid {
-  background: rgba(4, 26, 17, 0.95);
+  background: rgb(var(--bf-overlay-rgb) / 95%);
 }
 
 @keyframes fadeIn {
@@ -97,6 +115,83 @@ html[data-fx="reduced"] .glass-panel-solid {
   --color-forge-frost-light: #F2FCF9;
 }
 
+/*
+ * Theme tokens
+ * ------------
+ * BitForge ships two selectable *dark* themes (see ThemeContext /
+ * ThemeToggle) — this is a separate axis from the pre-existing
+ * `.dark`/light Tailwind variant above, which stays permanently on
+ * (see index.html) and is untouched by this system.
+ *
+ *  - "emerald"  (default): the original BitForge look, unchanged — every
+ *    value below is the exact hex this app already shipped with.
+ *  - "premium": a neutral charcoal/slate-gray surface system with the
+ *    brand emerald kept only as a restrained, desaturated accent.
+ *
+ * Components reference these via `var(--bf-*)` inside Tailwind arbitrary
+ * values (e.g. `text-[var(--bf-accent)]`) instead of hardcoded hex, so a
+ * theme switch is just these custom properties changing — no per-component
+ * rewrites. The `-rgb` variables hold space-separated R G B components for
+ * spots that need an alpha channel via `rgb(var(--bf-accent-rgb) / 20%)`.
+ *
+ * The Footer and the BitForge favicon are intentionally excluded and keep
+ * their original hardcoded emerald styling in both themes.
+ */
+:root,
+[data-theme="emerald"] {
+  --bf-app-bg: #02160c;
+  --bf-overlay: #041A11;
+  --bf-surface-deep: #030D08;
+  --bf-surface-inset: #05170D;
+  --bf-surface: #072818;
+  --bf-chip-alt: #0A2E1D;
+  --bf-chip: #0A3324;
+  --bf-chip-alt-hover: #0d3324;
+  --bf-accent: #34E89A;
+  --bf-accent-hover: #2fd08a;
+  --bf-accent-dark: #0AA15F;
+  --bf-muted: #1F6B4C;
+  --bf-heading: #D9FFF4;
+  --bf-text: #EAFFF6;
+
+  --bf-accent-rgb: 52 232 154;
+  --bf-surface-rgb: 7 40 24;
+  --bf-overlay-rgb: 4 26 17;
+}
+
+[data-theme="premium"] {
+  --bf-app-bg: #0A0B0D;
+  --bf-overlay: #111318;
+  --bf-surface-deep: #0D0F12;
+  --bf-surface-inset: #14161B;
+  --bf-surface: #17191F;
+  --bf-chip-alt: #1B1E24;
+  --bf-chip: #1F2229;
+  --bf-chip-alt-hover: #262A32;
+  --bf-accent: #7C9C8B;
+  --bf-accent-hover: #8FAE9E;
+  --bf-accent-dark: #5E7A6C;
+  --bf-muted: #9AA1AC;
+  --bf-heading: #EDEFF2;
+  --bf-text: #D8DBE0;
+
+  --bf-accent-rgb: 124 156 139;
+  --bf-surface-rgb: 23 25 31;
+  --bf-overlay-rgb: 17 19 24;
+}
+
 html, body, #root {
-  background: #02160c;
+  background: var(--bf-app-bg);
+}
+
+/* Softens the swap between themes without animating every hover/focus
+   color transition app-wide (most interactive elements already carry
+   their own `transition-colors`). Disabled entirely under reduced motion. */
+html {
+  transition: background-color 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
 }

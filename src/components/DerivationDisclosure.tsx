@@ -46,7 +46,7 @@ export const DerivationDisclosure: React.FC<DerivationDisclosureProps> = ({
       >
         <div className="flex-1 min-w-0">{bar}</div>
         <span
-          className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-black/20 border border-[#34E89A]/25 text-[#34E89A] transition-colors group-hover/disclosure:bg-[#0A3324] group-hover/disclosure:border-[#34E89A]/50"
+          className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-black/20 border border-[var(--bf-accent)]/25 text-[var(--bf-accent)] transition-colors group-hover/disclosure:bg-[var(--bf-chip)] group-hover/disclosure:border-[var(--bf-accent)]/50"
           aria-hidden="true"
         >
           <ChevronDown

@@ -29,20 +29,20 @@ const AUTHOR_LINKEDIN = 'https://www.linkedin.com/in/syedshaheer/';
 
 /** Small section heading used throughout the info content below. */
 const H = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[11px] font-display font-semibold uppercase tracking-wide text-[#34E89A] mt-5 mb-2 first:mt-0">
+  <h3 className="text-[11px] font-display font-semibold uppercase tracking-wide text-[var(--bf-accent)] mt-5 mb-2 first:mt-0">
     {children}
   </h3>
 );
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[13px] leading-relaxed text-[#D9FFF4]/85 mb-2">{children}</p>
+  <p className="text-[13px] leading-relaxed text-[var(--bf-heading)]/85 mb-2">{children}</p>
 );
 
 const AboutContent: React.FC = () => (
   <div>
     <div className="flex items-center gap-2 mb-3">
-      <GraduationCap className="w-4 h-4 text-[#34E89A]" />
-      <span className="text-[11px] font-mono text-[#D9FFF4]/60">Student-built · v{APP_VERSION}</span>
+      <GraduationCap className="w-4 h-4 text-[var(--bf-accent)]" />
+      <span className="text-[11px] font-mono text-[var(--bf-heading)]/60">Student-built · v{APP_VERSION}</span>
     </div>
 
     <P>
@@ -64,7 +64,7 @@ const AboutContent: React.FC = () => (
     <P>BitForge is designed to make experimentation, practice, and understanding easier in one place.</P>
 
     <H>What you can learn</H>
-    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[#D9FFF4]/85 space-y-1 mb-2">
+    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
       <li>Positional notation and base conversion across binary, octal, decimal, hexadecimal, and custom radices</li>
       <li>Binary arithmetic, including addition and subtraction with carry and borrow</li>
       <li>Signed number representation using two's complement</li>
@@ -94,7 +94,7 @@ const AboutContent: React.FC = () => (
         href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-[#0A3324] text-[#D9FFF4]/80 hover:text-[#34E89A] border border-[#34E89A]/25 text-xs font-medium transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-[var(--bf-chip)] text-[var(--bf-heading)]/80 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/25 text-xs font-medium transition-colors"
       >
         <Github className="w-3.5 h-3.5" /> Project repo
       </a>
@@ -102,7 +102,7 @@ const AboutContent: React.FC = () => (
         href={AUTHOR_GITHUB}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-[#0A3324] text-[#D9FFF4]/80 hover:text-[#34E89A] border border-[#34E89A]/25 text-xs font-medium transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-[var(--bf-chip)] text-[var(--bf-heading)]/80 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/25 text-xs font-medium transition-colors"
       >
         <Github className="w-3.5 h-3.5" /> Developer
       </a>
@@ -110,7 +110,7 @@ const AboutContent: React.FC = () => (
         href={AUTHOR_LINKEDIN}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-[#0A3324] text-[#D9FFF4]/80 hover:text-[#34E89A] border border-[#34E89A]/25 text-xs font-medium transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-[var(--bf-chip)] text-[var(--bf-heading)]/80 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/25 text-xs font-medium transition-colors"
       >
         <Linkedin className="w-3.5 h-3.5" /> LinkedIn
       </a>
@@ -122,13 +122,13 @@ const HelpContent: React.FC = () => (
   <div>
     <H>What is BitForge?</H>
     <P>BitForge is a collection of focused tools for exploring how numbers, bits, and text are represented and manipulated:</P>
-    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[#D9FFF4]/85 space-y-1 mb-2">
-      <li><strong className="text-[#D9FFF4]">Number Converter</strong> — Convert values between number systems with step-by-step derivations</li>
-      <li><strong className="text-[#D9FFF4]">Bit Grid</strong> — Explore 8-, 16-, and 32-bit values interactively</li>
-      <li><strong className="text-[#D9FFF4]">Two's Complement</strong> — Explore signed binary representation and value ranges</li>
-      <li><strong className="text-[#D9FFF4]">Text &amp; UTF-8</strong> — Explore how text is represented as bytes</li>
-      <li><strong className="text-[#D9FFF4]">Binary Operations</strong> — Perform and visualize common bitwise and binary arithmetic operations</li>
-      <li><strong className="text-[#D9FFF4]">Floating Point</strong> — Explore how a decimal number is stored as sign, exponent, and fraction bits (or decode one back to decimal) using the standard Binary16/32/64 formats or a custom bit-width layout</li>
+    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
+      <li><strong className="text-[var(--bf-heading)]">Number Converter</strong> — Convert values between number systems with step-by-step derivations</li>
+      <li><strong className="text-[var(--bf-heading)]">Bit Grid</strong> — Explore 8-, 16-, and 32-bit values interactively</li>
+      <li><strong className="text-[var(--bf-heading)]">Two's Complement</strong> — Explore signed binary representation and value ranges</li>
+      <li><strong className="text-[var(--bf-heading)]">Text &amp; UTF-8</strong> — Explore how text is represented as bytes</li>
+      <li><strong className="text-[var(--bf-heading)]">Binary Operations</strong> — Perform and visualize common bitwise and binary arithmetic operations</li>
+      <li><strong className="text-[var(--bf-heading)]">Floating Point</strong> — Explore how a decimal number is stored as sign, exponent, and fraction bits (or decode one back to decimal) using the standard Binary16/32/64 formats or a custom bit-width layout</li>
     </ul>
 
     <H>How do I convert a number?</H>
@@ -148,8 +148,8 @@ const HelpContent: React.FC = () => (
     <H>How does Bit Grid work?</H>
     <P>Bit Grid lets you interact directly with individual bits.</P>
     <P>
-      Click a bit to toggle it between <code className="font-mono text-[#34E89A]/90">0</code> and{' '}
-      <code className="font-mono text-[#34E89A]/90">1</code>, then see the represented decimal and
+      Click a bit to toggle it between <code className="font-mono text-[var(--bf-accent)]/90">0</code> and{' '}
+      <code className="font-mono text-[var(--bf-accent)]/90">1</code>, then see the represented decimal and
       hexadecimal values update. You can switch between 8-, 16-, and 32-bit widths.
     </P>
 
@@ -181,7 +181,7 @@ const HelpContent: React.FC = () => (
 
     <H>What input rules should I know?</H>
     <P>BitForge validates input according to the selected operation and number system.</P>
-    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[#D9FFF4]/85 space-y-1 mb-2">
+    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
       <li>Only digits valid for the selected base are accepted</li>
       <li>Binary input accepts only 0 and 1</li>
       <li>Empty input is treated as invalid rather than being interpreted as zero</li>
@@ -195,7 +195,7 @@ const HelpContent: React.FC = () => (
     <P>History can be searched by mode and exported in supported formats such as TXT, CSV, and JSON.</P>
 
     <H>Are there keyboard shortcuts?</H>
-    <P>Yes. Press <kbd className="px-1.5 py-0.5 rounded bg-[#0A3324] border border-[#34E89A]/30 text-[#34E89A] text-[11px] font-mono">?</kbd> anywhere in BitForge to open the keyboard shortcuts guide.</P>
+    <P>Yes. Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--bf-chip)] border border-[var(--bf-accent)]/30 text-[var(--bf-accent)] text-[11px] font-mono">?</kbd> anywhere in BitForge to open the keyboard shortcuts guide.</P>
 
     <H>What is BitForge AI?</H>
     <P>
@@ -213,7 +213,7 @@ const HelpContent: React.FC = () => (
 
 const PrivacyContent: React.FC = () => (
   <div>
-    <span className="text-[11px] font-mono text-[#D9FFF4]/50">Last updated: September 6, 2026</span>
+    <span className="text-[11px] font-mono text-[var(--bf-heading)]/50">Last updated: September 6, 2026</span>
 
     <P>
       BitForge is designed with privacy in mind. Its core tools run in your browser and do not
@@ -239,10 +239,10 @@ const PrivacyContent: React.FC = () => (
       conversation controls.
     </P>
     <P>Requests sent to external services may be subject to their own data-handling and retention policies.</P>
-    <P><strong className="text-[#D9FFF4]">Do not enter passwords, confidential information, or other sensitive personal information into BitForge AI.</strong></P>
+    <P><strong className="text-[var(--bf-heading)]">Do not enter passwords, confidential information, or other sensitive personal information into BitForge AI.</strong></P>
 
     <H>Local Storage</H>
-    <P>BitForge uses your browser's <code className="font-mono text-[#34E89A]/90">localStorage</code> for limited features such as conversion history and certain interface preferences.</P>
+    <P>BitForge uses your browser's <code className="font-mono text-[var(--bf-accent)]/90">localStorage</code> for limited features such as conversion history and certain interface preferences.</P>
     <P>This information remains on your device unless you clear the relevant site data.</P>
 
     <H>Rate Limiting</H>
@@ -254,10 +254,10 @@ const PrivacyContent: React.FC = () => (
 
     <H>Hosting &amp; Third-Party Services</H>
     <P>BitForge is hosted on Vercel and currently uses:</P>
-    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[#D9FFF4]/85 space-y-1 mb-2">
-      <li><strong className="text-[#D9FFF4]">Vercel</strong> — hosting and server-side functions</li>
-      <li><strong className="text-[#D9FFF4]">Google Gemini API</strong> — AI response generation</li>
-      <li><strong className="text-[#D9FFF4]">Upstash Redis</strong> — rate limiting</li>
+    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
+      <li><strong className="text-[var(--bf-heading)]">Vercel</strong> — hosting and server-side functions</li>
+      <li><strong className="text-[var(--bf-heading)]">Google Gemini API</strong> — AI response generation</li>
+      <li><strong className="text-[var(--bf-heading)]">Upstash Redis</strong> — rate limiting</li>
     </ul>
     <P>Hosting and external service providers may process technical or service-related information as necessary to operate their services and are governed by their own terms and privacy policies.</P>
 
@@ -272,7 +272,7 @@ const PrivacyContent: React.FC = () => (
 const DisclaimerContent: React.FC = () => (
   <div>
     <P>BitForge is provided for educational and informational purposes only.</P>
-    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[#D9FFF4]/85 space-y-1.5 mb-2">
+    <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1.5 mb-2">
       <li>Results should be independently checked when accuracy is important, including for exams, coursework, or professional use.</li>
       <li>BitForge is not a substitute for authoritative academic, technical, or professional resources.</li>
       <li>While reasonable care is taken to ensure accuracy, the software may contain bugs, limitations, or unexpected edge-case errors.</li>
@@ -314,19 +314,27 @@ export const InfoDialog: React.FC<InfoDialogProps> = ({ isOpen, activeSection, o
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} aria-hidden="true" />
+      {/* Purely visual dimming layer — click-to-close is handled by the
+          wrapper below, since that's the element that actually receives
+          clicks anywhere outside the dialog card (this backdrop sits under
+          it and would never see a click of its own). */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" aria-hidden="true" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="BitForge information"
         tabIndex={-1}
+        onClick={onClose}
         className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
       >
-        <div className="w-full max-w-2xl max-h-[85dvh] bg-[#041A11] border border-[#34E89A]/20 rounded-xl shadow-2xl animate-fadeIn overflow-hidden flex flex-col sm:flex-row">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-2xl max-h-[85dvh] bg-[var(--bf-overlay)] border border-[var(--bf-accent)]/20 rounded-xl shadow-2xl animate-fadeIn overflow-hidden flex flex-col sm:flex-row"
+        >
           {/* Tabs: horizontal scroll strip on mobile, vertical rail on larger screens */}
           <nav
-            className="flex sm:flex-col gap-1 p-2 sm:p-3 sm:w-44 shrink-0 border-b sm:border-b-0 sm:border-r border-[#1F6B4C]/30 overflow-x-auto sm:overflow-visible scrollbar-none bg-black/15"
+            className="flex sm:flex-col gap-1 p-2 sm:p-3 sm:w-44 shrink-0 border-b sm:border-b-0 sm:border-r border-[var(--bf-muted)]/30 overflow-x-auto sm:overflow-visible scrollbar-none bg-black/15"
             aria-label="Information sections"
           >
             {TABS.map(tab => {
@@ -339,8 +347,8 @@ export const InfoDialog: React.FC<InfoDialogProps> = ({ isOpen, activeSection, o
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap text-xs font-mono font-medium tracking-tight transition-colors shrink-0 ${
                     isActive
-                      ? 'bg-[#34E89A] text-[#0A3324] font-semibold'
-                      : 'text-[#D9FFF4]/70 hover:text-white hover:bg-white/5'
+                      ? 'bg-[var(--bf-accent)] text-[var(--bf-chip)] font-semibold'
+                      : 'text-[var(--bf-heading)]/70 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -350,17 +358,17 @@ export const InfoDialog: React.FC<InfoDialogProps> = ({ isOpen, activeSection, o
             })}
           </nav>
 
-          <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#1F6B4C]/30 shrink-0">
+          <div className="flex flex-col min-w-0 flex-1 min-h-0">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--bf-muted)]/30 shrink-0">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#34E89A]" />
-                <h2 className="text-sm font-display font-semibold text-[#D9FFF4] uppercase tracking-wide">
+                <Sparkles className="w-4 h-4 text-[var(--bf-accent)]" />
+                <h2 className="text-sm font-display font-semibold text-[var(--bf-heading)] uppercase tracking-wide">
                   {TABS.find(t => t.id === activeSection)?.label}
                 </h2>
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 text-[#D9FFF4]/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 text-[var(--bf-heading)]/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                 title="Close"
                 aria-label="Close"
               >
@@ -368,7 +376,7 @@ export const InfoDialog: React.FC<InfoDialogProps> = ({ isOpen, activeSection, o
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 overflow-y-auto">
+            <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto overscroll-contain">
               <ActiveContent />
             </div>
           </div>

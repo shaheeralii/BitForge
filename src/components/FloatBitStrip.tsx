@@ -17,24 +17,24 @@ interface FloatBitStripProps {
 const SEGMENT_META: Record<FloatSegment, { label: string; base: string; active: string; text: string; ring: string }> = {
   sign: {
     label: 'Sign',
-    base: 'bg-[#030D08] border-amber-500/30 text-amber-200/70',
+    base: 'bg-[var(--bf-surface-deep)] border-amber-500/30 text-amber-200/70',
     active: 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.3)]',
     text: 'text-amber-300',
     ring: 'ring-amber-400/40',
   },
   exponent: {
     label: 'Exponent',
-    base: 'bg-[#030D08] border-sky-500/30 text-sky-200/70',
+    base: 'bg-[var(--bf-surface-deep)] border-sky-500/30 text-sky-200/70',
     active: 'bg-sky-500/20 border-sky-400 text-sky-200 shadow-[0_0_0_1px_rgba(56,189,248,0.3)]',
     text: 'text-sky-300',
     ring: 'ring-sky-400/40',
   },
   fraction: {
     label: 'Fraction',
-    base: 'bg-[#030D08] border-[#34E89A]/30 text-[#34E89A]/70',
-    active: 'bg-[#34E89A]/20 border-[#34E89A] text-[#D9FFF4] shadow-[0_0_0_1px_rgba(52,232,154,0.35)]',
-    text: 'text-[#34E89A]',
-    ring: 'ring-[#34E89A]/40',
+    base: 'bg-[var(--bf-surface-deep)] border-[var(--bf-accent)]/30 text-[var(--bf-accent)]/70',
+    active: 'bg-[var(--bf-accent)]/20 border-[var(--bf-accent)] text-[var(--bf-heading)] shadow-[0_0_0_1px_rgb(var(--bf-accent-rgb)/35%)]',
+    text: 'text-[var(--bf-accent)]',
+    ring: 'ring-[var(--bf-accent)]/40',
   },
 };
 

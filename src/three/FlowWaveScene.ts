@@ -35,19 +35,53 @@ interface FinalPassUniforms {
   uFlameAmt: THREE.IUniform<number>;
 }
 
+export type FlowWaveTheme = 'emerald' | 'premium';
+
+interface FlowWavePalette {
+  bgColor: string;
+  flameColor: string;
+  flameColor2: string;
+  flameAmt: number;
+  atmoColor: string;
+  colorLow: string;
+  colorHigh: string;
+}
+
+// The original BitForge look — unchanged from the previous fixed values.
+const EMERALD_PALETTE: FlowWavePalette = {
+  bgColor: '#02160c',
+  flameColor: '#0aff7f',
+  flameColor2: '#aef0c0',
+  flameAmt: 0.2,
+  atmoColor: '#7affbf',
+  colorLow: '#02160c',
+  colorHigh: '#34e89a',
+};
+
+// Premium Dark Gray — neutral charcoal foundation; the warp/flame overlay is
+// dialed way down (no glow) and the point-cloud gradient tops out at the
+// same restrained sage accent used by the rest of the Premium theme, rather
+// than bright emerald.
+const PREMIUM_PALETTE: FlowWavePalette = {
+  bgColor: '#0A0B0D',
+  flameColor: '#3A4048',
+  flameColor2: '#565F68',
+  flameAmt: 0.06,
+  atmoColor: '#6B7280',
+  colorLow: '#0A0B0D',
+  colorHigh: '#7C9C8B',
+};
+
+function paletteFor(theme: FlowWaveTheme): FlowWavePalette {
+  return theme === 'premium' ? PREMIUM_PALETTE : EMERALD_PALETTE;
+}
+
 // ---------------------------------------------------------------------------
-// Fixed parameters (baked in, per spec)
+// Fixed parameters (baked in, per spec) — theme-independent
 // ---------------------------------------------------------------------------
-const bgColor = '#02160c';
-const flameColor = '#0aff7f';
-const flameColor2 = '#aef0c0';
-const flameAmt = 0.2;
-const atmoColor = '#7affbf';
 const atmoCount = 300;
 const atmoSize = 24;
 const atmoSpeed = 1.0;
-const colorLow = '#02160c';
-const colorHigh = '#34e89a';
 const opacity = 0.26;
 const pointSize = 5.5;
 const brightness = 0.45;
@@ -247,12 +281,16 @@ export class FlowWaveScene {
   private reducedMotion: boolean;
   private mql: MediaQueryList | null = null;
 
+  private theme: FlowWaveTheme;
+
   private _ndc = new THREE.Vector3();
   private _dir = new THREE.Vector3();
   private _tgt = new THREE.Vector3();
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, theme: FlowWaveTheme = 'emerald') {
     this.canvas = canvas;
+    this.theme = theme;
+    const palette = paletteFor(theme);
 
     this.reducedMotion = typeof window.matchMedia === 'function'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -283,8 +321,8 @@ export class FlowWaveScene {
       uTime: { value: 0 },
       uStream: { value: 0 },
       uAppear: { value: 0 },
-      uColLow: { value: hexToVec3(colorLow) },
-      uColHigh: { value: hexToVec3(colorHigh) },
+      uColLow: { value: hexToVec3(palette.colorLow) },
+      uColHigh: { value: hexToVec3(palette.colorHigh) },
       uOpacity: { value: opacity },
       uSize: { value: pointSize },
       uBrightness: { value: brightness },
@@ -328,7 +366,7 @@ export class FlowWaveScene {
     this.moteMat = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
-        uColor: { value: hexToVec3(atmoColor) },
+        uColor: { value: hexToVec3(palette.atmoColor) },
         uRes: { value: new THREE.Vector2(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio) },
       },
       vertexShader: MOTE_VERTEX,
@@ -360,10 +398,10 @@ export class FlowWaveScene {
       const finalUniforms: FinalPassUniforms = {
         iTime: { value: 0 },
         tDiffuse: { value: null },
-        uBg: { value: hexToVec3(bgColor) },
-        uFlameA: { value: hexToVec3(flameColor) },
-        uFlameB: { value: hexToVec3(flameColor2) },
-        uFlameAmt: { value: flameAmt },
+        uBg: { value: hexToVec3(palette.bgColor) },
+        uFlameA: { value: hexToVec3(palette.flameColor) },
+        uFlameB: { value: hexToVec3(palette.flameColor2) },
+        uFlameAmt: { value: palette.flameAmt },
       };
       this.finalPass = new ShaderPass({
         uniforms: finalUniforms,
@@ -392,6 +430,35 @@ export class FlowWaveScene {
     if (typeof window.matchMedia === 'function') {
       this.mql = window.matchMedia('(prefers-reduced-motion: reduce)');
       this.mql.addEventListener?.('change', this.onMotionPrefChange);
+    }
+  }
+
+  /**
+   * Re-tints the scene in place for the given theme — no geometry, camera,
+   * or renderer changes, just the handful of color/intensity uniforms, so
+   * it's cheap enough to call on every theme toggle. When the render loop
+   * is paused (reduced motion), a single frame is re-rendered immediately
+   * so the change is visible without needing motion.
+   */
+  public setTheme(theme: FlowWaveTheme) {
+    if (this.theme === theme) return;
+    this.theme = theme;
+    const palette = paletteFor(theme);
+
+    this.uniforms.uColLow.value = hexToVec3(palette.colorLow);
+    this.uniforms.uColHigh.value = hexToVec3(palette.colorHigh);
+    this.moteMat.uniforms.uColor.value = hexToVec3(palette.atmoColor);
+
+    if (this.finalPass) {
+      const finalUniforms = this.finalPass.uniforms as FinalPassUniforms;
+      finalUniforms.uBg.value = hexToVec3(palette.bgColor);
+      finalUniforms.uFlameA.value = hexToVec3(palette.flameColor);
+      finalUniforms.uFlameB.value = hexToVec3(palette.flameColor2);
+      finalUniforms.uFlameAmt.value = palette.flameAmt;
+    }
+
+    if (this.reducedMotion) {
+      this.renderScene();
     }
   }
 
