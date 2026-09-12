@@ -50,7 +50,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       title={shareCapable ? 'Share this result' : 'Copy this result (sharing isn\u2019t supported on this device)'}
       className={
         className ||
-        'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors bg-black/20 text-[#D9FFF4]/70 hover:text-[#34E89A] border border-[#34E89A]/15 hover:border-[#34E89A]/40'
+        'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors bg-black/20 text-[var(--bf-heading)]/70 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/15 hover:border-[var(--bf-accent)]/40'
       }
     >
       {status === 'idle' && (shareCapable ? <Share2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />)}

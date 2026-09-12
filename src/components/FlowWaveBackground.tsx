@@ -1,27 +1,35 @@
 import React, { useEffect, useRef } from 'react';
 import { FlowWaveScene } from '../three/FlowWaveScene';
+import { useTheme } from '../context/ThemeContext';
 
 /**
- * Full-viewport animated emerald/mint particle-wave backdrop.
+ * Full-viewport animated particle-wave backdrop. Its color palette follows
+ * the selected app theme (see ThemeContext) — bright emerald for the
+ * original theme, a restrained neutral tint for Premium Dark — via
+ * FlowWaveScene.setTheme(), which re-tints in place without rebuilding the
+ * WebGL scene.
  * Fixed behind all app content (z-index: 0), pointer-events disabled so it
  * never intercepts clicks. App surfaces sit on top using translucent /
  * backdrop-blurred "glass" panels so the wave reads through them.
  */
 export const FlowWaveBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sceneRef = useRef<FlowWaveScene | null>(null);
+  const { theme } = useTheme();
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
 
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    let scene: FlowWaveScene | null = null;
 
     const create = () => {
       try {
-        scene = new FlowWaveScene(canvas);
+        sceneRef.current = new FlowWaveScene(canvas, themeRef.current);
       } catch (e) {
         // Fail silently to a plain gradient background if WebGL is unavailable.
         console.warn('FlowWaveScene failed to initialize:', e);
-        scene = null;
+        sceneRef.current = null;
       }
     };
 
@@ -35,8 +43,8 @@ export const FlowWaveBackground: React.FC = () => {
     // scratch since the old context's GPU resources are gone.
     const handleContextLost = (e: Event) => {
       e.preventDefault();
-      scene?.dispose();
-      scene = null;
+      sceneRef.current?.dispose();
+      sceneRef.current = null;
     };
 
     const handleContextRestored = () => {
@@ -51,9 +59,16 @@ export const FlowWaveBackground: React.FC = () => {
     return () => {
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
-      scene?.dispose();
+      sceneRef.current?.dispose();
+      sceneRef.current = null;
     };
   }, []);
+
+  // Re-tint the already-running scene when the theme changes, instead of
+  // tearing down and recreating the whole WebGL scene.
+  useEffect(() => {
+    sceneRef.current?.setTheme(theme);
+  }, [theme]);
 
   return (
     <canvas
@@ -67,7 +82,7 @@ export const FlowWaveBackground: React.FC = () => {
         height: '100vh',
         zIndex: 0,
         pointerEvents: 'none',
-        background: '#02160c',
+        background: 'var(--bf-app-bg)',
       }}
     />
   );

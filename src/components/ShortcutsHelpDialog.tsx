@@ -33,24 +33,32 @@ export const ShortcutsHelpDialog: React.FC<ShortcutsHelpDialogProps> = ({ isOpen
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} aria-hidden="true" />
+      {/* Purely visual dimming layer — click-to-close is handled by the
+          wrapper below, since that's the element that actually receives
+          clicks anywhere outside the dialog card (this backdrop sits under
+          it and would never see a click of its own). */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" aria-hidden="true" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Keyboard shortcuts"
         tabIndex={-1}
+        onClick={onClose}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <div className="w-full max-w-sm bg-[#041A11] border border-[#34E89A]/20 rounded-xl shadow-2xl animate-fadeIn overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#1F6B4C]/30">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-sm bg-[var(--bf-overlay)] border border-[var(--bf-accent)]/20 rounded-xl shadow-2xl animate-fadeIn overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--bf-muted)]/30">
             <div className="flex items-center gap-2">
-              <Keyboard className="w-4 h-4 text-[#34E89A]" />
-              <h2 className="text-sm font-display font-semibold text-[#D9FFF4] uppercase tracking-wide">Keyboard Shortcuts</h2>
+              <Keyboard className="w-4 h-4 text-[var(--bf-accent)]" />
+              <h2 className="text-sm font-display font-semibold text-[var(--bf-heading)] uppercase tracking-wide">Keyboard Shortcuts</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 text-[#D9FFF4]/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="p-1.5 text-[var(--bf-heading)]/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               title="Close"
               aria-label="Close keyboard shortcuts"
             >
@@ -61,12 +69,12 @@ export const ShortcutsHelpDialog: React.FC<ShortcutsHelpDialogProps> = ({ isOpen
           <div className="p-4 space-y-2.5">
             {SHORTCUTS.map(row => (
               <div key={row.description} className="flex items-center justify-between gap-3">
-                <span className="text-xs text-[#D9FFF4]/80">{row.description}</span>
+                <span className="text-xs text-[var(--bf-heading)]/80">{row.description}</span>
                 <span className="flex items-center gap-1 shrink-0">
                   {row.keys.map((k, i) => (
                     <React.Fragment key={k}>
-                      {i > 0 && <span className="text-[#D9FFF4]/30 text-[10px]">+</span>}
-                      <kbd className="px-1.5 py-0.5 rounded-md bg-[#0A3324] border border-[#34E89A]/30 text-[#34E89A] text-[10px] font-mono font-bold">
+                      {i > 0 && <span className="text-[var(--bf-heading)]/30 text-[10px]">+</span>}
+                      <kbd className="px-1.5 py-0.5 rounded-md bg-[var(--bf-chip)] border border-[var(--bf-accent)]/30 text-[var(--bf-accent)] text-[10px] font-mono font-bold">
                         {k}
                       </kbd>
                     </React.Fragment>
@@ -77,7 +85,7 @@ export const ShortcutsHelpDialog: React.FC<ShortcutsHelpDialogProps> = ({ isOpen
           </div>
 
           <div className="px-4 pb-4">
-            <p className="text-[10px] text-[#D9FFF4]/35 leading-relaxed">
+            <p className="text-[10px] text-[var(--bf-heading)]/35 leading-relaxed">
               Letter shortcuts only work when you're not typing in a field, so they never interrupt normal input.
               Every shortcut also has a visible button in the interface.
             </p>

@@ -89,20 +89,20 @@ export const TwosComplementCard: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white dark:bg-[#072818] rounded-xl border border-slate-200 dark:border-[#1F6B4C]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
+    <div className="bg-white dark:bg-[var(--bf-surface)] rounded-xl border border-slate-200 dark:border-[var(--bf-muted)]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[#1F6B4C]/30 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-[var(--bf-muted)]/30 pb-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shadow-sm">
+            <div className="p-2 rounded-lg bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm">
               <Cpu className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-display font-semibold tracking-wide text-[#0A3324] dark:text-[#D9FFF4]">
+              <h2 className="text-base font-display font-semibold tracking-wide text-[var(--bf-chip)] dark:text-[var(--bf-heading)]">
                 Signed Two's Complement Engine
               </h2>
-              <p className="text-xs text-[#1F6B4C] dark:text-[#34E89A]/80 mt-0.5 font-medium">
+              <p className="text-xs text-[var(--bf-muted)] dark:text-[var(--bf-accent)]/80 mt-0.5 font-medium">
                 Step-by-step arithmetic inversion, binary encoding, and MSB sign-bit derivation
               </p>
             </div>
@@ -110,7 +110,7 @@ export const TwosComplementCard: React.FC = () => {
         </div>
 
         {/* Bit Width Switcher */}
-        <div className="flex items-center gap-1.5 bg-[#F4FAF9] dark:bg-[#0A2E1D] p-1 rounded-lg border border-slate-200 dark:border-[#1F6B4C]/40 text-xs font-bold">
+        <div className="flex items-center gap-1.5 bg-[#F4FAF9] dark:bg-[var(--bf-chip-alt)] p-1 rounded-lg border border-slate-200 dark:border-[var(--bf-muted)]/40 text-xs font-bold">
           {[8, 16, 32].map(w => (
             <button
               key={w}
@@ -118,8 +118,8 @@ export const TwosComplementCard: React.FC = () => {
               aria-pressed={bitWidth === w}
               className={`px-3 py-1.5 rounded-md transition-all ${
                 bitWidth === w
-                  ? 'bg-[#0A3324] text-[#34E89A] shadow-sm font-bold border border-[#34E89A]/40'
-                  : 'text-[#1F6B4C] dark:text-slate-400 hover:text-[#0A3324] dark:hover:text-[#D9FFF4]'
+                  ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm font-bold border border-[var(--bf-accent)]/40'
+                  : 'text-[var(--bf-muted)] dark:text-slate-400 hover:text-[var(--bf-chip)] dark:hover:text-[var(--bf-heading)]'
               }`}
             >
               {w}-Bit Architecture
@@ -134,10 +134,10 @@ export const TwosComplementCard: React.FC = () => {
         {/* Left Input Field */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label htmlFor="bitforge-twos-complement-input" className="text-xs font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-[#34E89A]">
+            <label htmlFor="bitforge-twos-complement-input" className="text-xs font-bold uppercase tracking-wider text-[var(--bf-muted)] dark:text-[var(--bf-accent)]">
               Signed Decimal Input
             </label>
-            <span className="text-[11px] font-mono text-[#1F6B4C] dark:text-slate-400">
+            <span className="text-[11px] font-mono text-[var(--bf-muted)] dark:text-slate-400">
               Direct Negative Allowed
             </span>
           </div>
@@ -151,10 +151,10 @@ export const TwosComplementCard: React.FC = () => {
               value={inputStr}
               onChange={e => handleInputChange(e.target.value)}
               placeholder="Enter negative or positive integer (e.g. -42)..."
-              className={`w-full font-mono text-2xl sm:text-3xl font-bold px-4 py-3 rounded-xl border-2 transition-all outline-none bg-slate-50 dark:bg-[#030D08] ${
+              className={`w-full font-mono text-2xl sm:text-3xl font-bold px-4 py-3 rounded-xl border-2 transition-all outline-none bg-slate-50 dark:bg-[var(--bf-surface-deep)] ${
                 isOutOfRange
                   ? 'border-rose-400 text-rose-600 dark:text-rose-400 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-slate-200 dark:border-[#1F6B4C]/60 text-[#0A3324] dark:text-[#D9FFF4] focus:border-[#34E89A] focus:ring-2 focus:ring-[#34E89A]/20'
+                  : 'border-slate-200 dark:border-[var(--bf-muted)]/60 text-[var(--bf-chip)] dark:text-[var(--bf-heading)] focus:border-[var(--bf-accent)] focus:ring-2 focus:ring-[var(--bf-accent)]/20'
               }`}
             />
 
@@ -162,7 +162,7 @@ export const TwosComplementCard: React.FC = () => {
             <button
               type="button"
               onClick={toggleSign}
-              className="absolute right-3 px-2.5 py-1.5 rounded-lg bg-[#0A3324] hover:bg-[#1F6B4C] text-[#34E89A] hover:text-white font-mono text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
+              className="absolute right-3 px-2.5 py-1.5 rounded-lg bg-[var(--bf-chip)] hover:bg-[var(--bf-muted)] text-[var(--bf-accent)] hover:text-white font-mono text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
               title="Invert Sign (+ / -)"
             >
               <span className="text-sm font-bold">±</span>
@@ -171,7 +171,7 @@ export const TwosComplementCard: React.FC = () => {
           </div>
 
           {/* Range indicator and out-of-range alert */}
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#1F6B4C] dark:text-slate-400 pt-1">
+          <div className="flex items-center justify-between text-[11px] font-mono text-[var(--bf-muted)] dark:text-slate-400 pt-1">
             <span>Range: [{minVal.toLocaleString()} to {maxVal.toLocaleString()}]</span>
             {isOutOfRange && (
               <span className="flex items-center gap-1 text-rose-500 font-bold">
@@ -182,7 +182,7 @@ export const TwosComplementCard: React.FC = () => {
 
           {/* Quick Boundary Preset Pills */}
           <div className="pt-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F6B4C] dark:text-slate-500 block mb-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-muted)] dark:text-slate-500 block mb-1.5">
               Quick Test Values:
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -193,8 +193,8 @@ export const TwosComplementCard: React.FC = () => {
                   aria-pressed={inputStr === p.value}
                   className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors ${
                     inputStr === p.value
-                      ? 'bg-[#0A3324] text-[#34E89A] border-[#34E89A]'
-                      : 'bg-[#F4FAF9] dark:bg-[#0A2E1D] text-[#1F6B4C] dark:text-slate-300 border-slate-200 dark:border-[#1F6B4C]/40 hover:border-[#34E89A]'
+                      ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]'
+                      : 'bg-[#F4FAF9] dark:bg-[var(--bf-chip-alt)] text-[var(--bf-muted)] dark:text-slate-300 border-slate-200 dark:border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'
                   }`}
                 >
                   {p.label}
@@ -205,33 +205,33 @@ export const TwosComplementCard: React.FC = () => {
         </div>
 
         {/* Right Output Box */}
-        <div className="bg-[#0A3324] text-white p-5 rounded-xl border border-[#1F6B4C]/60 flex flex-col justify-between shadow-sm relative overflow-hidden">
+        <div className="bg-[var(--bf-chip)] text-white p-5 rounded-xl border border-[var(--bf-muted)]/60 flex flex-col justify-between shadow-sm relative overflow-hidden">
           {/* Subtle Background Glow */}
-          <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-[#34E89A]/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-[var(--bf-accent)]/10 rounded-full blur-2xl pointer-events-none" />
 
           <div>
-            <div className="flex items-center justify-between text-xs text-[#34E89A]">
+            <div className="flex items-center justify-between text-xs text-[var(--bf-accent)]">
               <span className="font-bold tracking-wider uppercase">{bitWidth}-Bit Signed Binary Output</span>
-              <span className="font-mono bg-[#041A11] px-2 py-0.5 rounded text-[#D9FFF4] border border-[#1F6B4C]/50">
+              <span className="font-mono bg-[var(--bf-overlay)] px-2 py-0.5 rounded text-[var(--bf-heading)] border border-[var(--bf-muted)]/50">
                 HEX: 0x{result.hexStr}
               </span>
             </div>
 
             <div className="mt-3">
-              <div className="font-mono text-2xl sm:text-3xl font-bold tracking-widest text-[#34E89A] break-all leading-tight">
+              <div className="font-mono text-2xl sm:text-3xl font-bold tracking-widest text-[var(--bf-accent)] break-all leading-tight">
                 {result.binaryStr}
               </div>
               <div className="flex items-center gap-3 mt-2 text-xs text-slate-300 font-mono">
-                <span>MSB Sign Bit: <strong className={numVal < 0 ? 'text-amber-300 font-bold' : 'text-[#34E89A]'}>{numVal < 0 ? '1 (Negative)' : '0 (Positive)'}</strong></span>
+                <span>MSB Sign Bit: <strong className={numVal < 0 ? 'text-amber-300 font-bold' : 'text-[var(--bf-accent)]'}>{numVal < 0 ? '1 (Negative)' : '0 (Positive)'}</strong></span>
                 <span>•</span>
                 <span>Unsigned: {result.binaryStr && result.binaryStr !== 'Overflow' ? parseInt(result.binaryStr, 2) : 'N/A'}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4 mt-4 border-t border-[#1F6B4C]/40">
+          <div className="flex items-center justify-between pt-4 mt-4 border-t border-[var(--bf-muted)]/40">
             <div className="text-[11px] text-slate-300 font-sans">
-              Representation for <span className="font-mono font-bold text-[#D9FFF4]">{numVal}</span>
+              Representation for <span className="font-mono font-bold text-[var(--bf-heading)]">{numVal}</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -242,7 +242,7 @@ export const TwosComplementCard: React.FC = () => {
                     ? 'bg-emerald-500 text-white'
                     : copyFailed
                     ? 'bg-rose-600 text-white'
-                    : 'bg-[#1F6B4C] hover:bg-[#34E89A] hover:text-[#0A3324] text-white'
+                    : 'bg-[var(--bf-muted)] hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-white'
                 }`}
                 title={copyFailed ? 'Copy failed \u2014 clipboard unavailable' : 'Copy Binary Output'}
               >
@@ -278,7 +278,7 @@ export const TwosComplementCard: React.FC = () => {
                     output: result.binaryStr,
                     outputLabel: `${bitWidth}-bit Two's Complement`,
                   })}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 bg-black/20 text-[#D9FFF4]/80 hover:text-[#34E89A] border border-[#34E89A]/20 hover:border-[#34E89A]/50"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 bg-black/20 text-[var(--bf-heading)]/80 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/20 hover:border-[var(--bf-accent)]/50"
                 />
               )}
             </div>
@@ -293,10 +293,10 @@ export const TwosComplementCard: React.FC = () => {
           toggleLabel="Toggle step-by-step derivation breakdown"
           bar={
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-xs font-display font-semibold uppercase tracking-wide text-[#1F6B4C] dark:text-[#34E89A]">
+              <h3 className="text-xs font-display font-semibold uppercase tracking-wide text-[var(--bf-muted)] dark:text-[var(--bf-accent)]">
                 Step-by-Step Derivation Breakdown
               </h3>
-              <span className="text-[11px] text-[#1F6B4C] dark:text-slate-400 font-mono">
+              <span className="text-[11px] text-[var(--bf-muted)] dark:text-slate-400 font-mono">
                 {numVal < 0 ? 'Negative Path: Invert Bits + 1' : 'Positive Path: Direct Binary Form'}
               </span>
             </div>
@@ -306,28 +306,28 @@ export const TwosComplementCard: React.FC = () => {
           {result.steps.map((step, idx) => (
             <div
               key={idx}
-              className="rounded-lg border border-slate-200 dark:border-[#1F6B4C]/40 bg-[#F4FAF9]/50 dark:bg-[#05170D] p-4 space-y-2.5 transition-colors"
+              className="rounded-lg border border-slate-200 dark:border-[var(--bf-muted)]/40 bg-[#F4FAF9]/50 dark:bg-[var(--bf-surface-inset)] p-4 space-y-2.5 transition-colors"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#0A3324] text-[#34E89A] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 border border-[#34E89A]/30">
+                  <span className="w-5 h-5 rounded-full bg-[var(--bf-chip)] text-[var(--bf-accent)] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 border border-[var(--bf-accent)]/30">
                     {idx + 1}
                   </span>
-                  <h4 className="text-xs font-bold text-[#0A3324] dark:text-[#D9FFF4] uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] uppercase tracking-wider">
                     {step.title}
                   </h4>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#D9FFF4] dark:bg-[#0A3324] text-[#0A3324] dark:text-[#34E89A] border border-[#34E89A]/30">
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[var(--bf-heading)] dark:bg-[var(--bf-chip)] text-[var(--bf-chip)] dark:text-[var(--bf-accent)] border border-[var(--bf-accent)]/30">
                   Step {idx + 1}
                 </span>
               </div>
 
-              <p className="text-xs text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
+              <p className="text-xs text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
                 {step.explanation}
               </p>
 
               {step.equationLines && step.equationLines.length > 0 && (
-                <div className="bg-[#0A3324] text-[#34E89A] p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto scrollbar-none border border-[#1F6B4C]/40">
+                <div className="bg-[var(--bf-chip)] text-[var(--bf-accent)] p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto scrollbar-none border border-[var(--bf-muted)]/40">
                   {step.equationLines.map((line, lIdx) => (
                     <div key={lIdx} className="whitespace-pre-wrap">{line}</div>
                   ))}
@@ -335,9 +335,9 @@ export const TwosComplementCard: React.FC = () => {
               )}
 
               {step.finalResult && (
-                <div className="flex items-center justify-between text-xs font-mono font-bold bg-white dark:bg-[#0A2E1D] p-2.5 rounded-md border border-slate-200 dark:border-[#1F6B4C]/40">
-                  <span className="text-[#1F6B4C] dark:text-slate-400 font-sans text-xs">Stage Outcome:</span>
-                  <span className="text-[#0A3324] dark:text-[#34E89A] font-mono font-bold">{step.finalResult}</span>
+                <div className="flex items-center justify-between text-xs font-mono font-bold bg-white dark:bg-[var(--bf-chip-alt)] p-2.5 rounded-md border border-slate-200 dark:border-[var(--bf-muted)]/40">
+                  <span className="text-[var(--bf-muted)] dark:text-slate-400 font-sans text-xs">Stage Outcome:</span>
+                  <span className="text-[var(--bf-chip)] dark:text-[var(--bf-accent)] font-mono font-bold">{step.finalResult}</span>
                 </div>
               )}
             </div>

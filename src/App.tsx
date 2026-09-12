@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { BaseType, HistoryEntry, PresetItem } from './types';
 import { autoDetectBase, convertNumber } from './utils/converter';
 import { Header, AppMode } from './components/Header';
@@ -12,15 +12,33 @@ import { WelcomeBanner } from './components/WelcomeBanner';
 import { PresetsBar } from './components/PresetsBar';
 import { Footer } from './components/Footer';
 import { FlowWaveBackground } from './components/FlowWaveBackground';
-import { BinaryOperationsCard } from './components/BinaryOperationsCard';
-import { FloatingPointCard } from './components/FloatingPointCard';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ShortcutsHelpDialog } from './components/ShortcutsHelpDialog';
 import { InfoDialog, InfoSection } from './components/InfoDialog';
 import { ChatAssistant } from './components/ChatAssistant';
 import { useRegisterShortcutTarget, useShortcutTargetRef } from './context/ShortcutTargetContext';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { Calculator, Zap, BookOpen } from 'lucide-react';
+import { Calculator, Zap, BookOpen, Loader2 } from 'lucide-react';
+
+// Binary Operations and Floating-Point are full, self-contained tool views
+// (500-700+ lines each) that most sessions never visit — a session doing
+// straightforward base conversion has no reason to pay for either one in
+// the initial bundle. Split out and fetched on first visit to that mode.
+const BinaryOperationsCard = lazy(() =>
+  import('./components/BinaryOperationsCard').then((m) => ({ default: m.BinaryOperationsCard }))
+);
+const FloatingPointCard = lazy(() =>
+  import('./components/FloatingPointCard').then((m) => ({ default: m.FloatingPointCard }))
+);
+
+/** Shell-matched placeholder shown only for the brief moment a mode's chunk is fetching. */
+function ModeCardFallback() {
+  return (
+    <div className="bg-white dark:bg-[var(--bf-surface)] rounded-xl border border-slate-200 dark:border-[var(--bf-muted)]/40 p-5 sm:p-6 shadow-sm flex items-center justify-center min-h-[280px]">
+      <Loader2 className="w-5 h-5 text-[var(--bf-accent)] animate-spin" />
+    </div>
+  );
+}
 
 export default function App() {
   const [activeMode, setActiveMode] = useState<AppMode>('converter');
@@ -138,7 +156,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen relative text-slate-900 dark:text-[#EAFFF6] flex flex-col justify-between font-sans transition-colors selection:bg-[#34E89A] selection:text-[#0A3324]">
+    <div className="min-h-screen relative text-slate-900 dark:text-[var(--bf-text)] flex flex-col justify-between font-sans transition-colors selection:bg-[var(--bf-accent)] selection:text-[var(--bf-chip)]">
 
       {/* Animated premium emerald/mint background */}
       <FlowWaveBackground />
@@ -195,44 +213,44 @@ export default function App() {
               />
 
               {/* Quick Reference Cheat Sheet Footer Card */}
-              <div className="bg-white dark:bg-[#072818]/60 dark:backdrop-blur-[18px] rounded-xl border border-slate-200 dark:border-[#34E89A]/[0.14] p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm dark:shadow-[0_8px_30px_-8px_rgba(52,232,154,0.25)]">
+              <div className="bg-white dark:bg-[var(--bf-surface)]/60 dark:backdrop-blur-[18px] rounded-xl border border-slate-200 dark:border-[var(--bf-accent)]/[0.14] p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm dark:shadow-[0_8px_30px_-8px_rgb(var(--bf-accent-rgb)/25%)]">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
+                  <div className="p-2 rounded-lg bg-[var(--bf-chip)] text-[var(--bf-accent)] shrink-0 shadow-xs">
                     <Calculator className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
                       Positional Weights (rⁿ)
                     </h4>
-                    <p className="text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
                       Values are calculated by multiplying each digit by Radix^position. Fractional digits use negative powers (Radix⁻ⁱ).
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
+                  <div className="p-2 rounded-lg bg-[var(--bf-chip)] text-[var(--bf-accent)] shrink-0 shadow-xs">
                     <Zap className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
                       Fast Bit Grouping
                     </h4>
-                    <p className="text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
                       Octal uses 3-bit triplets (2³ = 8). Hexadecimal uses 4-bit nibbles (2⁴ = 16), providing direct bit alignment.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#0A3324] text-[#34E89A] shrink-0 shadow-xs">
+                  <div className="p-2 rounded-lg bg-[var(--bf-chip)] text-[var(--bf-accent)] shrink-0 shadow-xs">
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#0A3324] dark:text-[#D9FFF4] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
                       Repeated Division
                     </h4>
-                    <p className="text-[#1F6B4C] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
                       Converting Decimal to Base Y divides repeatedly by Y. Remainders collected bottom-to-top yield the target representation.
                     </p>
                   </div>
@@ -252,10 +270,18 @@ export default function App() {
           {activeMode === 'ascii' && <AsciiConverterCard />}
 
           {/* Binary Arithmetic Operations Mode */}
-          {activeMode === 'operations' && <BinaryOperationsCard />}
+          {activeMode === 'operations' && (
+            <Suspense fallback={<ModeCardFallback />}>
+              <BinaryOperationsCard />
+            </Suspense>
+          )}
 
           {/* IEEE 754 Floating-Point Representation Mode */}
-          {activeMode === 'floating_point' && <FloatingPointCard />}
+          {activeMode === 'floating_point' && (
+            <Suspense fallback={<ModeCardFallback />}>
+              <FloatingPointCard />
+            </Suspense>
+          )}
 
         </main>
       </div>

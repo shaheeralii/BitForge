@@ -27,7 +27,7 @@ BitForge brings base conversion, bit-level manipulation, binary arithmetic, two'
 | 🔤 **Text & UTF-8 Encoding** | Encode text into real UTF-8 bytes — decimal, binary, hex, and octal per byte, plus combined byte streams for the full string — correctly handling accented characters, emoji, and anything outside plain ASCII, with each character flagged as ASCII or not. |
 | 🎚️ **Floating-Point Explorer** | See how a decimal number is stored as sign, exponent, and fraction bits, or decode an existing bit pattern back to decimal. Supports the standard Binary16/32/64 formats and a fully configurable Custom Format, with a short plain-language explanation up front and full derivation, rounding, and special-value details available on demand. |
 
-**Also included:** a searchable, persistent Activity History across all six tools; one-click copy and share (Web Share API, with a clipboard fallback) for any result; a keyboard-shortcut reference dialog (`?`); an animated background that adapts its rendering cost to the device it's running on; and **BitForge AI**, a lightweight chat assistant that teaches number-system and encoding concepts, backing any direct conversion or two's-complement question with BitForge's own verified calculation rather than the model's own arithmetic.
+**Also included:** a searchable, persistent Activity History across all six tools; one-click copy and share (Web Share API, with a clipboard fallback) for any result; a keyboard-shortcut reference dialog (`?`); two selectable dark themes — the original Emerald look and a more restrained Premium Dark Gray — switchable from the header and remembered across visits; an animated background that adapts its rendering cost to the device it's running on (and re-tints itself to match the selected theme); and **BitForge AI**, a lightweight chat assistant that teaches number-system and encoding concepts, backing any direct conversion or two's-complement question with BitForge's own verified calculation rather than the model's own arithmetic.
 
 ---
 
@@ -53,7 +53,7 @@ BitForge/
 ├── public/
 │   └── favicon.svg                   # BitForge monogram, also used as the site favicon
 ├── src/
-│   ├── main.tsx                      # React entry point; sets device performance tier pre-render
+│   ├── main.tsx                      # React entry point; sets device performance tier & theme pre-render
 │   ├── App.tsx                       # Root component, mode routing & layout
 │   ├── index.css                     # Global styles, theme tokens, glass utilities
 │   ├── types.ts                      # Shared TypeScript types
@@ -70,12 +70,14 @@ BitForge/
 │   │   └── useAutoResetTimer.ts      # Timed UI-state resets (e.g. "Copied!" labels)
 │   ├── context/
 │   │   ├── HistoryContext.tsx        # Activity History state, persistence & validation
-│   │   └── ShortcutTargetContext.tsx # Routes shortcuts to the active tool
+│   │   ├── ShortcutTargetContext.tsx # Routes shortcuts to the active tool
+│   │   └── ThemeContext.tsx          # Premium Dark / Emerald theme state & persistence
 │   ├── three/
-│   │   └── FlowWaveScene.ts          # Animated WebGL background (Three.js, tiered quality)
+│   │   └── FlowWaveScene.ts          # Animated WebGL background (Three.js, tiered quality, per-theme palette)
 │   └── components/
-│       ├── Header.tsx                # Top nav, mode switcher & logo
-│       ├── BitForgeLogo.tsx          # BitForge monogram (SVG)
+│       ├── Header.tsx                # Top nav, mode switcher, logo & theme toggle
+│       ├── BitForgeLogo.tsx          # BitForge monogram (SVG, theme-aware)
+│       ├── ThemeToggle.tsx           # Premium Dark / Emerald theme switcher
 │       ├── FlowWaveBackground.tsx    # React mount point for the animated background
 │       ├── WelcomeBanner.tsx         # First-time user onboarding guide
 │       ├── HistoryPanel.tsx          # Activity History slide-over panel
@@ -133,6 +135,31 @@ On Vercel, set the same variables under **Project Settings → Environment Varia
 ## Changelog
 
 All notable changes to this project are documented below, newest first.
+
+### v5.1.0 — Selectable Themes, Mobile Popup Fixes & BitForge AI Rendering
+
+**Added**
+- **Two selectable dark themes** — a lightweight `Palette` control in the header (persisted via `localStorage`, applied instantly on load with no flash of the wrong theme) switches between:
+  - **Emerald** — BitForge's original look, unchanged pixel-for-pixel.
+  - **Premium Dark Gray** — a neutral charcoal/slate surface system in the same layout, with the brand emerald kept only as a restrained, desaturated accent rather than the dominant hue.
+  - Implemented as a set of CSS custom properties (`--bf-*` in `src/index.css`, keyed off a `data-theme` attribute) that the existing component markup already reads through Tailwind arbitrary values — no component was restructured, resized, or re-laid-out to support this; only color values change between themes. The animated FlowWave background re-tints its particle palette and dials back its flame/warp intensity for Premium via a new `FlowWaveScene.setTheme()`, without rebuilding the WebGL scene. `prefers-reduced-motion` is respected for the theme swap itself, and both themes were checked against WCAG-style contrast ratios for every text/surface pairing introduced.
+  - The completed footer and the site favicon are intentionally excluded from this system and keep their original hardcoded Emerald styling in both themes.
+- Added `"version": "5.1.0"` to the existing `SoftwareApplication` JSON-LD block in `index.html`, matching `src/version.ts`.
+
+**Fixed**
+- **Mobile popup scrolling** — About / Help & FAQ / Privacy / Disclaimer (the `InfoDialog` tabs) used to grow past the visible viewport instead of scrolling on narrow screens. On mobile the dialog stacks its tab strip above its content, and the flex sizing along that chain let the content area expand to fit all of its content rather than respecting the dialog's own height limit. Fixed by making the sizing explicit end-to-end: the content column gets `min-h-0` so it no longer refuses to shrink below its content size, and the scrollable pane itself now declares `flex-1 min-h-0` alongside its existing `overflow-y-auto` so it — not the dialog around it — is unambiguously the scroll container. Content scrolls freely on both mobile and desktop.
+- **Inconsistent popup exit behavior** — About, Help & FAQ, Privacy, Disclaimer, and the Keyboard Shortcuts guide could only be closed with the X button; tapping or clicking outside the dialog silently did nothing. The dimmed backdrop behind these dialogs sat *underneath* a full-screen click-catching layer with no click handler of its own, so its close-on-click never actually had a chance to fire. All five now close the same way BitForge AI and Activity History already did: X button, or a tap/click anywhere outside the dialog card.
+- **Garbled formatting in BitForge AI responses** — the AI window rendered replies as raw text, so any Markdown or LaTeX-style notation the model used showed up literally instead of being formatted (e.g. a literal `$\rightarrow$` instead of an arrow, literal `**`/backticks instead of bold/code). BitForge AI responses now render `**bold**` and `` `inline code` `` properly, and any inline LaTeX math is converted to the same plain Unicode notation BitForge's own interface already uses elsewhere (→, ×, ², ₂, etc.) instead of showing raw LaTeX syntax. The system prompt now also asks the model to use that same plain-Unicode style directly rather than LaTeX in the first place. Plain replies with none of this syntax render exactly as before.
+
+**Housekeeping**
+- The root package version in `package-lock.json` had drifted to `5.0.0` while `package.json` and `src/version.ts` had already moved to `5.1.0`; the lockfile was regenerated from a clean install rather than hand-edited, so it's back in sync.
+- Added an explicit `allowScripts` entry for `esbuild` in `package.json`. Newer npm releases (11.16+) warn — and npm 12+ blocks by default — on any dependency's install script that isn't explicitly reviewed; esbuild's `postinstall` only fetches its own platform-native binary (required for Vite/Vitest to run at all) and is pulled in at two different versions here (Vite 6 directly, and an older version bundled inside Vitest's internal dev server), so both are now covered.
+
+**Deployment readiness**
+- **Production SEO/social metadata** — `index.html` was missing a canonical URL, `og:url`, a real social-preview image, and structured data, all pointing at the actual production domain (`https://bitforge-tool.vercel.app/`). Added `<link rel="canonical">`, `og:url`, `og:image`/`twitter:image` (with a real 1200×630 `public/og-image.png` built from BitForge's own logo mark and brand palette, not a placeholder), and a `SoftwareApplication` JSON-LD block. Added `public/sitemap.xml` (BitForge is a single-page app with no client-side routing, so it lists the one real URL rather than inventing routes) and pointed `robots.txt` at it.
+- **Self-hosted fonts** — Orbitron and JetBrains Mono were loaded from `fonts.googleapis.com`/`fonts.gstatic.com` at request time. Both are now bundled locally via `@fontsource` (latin subset only — this app has no non-Latin UI copy, so the other script subsets would just be dead weight) and declared with `font-display: swap`. No third-party font request remains; typography roles (Orbitron for branding/headings, JetBrains Mono for numeric/code output, default sans for body copy) are unchanged.
+- **Reduced initial JavaScript** — the Binary Operations and Floating-Point Explorer views (500–700+ lines each) were statically bundled into the initial chunk even though a given session often visits neither. Both are now lazy-loaded via `React.lazy`/`Suspense` and fetched only on first visit to that mode, with a shell-matched loading placeholder so there's no layout shift. Shaves roughly 16 KB gzip off the initial bundle and defers the rest until it's actually needed.
+- **Verified, left unchanged**: the FlowWave Three.js background already disables pointer interaction on its canvas, disposes its scene on cleanup, handles WebGL context loss/restoration, disables backdrop blur on lower-tier devices, and respects `prefers-reduced-motion` — confirmed all five in source rather than replacing a working, already-defensive implementation without cause. Also confirmed unchanged: the Gemini API key is read only in the serverless function and never reaches client code, Upstash rate limiting fails closed in production (on timeout, on an unreachable store, and if it's simply unconfigured), and AI conversation state is still plain React state with no persistence.
 
 ### v5.0.0 — User-Readiness, Trust, AI Learning Assistant & Polish Pass
 

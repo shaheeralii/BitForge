@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { HistoryProvider } from './context/HistoryContext';
 import { ShortcutTargetProvider } from './context/ShortcutTargetContext';
 import { ChatProvider } from './context/ChatContext';
+import { ThemeProvider, getInitialTheme } from './context/ThemeContext';
 import { getPerfTier } from './utils/devicePerf';
 import './index.css';
 
@@ -13,14 +14,22 @@ import './index.css';
 // backdrop-filter blur on lower-powered devices.
 document.documentElement.dataset.fx = getPerfTier() === 'low' ? 'reduced' : 'full';
 
+// Same idea, for the selected color theme: applied synchronously so the
+// persisted choice renders immediately instead of flashing the default
+// theme for a frame. ThemeProvider reads the same stored value for its
+// own initial state, so the two never disagree.
+document.documentElement.setAttribute('data-theme', getInitialTheme());
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HistoryProvider>
-      <ShortcutTargetProvider>
-        <ChatProvider>
-          <App />
-        </ChatProvider>
-      </ShortcutTargetProvider>
-    </HistoryProvider>
+    <ThemeProvider>
+      <HistoryProvider>
+        <ShortcutTargetProvider>
+          <ChatProvider>
+            <App />
+          </ChatProvider>
+        </ShortcutTargetProvider>
+      </HistoryProvider>
+    </ThemeProvider>
   </StrictMode>,
 );
