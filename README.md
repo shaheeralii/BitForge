@@ -1,9 +1,10 @@
-<img width="6440" height="1640" alt="banner" src="https://github.com/user-attachments/assets/5d1032ad-915a-4461-8537-643b6253a91e" />
+<img width="3280" height="1312" alt="v5 0 0 banner" src="https://github.com/user-attachments/assets/932bbb83-4c97-4441-a3ba-7bced9de4306" />
+
 
 
 > An interactive toolkit for exploring number systems, binary arithmetic, bit-level manipulation, and text encoding; with every result backed by a live, step-by-step derivation.
 
-**[🚀 Live Demo](https://bitforge-tool.vercel.app/)**
+**[Live Demo](https://bitforge-tool.vercel.app/)**
 
 ![Live Demo](https://img.shields.io/badge/demo-live-34E89A?style=flat-square)
 ![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react)
