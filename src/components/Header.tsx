@@ -1,11 +1,11 @@
 import React from 'react';
-import { Binary, Calculator, Cpu, Type, SquareSigma, History, Keyboard, Layers3 } from 'lucide-react';
+import { Binary, Calculator, Type, SquareSigma, History, Keyboard, Layers3 } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
 import { BitForgeLogo } from './BitForgeLogo';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeSwitcher } from './ThemeSwitcher';
 import { APP_VERSION } from '../version';
 
-export type AppMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations' | 'floating_point';
+export type AppMode = 'converter' | 'bit_representation' | 'ascii' | 'operations' | 'floating_point';
 
 interface HeaderProps {
   activeMode: AppMode;
@@ -23,14 +23,9 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
       icon: Calculator,
     },
     {
-      id: 'bitgrid' as AppMode,
-      label: 'Bit Grid',
+      id: 'bit_representation' as AppMode,
+      label: 'Bit Representation',
       icon: Binary,
-    },
-    {
-      id: 'twos_complement' as AppMode,
-      label: "Two's Complement",
-      icon: Cpu,
     },
     {
       id: 'ascii' as AppMode,
@@ -50,9 +45,12 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
   ];
 
   return (
-    <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[var(--bf-overlay)]/55 backdrop-blur-xl text-white border-b border-[var(--bf-accent)]/15 shadow-lg shadow-black/30 sticky top-0 z-30 transition-colors gap-3">
-      {/* Branding */}
-      <div className="flex items-center gap-3">
+    <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[var(--bf-overlay)]/55 backdrop-blur-xl text-white border-b border-[var(--bf-accent)]/15 shadow-sm shadow-black/20 sticky top-0 z-30 transition-colors gap-3">
+      {/* Branding — a real link (not a button) back to the landing page.
+          It works with zero extra plumbing: href="#/" sets the same hash
+          AppRoot's own navigate() would, so its hashchange listener picks
+          it up exactly as if a landing-page button had been clicked. */}
+      <a href="#/" className="flex items-center gap-3 rounded-lg -m-1 p-1 hover:bg-white/5 transition-colors" aria-label="Back to the BitForge landing page">
         <BitForgeLogo className="w-9 h-9 shrink-0" />
         <div>
           <div className="flex items-center gap-2">
@@ -67,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
             Interactive Number Systems & Encoding Toolkit
           </p>
         </div>
-      </div>
+      </a>
 
       {/* Center Navigation Tabs */}
       <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[var(--bf-accent)]/15 text-xs font-mono font-medium tracking-tight overflow-x-auto scrollbar-none max-w-full">
@@ -94,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
 
       {/* System Status Indicators */}
       <div className="flex items-center gap-3 text-xs font-mono shrink-0">
-        <ThemeToggle />
+        <ThemeSwitcher />
         <button
           onClick={onOpenShortcutsHelp}
           className="p-2 bg-black/25 backdrop-blur-sm hover:bg-[var(--bf-chip)] text-[var(--bf-heading)]/70 hover:text-[var(--bf-accent)] rounded-full border border-[var(--bf-accent)]/30 transition-colors"

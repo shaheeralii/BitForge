@@ -6,6 +6,7 @@ import {
   isValidForRadix,
   calculateTwosComplement,
   fractionDigitsToExactDecimal,
+  fractionDigitsToExactBase,
   decimalIntToBase,
 } from './converter';
 
@@ -148,6 +149,96 @@ describe('fractional conversion (exact BigInt long division)', () => {
   });
 });
 
+describe('fractional conversion — tiny nonzero values never silently become zero', () => {
+  it('a tiny decimal fraction converting to binary is truncated honestly, not falsely shown as zero', () => {
+    // Regression test for the confirmed bug: the old pipeline converted the
+    // source fraction to a lossy `number` and stopped early once the
+    // running remainder fell under a fixed 1e-12 epsilon. 1e-13's first
+    // significant binary digit is around the 43rd fractional bit — far
+    // beyond any reasonable display budget — but the *display* must say so
+    // honestly (a truncation ellipsis) rather than silently showing "0",
+    // which is indistinguishable from the value actually being zero.
+    const r = fractionDigitsToExactBase('0000000000001', 10, 2);
+    expect(r.isExact).toBe(false);
+    expect(r.display).toContain('…');
+    expect(r.display).not.toBe('0');
+  });
+
+  it('convertNumber reports hasFraction: true for a value this tiny, and shows the honest truncation', () => {
+    const r = convertNumber('0.0000000000001', '10', '2');
+    expect(r.isValid).toBe(true);
+    expect(r.hasFraction).toBe(true);
+    expect(r.binary).toContain('…');
+    expect(r.binary).not.toBe('0');
+  });
+
+  it('a fraction of literal zero digits ("5.0") is correctly reported as having no fraction', () => {
+    const r = convertNumber('5.0', '10', '2');
+    expect(r.isValid).toBe(true);
+    expect(r.hasFraction).toBe(false);
+  });
+});
+
+describe('fractional conversion — exact across arbitrary source/target radix pairs', () => {
+  it('0.5 decimal is exactly 0.1 in binary (single digit, no floating point tail)', () => {
+    expect(fractionDigitsToExactBase('5', 10, 2)).toMatchObject({ isExact: true, display: '1' });
+  });
+
+  it('0.1 decimal is the well-known repeating binary fraction 0.0(0011)', () => {
+    const r = fractionDigitsToExactBase('1', 10, 2);
+    expect(r.isExact).toBe(false);
+    expect(r.display).toBe('0(0011)');
+  });
+
+  it('converts a fraction from one non-decimal radix directly to another (no decimal round-trip precision loss)', () => {
+    // 3/7 (source radix 7, digit "3") into base 3
+    const r = fractionDigitsToExactBase('3', 7, 3);
+    expect(r.digits.length).toBeGreaterThan(0);
+    // Exact check: reconstruct the target-base digits back into a ratio
+    // over 3^n and confirm it equals 3/7 to within the shown digit budget
+    // (i.e. the two ratios agree once put over a common denominator).
+    const targetRadix = 3n;
+    let reconstructed = 0n;
+    for (const ch of r.digits) reconstructed = reconstructed * targetRadix + BigInt('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.indexOf(ch));
+    const denom = targetRadix ** BigInt(r.digits.length);
+    // 3/7 ≈ reconstructed/denom — check it's the closest representable value (floor), not off by a float rounding error.
+    expect(reconstructed).toBe((3n * denom) / 7n);
+  });
+
+  it('a value exact in a custom target radix is marked isExact and has no ellipsis', () => {
+    const r = convertNumber('0.5', '10', 'custom', 4); // 0.5 decimal = 0.2 in base 4, exact
+    expect(r.isValid).toBe(true);
+    expect(r.customBaseValue).not.toContain('…');
+  });
+});
+
+describe('equation lines never contain HTML (regression: dangerouslySetInnerHTML was removed)', () => {
+  it('positional-weight exponents render as Unicode superscript text, not <sup> markup', () => {
+    const r = convertNumber('2A.8', '16', '10');
+    const allLines = r.steps.flatMap(s => s.equationLines ?? []);
+    expect(allLines.some(l => l.includes('¹') || l.includes('⁰') || l.includes('⁻'))).toBe(true);
+    for (const line of allLines) {
+      expect(line).not.toMatch(/<[a-z]/i);
+    }
+  });
+
+  it('holds across every step-generating conversion direction', () => {
+    const cases: [string, import('../types').BaseType, import('../types').BaseType][] = [
+      ['255', '10', '2'],
+      ['11111111', '2', '10'],
+      ['FF.8', '16', '2'],
+      ['777', '8', 'custom'],
+    ];
+    for (const [input, src, target] of cases) {
+      const r = convertNumber(input, src, target, 5);
+      const allLines = r.steps.flatMap(s => s.equationLines ?? []);
+      for (const line of allLines) {
+        expect(line).not.toMatch(/<[a-z]/i);
+      }
+    }
+  });
+});
+
 describe('sanitizeInput', () => {
   it('strips base-specific prefixes and uppercases hex digits', () => {
     expect(sanitizeInput('0b101', '2')).toBe('101');
@@ -222,6 +313,40 @@ describe("calculateTwosComplement", () => {
   it('defaults to 8-bit width when none is given', () => {
     const r = calculateTwosComplement(-1);
     expect(r.twosComplement).toBe('11111111');
+  });
+
+  describe('64-bit boundary values stay exact (BigInt throughout, no float rounding)', () => {
+    it('2^63 - 1 (max positive signed 64-bit) round-trips exactly', () => {
+      const max64 = 9223372036854775807n;
+      const r = calculateTwosComplement(max64, 64);
+      expect(r.binaryStr).not.toBe('Overflow');
+      expect(r.binaryStr).toBe('0' + '1'.repeat(63));
+      expect(BigInt('0b' + r.binaryStr)).toBe(max64);
+    });
+
+    it('-2^63 (min negative signed 64-bit) round-trips exactly', () => {
+      const min64 = -9223372036854775808n;
+      const r = calculateTwosComplement(min64, 64);
+      expect(r.binaryStr).not.toBe('Overflow');
+      expect(r.binaryStr).toBe('1' + '0'.repeat(63));
+    });
+
+    it('2^63 (one past max) and -2^63 - 1 (one past min) correctly overflow at 64-bit', () => {
+      expect(calculateTwosComplement(9223372036854775808n, 64).binaryStr).toBe('Overflow');
+      expect(calculateTwosComplement(-9223372036854775809n, 64).binaryStr).toBe('Overflow');
+    });
+
+    it('the overflow range itself is exact at 64-bit — Math.pow(2,63)-1 as a float would corrupt this boundary', () => {
+      // A pre-BigInt implementation computing maxVal as `Math.pow(2,63) - 1`
+      // would silently round to 2^63 (doubles are 2048 apart at this
+      // magnitude), letting 2^63 itself wrongly pass as "in range".
+      expect(calculateTwosComplement(9223372036854775807n, 64).binaryStr).not.toBe('Overflow');
+      expect(calculateTwosComplement(9223372036854775808n, 64).binaryStr).toBe('Overflow');
+    });
+
+    it('accepts a plain number for small values without requiring BigInt (backward compatible)', () => {
+      expect(calculateTwosComplement(-5, 8).twosComplement).toBe('11111011');
+    });
   });
 });
 

@@ -4,7 +4,16 @@ import { BaseType, HistoryEntry, HistoryMode } from '../types';
 const STORAGE_KEY = 'bitforge_conversion_history';
 const MAX_ENTRIES = 200;
 
-const VALID_MODES: readonly HistoryMode[] = ['converter', 'bitgrid', 'twos_complement', 'ascii', 'operations', 'floating_point'];
+/**
+ * Bumped whenever the stored shape changes in a way a future load needs to
+ * know about. There are no migrations yet — `loadFromStorage` has one
+ * clearly-marked spot to add a branch on `version` when that day comes,
+ * rather than a new field silently reinterpreting old data or an old field
+ * silently vanishing.
+ */
+const STORAGE_VERSION = 1;
+
+const VALID_MODES: readonly HistoryMode[] = ['converter', 'bitgrid', 'twos_complement', 'bit_representation', 'ascii', 'operations', 'floating_point'];
 const VALID_BASES: readonly BaseType[] = ['10', '2', '8', '16', 'custom'];
 
 interface HistoryContextValue {
@@ -23,7 +32,7 @@ const HistoryContext = createContext<HistoryContextValue | null>(null);
  * version) reaching application state and causing a downstream crash when a
  * component reads a field that isn't actually there.
  */
-function isHistoryEntry(value: unknown): value is HistoryEntry {
+export function isHistoryEntry(value: unknown): value is HistoryEntry {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
 
@@ -46,19 +55,54 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
   );
 }
 
-function loadFromStorage(): HistoryEntry[] {
+/**
+ * Pure parsing of the raw stored string into a validated entry list — no
+ * dependency on `localStorage` itself, so this is what's actually under
+ * test in history-persistence.test.ts rather than something that needs a
+ * browser-global mock to exercise at all.
+ */
+export function parseStoredHistoryPayload(raw: string | null): HistoryEntry[] {
+  if (!raw) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // Discard malformed entries individually rather than rejecting the
-    // whole list, so one bad/outdated entry doesn't wipe out valid history.
-    return parsed.filter(isHistoryEntry);
+
+    // Pre-versioning storage was a bare array. Kept readable indefinitely —
+    // shipping the version wrapper is no reason to discard an existing
+    // user's history the first time they load the updated app.
+    if (Array.isArray(parsed)) {
+      return parsed.filter(isHistoryEntry);
+    }
+
+    if (typeof parsed === 'object' && parsed !== null && Array.isArray((parsed as { entries?: unknown }).entries)) {
+      const { entries } = parsed as { version?: unknown; entries: unknown[] };
+      // No migrations exist between versions yet; when one is needed,
+      // branch on `version` here instead of guessing at an unfamiliar shape.
+      return entries.filter(isHistoryEntry);
+    }
+
+    return [];
   } catch {
-    // Corrupt or inaccessible storage shouldn't take down the app.
+    // Corrupt JSON shouldn't take down the app.
     return [];
   }
+}
+
+/** The inverse of `parseStoredHistoryPayload` — also pure, also directly tested. */
+export function serializeHistoryPayload(entries: HistoryEntry[]): string {
+  return JSON.stringify({ version: STORAGE_VERSION, entries });
+}
+
+function loadFromStorage(): HistoryEntry[] {
+  try {
+    return parseStoredHistoryPayload(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    // Storage inaccessible entirely (e.g. disabled in this browser context).
+    return [];
+  }
+}
+
+function saveToStorage(entries: HistoryEntry[]) {
+  localStorage.setItem(STORAGE_KEY, serializeHistoryPayload(entries));
 }
 
 export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -66,12 +110,29 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      saveToStorage(entries);
     } catch {
       // Storage may be full or unavailable (e.g. private browsing); the
       // in-memory list still works for the rest of the session.
     }
   }, [entries]);
+
+  // Multi-tab sync: the `storage` event fires in every *other* tab sharing
+  // this origin when localStorage actually changes (never in the tab that
+  // made the write, and never for a write of an unchanged value — both by
+  // spec — which is what keeps this from looping with the save effect
+  // above: a tab that re-saves the exact data it just received here writes
+  // an identical string, so no further event fires from that write). Without
+  // this, adding an entry in one tab would leave every other open tab
+  // showing a stale list until it was manually refreshed.
+  useEffect(() => {
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      setEntries(loadFromStorage());
+    };
+    window.addEventListener('storage', handleStorageEvent);
+    return () => window.removeEventListener('storage', handleStorageEvent);
+  }, []);
 
   const addEntry = useCallback((entry: Omit<HistoryEntry, 'id' | 'timestamp'>) => {
     setEntries(prev => {

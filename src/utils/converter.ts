@@ -1,4 +1,5 @@
 import { BaseType, BaseOption, AutoDetectResult, ConversionResult, StepDetail } from '../types';
+import { DIGITS, stripSignAndPrefix } from './numberParsing';
 
 export const BASE_OPTIONS: Record<BaseType, BaseOption> = {
   '10': {
@@ -48,7 +49,7 @@ export const BASE_OPTIONS: Record<BaseType, BaseOption> = {
   },
 };
 
-const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+// DIGITS moved to numberParsing.ts — the canonical home for digit-lookup logic shared with the AI intent system.
 
 /**
  * Auto-detects the probable source base from the input string
@@ -66,47 +67,46 @@ export function autoDetectBase(rawInput: string): AutoDetectResult {
     };
   }
 
-  // Check prefix explicit hints
-  if (/^(?:0x|0X)/.test(cleanInput)) {
-    const stripped = cleanInput.replace(/^(?:0x|0X)/, '');
+  // Sign is stripped first, independently of any prefix — the previous
+  // implementation checked for "0x"/"0b"/"0o" at the very start of the
+  // string, which can never match "-0xFF" (it starts with '-', not '0'),
+  // so a signed, prefixed input silently fell through to the bare-digit
+  // heuristics below instead of being recognized at all.
+  const { isNegative, prefix: detectedPrefix, body: noSign } = stripSignAndPrefix(cleanInput);
+  const sign = isNegative ? '-' : '';
+
+  if (detectedPrefix === '0x') {
     return {
       detectedBase: '16',
       validBases: ['16'],
       confidence: 'high',
       reasoning: 'Explicit "0x" prefix detected for Hexadecimal',
       hasPrefix: true,
-      strippedInput: stripped,
+      strippedInput: sign + noSign,
     };
   }
 
-  if (/^(?:0b|0B)/.test(cleanInput)) {
-    const stripped = cleanInput.replace(/^(?:0b|0B)/, '');
+  if (detectedPrefix === '0b') {
     return {
       detectedBase: '2',
       validBases: ['2'],
       confidence: 'high',
       reasoning: 'Explicit "0b" prefix detected for Binary',
       hasPrefix: true,
-      strippedInput: stripped,
+      strippedInput: sign + noSign,
     };
   }
 
-  if (/^(?:0o|0O)/.test(cleanInput)) {
-    const stripped = cleanInput.replace(/^(?:0o|0O)/, '');
+  if (detectedPrefix === '0o') {
     return {
       detectedBase: '8',
       validBases: ['8'],
       confidence: 'high',
       reasoning: 'Explicit "0o" prefix detected for Octal',
       hasPrefix: true,
-      strippedInput: stripped,
+      strippedInput: sign + noSign,
     };
   }
-
-  // Remove optional sign
-  const signMatch = cleanInput.match(/^[-+]/);
-  const sign = signMatch ? signMatch[0] : '';
-  const noSign = cleanInput.replace(/^[-+]/, '');
 
   // Check character validity across standard bases
   const isBinary = /^[01]*\.?[01]+$/.test(noSign);
@@ -182,15 +182,24 @@ export function autoDetectBase(rawInput: string): AutoDetectResult {
  * Strip prefix and normalize input for processing
  */
 export function sanitizeInput(input: string, base: BaseType): string {
-  let cleaned = input.trim();
-  if (!cleaned) return '';
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+
+  // Sign stripped first, independently of the prefix check below — the
+  // previous version checked for a prefix at the very start of the string,
+  // which never matches when a sign comes first (e.g. "-0xFF" selecting
+  // Hexadecimal), leaving the prefix unstripped and the whole input
+  // rejected as invalid.
+  const signMatch = trimmed.match(/^[-+]/);
+  const sign = signMatch ? signMatch[0] : '';
+  let body = signMatch ? trimmed.slice(1) : trimmed;
 
   // Remove prefix if present
-  if (base === '2') cleaned = cleaned.replace(/^(?:0b|0B)/, '');
-  if (base === '8') cleaned = cleaned.replace(/^(?:0o|0O)/, '');
-  if (base === '16') cleaned = cleaned.replace(/^(?:0x|0X)/, '');
+  if (base === '2') body = body.replace(/^(?:0b|0B)/, '');
+  if (base === '8') body = body.replace(/^(?:0o|0O)/, '');
+  if (base === '16') body = body.replace(/^(?:0x|0X)/, '');
 
-  return cleaned.toUpperCase();
+  return sign + body.toUpperCase();
 }
 
 /**
@@ -222,11 +231,21 @@ export function isValidForRadix(input: string, radix: number): boolean {
 }
 
 /**
- * Convert arbitrary base string to Decimal (Base 10) numerical value
+ * Convert arbitrary base string to Decimal (Base 10) numerical value.
+ *
+ * Deliberately does NOT compute a floating-point fraction value here (an
+ * earlier version did, as `fractionVal: number`, via `digitValue /
+ * Math.pow(radix, i+1)`). That was the actual source of the "tiny nonzero
+ * fraction silently shows as zero" bug fixed elsewhere in this file: every
+ * consumer now works from `fractionStr` (the exact digit string) plus the
+ * source radix, converting to an exact BigInt numerator/denominator ratio
+ * on demand (see `fractionDigitsToRatio`) rather than through a lossy
+ * intermediate `number`. Keeping a dead, unused floating-point fraction
+ * field here would be a standing invitation for some future change to
+ * "helpfully" wire it back in as a shortcut.
  */
 export function baseToDecimalValue(input: string, radix: number): {
   integerVal: bigint;
-  fractionVal: number;
   isNegative: boolean;
   integerStr: string;
   fractionStr: string;
@@ -243,16 +262,8 @@ export function baseToDecimalValue(input: string, radix: number): {
     integerVal = integerVal * bigRadix + digitValue;
   }
 
-  // Fractional part to number
-  let fractionVal = 0;
-  for (let i = 0; i < fracPart.length; i++) {
-    const digitValue = DIGITS.indexOf(fracPart[i]);
-    fractionVal += digitValue / Math.pow(radix, i + 1);
-  }
-
   return {
     integerVal,
-    fractionVal,
     isNegative,
     integerStr: intPart || '0',
     fractionStr: fracPart,
@@ -277,18 +288,40 @@ export function decimalIntToBase(value: bigint, radix: number): string {
 }
 
 /**
- * Exact long division of numerator/denominator (both non-negative BigInts,
- * numerator < denominator) into decimal digits, using only integer
- * arithmetic. Detects a repeating cycle by tracking remainders we've already
- * seen — the standard technique for exposing recurring decimals. Because
- * this never touches a JS `number`, it can't produce floating-point noise
- * like the "0.1999999999" artifacts a Math-based approach would.
+ * The number of fractional digits BitForge generates and displays anywhere
+ * a value's fractional part is shown or converted — the single limit used
+ * consistently across the whole app instead of three different ad-hoc
+ * numbers (10, 12, and a hardcoded 8 previously existed in three different
+ * functions in this file). This is a display truncation, not a rounding
+ * decision: digits are never rounded, only cut off after this many places
+ * if the true expansion doesn't terminate or repeat sooner (an ellipsis or
+ * repeating-cycle parentheses in `ExactFractionResult.display` says which
+ * happened). A tiny nonzero value whose first significant digit falls
+ * beyond this budget in a given target radix will legitimately display as
+ * all zeros in that radix — that is an honest precision limit stated by the
+ * ellipsis marker, not the silent floating-point-epsilon truncation this
+ * replaces (which could cut a real value off after a single digit).
  */
-function longDivisionDecimal(
+export const MAX_FRACTION_DIGITS = 12;
+
+/**
+ * Exact long division of numerator/denominator (both non-negative BigInts,
+ * numerator < denominator) into digits of `outputRadix`, using only integer
+ * arithmetic throughout. Detects a repeating cycle by tracking remainders
+ * already seen — the standard technique for exposing recurring
+ * "decimals" (here, recurring digit sequences in any base). Because this
+ * never touches a JS `number`, it can't produce floating-point noise like
+ * the "0.1999999999" artifacts a Math-based approach would, and — unlike a
+ * fixed epsilon cutoff — it never mistakes a real, tiny-but-nonzero
+ * remainder for one close enough to zero to stop early.
+ */
+function exactRadixLongDivision(
   numerator: bigint,
   denominator: bigint,
+  outputRadix: number,
   maxDigits: number
 ): { digits: string; repeatStart: number | null; isExact: boolean } {
+  const bigOutputRadix = BigInt(outputRadix);
   let remainder = numerator % denominator;
   const seenAt = new Map<string, number>();
   let digits = '';
@@ -303,9 +336,9 @@ function longDivisionDecimal(
       break;
     }
     seenAt.set(key, pos);
-    remainder *= 10n;
-    const digit = remainder / denominator;
-    digits += digit.toString();
+    remainder *= bigOutputRadix;
+    const digitVal = remainder / denominator;
+    digits += DIGITS[Number(digitVal)];
     remainder %= denominator;
     pos++;
   }
@@ -321,10 +354,37 @@ export interface ExactFractionResult {
    * fraction terminates exactly (or no cycle was found within the digit
    * budget). */
   repeatStart: number | null;
-  /** True if `digits` is the complete, exact decimal representation. */
+  /** True if `digits` is the complete, exact representation. */
   isExact: boolean;
   /** Ready-to-display string, e.g. "0.5", "0.41(6)", or "0.3333333333…" */
   display: string;
+}
+
+function buildExactFractionResult(digits: string, repeatStart: number | null, isExact: boolean): ExactFractionResult {
+  let display: string;
+  if (!digits) {
+    display = '0';
+  } else if (isExact) {
+    display = digits;
+  } else if (repeatStart !== null) {
+    display = `${digits.slice(0, repeatStart)}(${digits.slice(repeatStart)})`;
+  } else {
+    // No cycle closed within the digit budget (the denominator's period is
+    // longer than maxDigits) — show what we have and mark it as truncated,
+    // rather than silently presenting a partial value as exact.
+    display = `${digits}…`;
+  }
+  return { digits, repeatStart, isExact, display };
+}
+
+/** Converts a fraction digit string in `radix` into its numerator/denominator over the same radix, e.g. "6" in base 7 → 6/7. Shared by every exact fraction conversion below so there is exactly one definition of what a fractional digit string *means*. */
+function fractionDigitsToRatio(fracDigits: string, radix: number): { numerator: bigint; denominator: bigint } {
+  const bigRadix = BigInt(radix);
+  let numerator = 0n;
+  for (const ch of fracDigits) {
+    numerator = numerator * bigRadix + BigInt(DIGITS.indexOf(ch));
+  }
+  return { numerator, denominator: bigRadix ** BigInt(fracDigits.length) };
 }
 
 /**
@@ -337,56 +397,38 @@ export interface ExactFractionResult {
 export function fractionDigitsToExactDecimal(
   fracDigits: string,
   radix: number,
-  maxDigits = 12
+  maxDigits = MAX_FRACTION_DIGITS
 ): ExactFractionResult {
-  if (!fracDigits) {
-    return { digits: '', repeatStart: null, isExact: true, display: '' };
-  }
-
-  const bigRadix = BigInt(radix);
-  let numerator = 0n;
-  for (const ch of fracDigits) {
-    numerator = numerator * bigRadix + BigInt(DIGITS.indexOf(ch));
-  }
-  const denominator = bigRadix ** BigInt(fracDigits.length);
-
-  const { digits, repeatStart, isExact } = longDivisionDecimal(numerator, denominator, maxDigits);
-
-  let display: string;
-  if (!digits) {
-    display = '0';
-  } else if (isExact) {
-    display = digits;
-  } else if (repeatStart !== null) {
-    display = `${digits.slice(0, repeatStart)}(${digits.slice(repeatStart)})`;
-  } else {
-    // No cycle closed within the digit budget (denominator's period is
-    // longer than maxDigits) — show what we have and mark it as truncated.
-    display = `${digits}…`;
-  }
-
-  return { digits, repeatStart, isExact, display };
+  if (!fracDigits) return { digits: '', repeatStart: null, isExact: true, display: '' };
+  const { numerator, denominator } = fractionDigitsToRatio(fracDigits, radix);
+  const { digits, repeatStart, isExact } = exactRadixLongDivision(numerator, denominator, 10, maxDigits);
+  return buildExactFractionResult(digits, repeatStart, isExact);
 }
 
 /**
- * Convert Decimal Fraction number (0.xxx) to target base string
+ * Converts a fractional-part digit string in an arbitrary source radix into
+ * an exact representation in an arbitrary *target* radix — the general form
+ * of `fractionDigitsToExactDecimal`, and the fix for a real bug: the
+ * previous pipeline computed a source fraction as a lossy floating-point
+ * `number` (`fractionVal`) and then repeatedly multiplied *that* by the
+ * target radix, stopping early via a fixed `1e-12` epsilon check. For a
+ * genuinely tiny nonzero value — one whose first significant digit in the
+ * target radix falls several places out — that epsilon could trigger after
+ * a single digit, displaying all zeros for a value that was never actually
+ * zero. Going through an exact numerator/denominator ratio the whole way
+ * removes floating point from this path entirely, so the only limit left is
+ * the honest, explicit `maxDigits` display budget (see `MAX_FRACTION_DIGITS`).
  */
-export function decimalFracToBase(value: number, radix: number, maxDigits = 10): string {
-  if (value <= 0) return '';
-  let temp = value;
-  let result = '';
-  let count = 0;
-
-  while (temp > 0 && count < maxDigits) {
-    temp = temp * radix;
-    const digit = Math.floor(temp);
-    result += DIGITS[digit];
-    temp -= digit;
-    count++;
-    // Stop if tiny precision residual
-    if (temp < 1e-12) break;
-  }
-  return result;
+export function fractionDigitsToExactBase(
+  fracDigits: string,
+  srcRadix: number,
+  targetRadix: number,
+  maxDigits = MAX_FRACTION_DIGITS
+): ExactFractionResult {
+  if (!fracDigits) return { digits: '', repeatStart: null, isExact: true, display: '' };
+  const { numerator, denominator } = fractionDigitsToRatio(fracDigits, srcRadix);
+  const { digits, repeatStart, isExact } = exactRadixLongDivision(numerator, denominator, targetRadix, maxDigits);
+  return buildExactFractionResult(digits, repeatStart, isExact);
 }
 
 /**
@@ -448,28 +490,32 @@ export function convertNumber(
   // Generate values for standard target bases
   const intDenary = parsed.integerVal.toString();
   // Exact BigInt-based long division (see fractionDigitsToExactDecimal) —
-  // not the raw `fractionVal` float, which can carry visible rounding noise
-  // like ".42857142857142855" for non-power-of-two source radixes such as a
+  // not a lossy float, which can carry visible rounding noise like
+  // ".42857142857142855" for non-power-of-two source radixes such as a
   // custom base. Non-terminating results are shown with repeating-decimal
   // parentheses, e.g. "0.41(6)", rather than an unexplained truncated float.
   const exactDenaryFraction = fractionDigitsToExactDecimal(parsed.fractionStr, srcRadix);
   const fracDenary = exactDenaryFraction.display ? '.' + exactDenaryFraction.display : '';
   const denaryStr = signPrefix + intDenary + fracDenary;
 
+  // Every other target base's fraction goes through the same exact
+  // numerator/denominator ratio as the denary conversion above — never a
+  // `number`, so a genuinely tiny nonzero fraction can't be mistaken for
+  // zero by a floating-point epsilon check partway through the pipeline.
   const intBin = decimalIntToBase(parsed.integerVal, 2);
-  const fracBin = decimalFracToBase(parsed.fractionVal, 2);
+  const fracBin = fractionDigitsToExactBase(parsed.fractionStr, srcRadix, 2).display;
   const binaryStr = signPrefix + intBin + (fracBin ? '.' + fracBin : '');
 
   const intOct = decimalIntToBase(parsed.integerVal, 8);
-  const fracOct = decimalFracToBase(parsed.fractionVal, 8);
+  const fracOct = fractionDigitsToExactBase(parsed.fractionStr, srcRadix, 8).display;
   const octalStr = signPrefix + intOct + (fracOct ? '.' + fracOct : '');
 
   const intHex = decimalIntToBase(parsed.integerVal, 16);
-  const fracHex = decimalFracToBase(parsed.fractionVal, 16);
+  const fracHex = fractionDigitsToExactBase(parsed.fractionStr, srcRadix, 16).display;
   const hexStr = signPrefix + intHex + (fracHex ? '.' + fracHex : '');
 
   const intCustom = decimalIntToBase(parsed.integerVal, customRadix);
-  const fracCustom = decimalFracToBase(parsed.fractionVal, customRadix);
+  const fracCustom = fractionDigitsToExactBase(parsed.fractionStr, srcRadix, customRadix).display;
   const customStr = signPrefix + intCustom + (fracCustom ? '.' + fracCustom : '');
 
   const bitLengthNeeded = intBin.length;
@@ -487,7 +533,6 @@ export function convertNumber(
     sanitizedInput: sanitized,
     parsed,
     denaryInt: parsed.integerVal,
-    denaryFrac: parsed.fractionVal,
     resultStr: targetBaseChoice === '2' ? binaryStr 
              : targetBaseChoice === '8' ? octalStr 
              : targetBaseChoice === '16' ? hexStr 
@@ -507,7 +552,11 @@ export function convertNumber(
     customBaseValue: customStr,
     customRadix,
     isNegative: parsed.isNegative,
-    hasFraction: parsed.fractionVal > 0,
+    // A fraction digit string of all zeros (e.g. "5.0") is numerically zero
+    // even though a fraction was typed — checking the exact numerator
+    // (rather than the old lossy `fractionVal > 0`) preserves that same
+    // "nonzero value", not "nonempty string", meaning.
+    hasFraction: fractionDigitsToRatio(parsed.fractionStr, srcRadix).numerator > 0n,
     integerPart: parsed.integerStr,
     fractionPart: parsed.fractionStr,
     bitLengthNeeded,
@@ -523,7 +572,6 @@ interface StepGenParams {
   sanitizedInput: string;
   parsed: ReturnType<typeof baseToDecimalValue>;
   denaryInt: bigint;
-  denaryFrac: number;
   resultStr: string;
 }
 
@@ -532,14 +580,11 @@ interface StepGenParams {
  */
 function generateStepBreakdown(params: StepGenParams): StepDetail[] {
   const {
-    sourceBase,
     srcRadix,
-    targetBase,
     targetRadix,
     sanitizedInput,
     parsed,
     denaryInt,
-    denaryFrac,
     resultStr,
   } = params;
 
@@ -570,8 +615,8 @@ function generateStepBreakdown(params: StepGenParams): StepDetail[] {
       explanation:
         'The input is negative. The sign is set aside and the derivation below converts only the unsigned magnitude; the sign is reattached to the final result at the end.',
       equationLines: [
-        `Input: \u2212${magnitude}`,
-        `Sign: \u2212 (negative)`,
+        `Input: −${magnitude}`,
+        `Sign: − (negative)`,
         `Magnitude: ${magnitude}`,
       ],
     });
@@ -598,7 +643,7 @@ function generateStepBreakdown(params: StepGenParams): StepDetail[] {
 
     // Step 2: Convert Decimal (Base 10) -> Target Base (if target is not Base 10)
     if (targetRadix !== 10) {
-      steps.push(...generateDecimalToBaseSteps(denaryInt, denaryFrac, targetRadix, resultStr));
+      steps.push(...generateDecimalToBaseSteps(denaryInt, parsed.fractionStr, srcRadix, targetRadix));
     }
   }
 
@@ -613,6 +658,25 @@ function generateStepBreakdown(params: StepGenParams): StepDetail[] {
   }
 
   return steps;
+}
+
+const SUPERSCRIPT_CHARS: Record<string, string> = {
+  '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+  '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻',
+};
+
+/**
+ * Renders a number as Unicode superscript digits (e.g. 3 -> "³", -2 -> "⁻²")
+ * instead of an HTML `<sup>` tag. Equation-line strings are plain text
+ * rendered directly by React (see StepByStepBreakdown.tsx) — embedding real
+ * markup in them would need `dangerouslySetInnerHTML` to display correctly,
+ * which is both unnecessary here (this is the one and only formatting need
+ * these strings ever had) and worth avoiding on principle: a string that
+ * happens to be safe today stops being an argument for keeping a
+ * generically risky rendering path alive in the codebase.
+ */
+function toSuperscript(n: number): string {
+  return n.toString().split('').map(ch => SUPERSCRIPT_CHARS[ch] ?? ch).join('');
 }
 
 /**
@@ -651,7 +715,7 @@ function generateBaseToDecimalSteps(
       termValue.toString(),
     ]);
 
-    equationTerms.push(`(${digitChar} × ${radix}<sup>${currentPower}</sup>)`);
+    equationTerms.push(`(${digitChar} × ${radix}${toSuperscript(currentPower)})`);
     currentPower--;
   }
 
@@ -674,8 +738,7 @@ function generateBaseToDecimalSteps(
   if (cleanFrac) {
     const fracRows: (string | number)[][] = [];
     const fracTerms: string[] = [];
-    const maxFractionDigits = 12;
-    const exactFrac = fractionDigitsToExactDecimal(cleanFrac, radix, maxFractionDigits);
+    const exactFrac = fractionDigitsToExactDecimal(cleanFrac, radix, MAX_FRACTION_DIGITS);
 
     for (let i = 0; i < cleanFrac.length; i++) {
       const digitChar = cleanFrac[i];
@@ -692,7 +755,7 @@ function generateBaseToDecimalSteps(
         termValue.toFixed(6),
       ]);
 
-      fracTerms.push(`(${digitChar} × ${radix}<sup>${negPower}</sup>)`);
+      fracTerms.push(`(${digitChar} × ${radix}${toSuperscript(negPower)})`);
     }
 
     steps.push({
@@ -707,7 +770,7 @@ function generateBaseToDecimalSteps(
         `Fractional Sum: ${fracTerms.join(' + ')}`,
         exactFrac.isExact
           ? `Decimal Fractional Total = 0.${exactFrac.display}`
-          : `Decimal Fractional Total ≈ 0.${exactFrac.display} (does not terminate — shown to ${maxFractionDigits} digits${exactFrac.repeatStart !== null ? ', repeating part in parentheses' : ''})`,
+          : `Decimal Fractional Total ≈ 0.${exactFrac.display} (does not terminate — shown to ${MAX_FRACTION_DIGITS} digits${exactFrac.repeatStart !== null ? ', repeating part in parentheses' : ''})`,
       ],
       finalResult: `${parsed.integerVal.toString()}.${exactFrac.display}`,
     });
@@ -721,9 +784,9 @@ function generateBaseToDecimalSteps(
  */
 function generateDecimalToBaseSteps(
   intVal: bigint,
-  fracVal: number,
-  targetRadix: number,
-  finalResult: string
+  fracDigits: string,
+  fracSrcRadix: number,
+  targetRadix: number
 ): StepDetail[] {
   const steps: StepDetail[] = [];
 
@@ -772,46 +835,59 @@ function generateDecimalToBaseSteps(
     finalResult: remainderDigits.join(''),
   });
 
-  // Fractional Part: Repeated Multiplication Algorithm
-  if (fracVal > 0) {
+  // Fractional Part: Repeated Multiplication Algorithm, shown with exact
+  // numerator/denominator arithmetic — never a `number` — so the displayed
+  // steps can never disagree with the exact final result above them, and a
+  // tiny nonzero fraction is never misread as zero partway through. This is
+  // the same long division fractionDigitsToExactBase performs, walked one
+  // step at a time here so each digit's derivation stays visible.
+  if (fracDigits && fracDigits !== '0'.repeat(fracDigits.length)) {
+    const bigSrcRadix = BigInt(fracSrcRadix);
+    let numerator = 0n;
+    for (const ch of fracDigits) numerator = numerator * bigSrcRadix + BigInt(DIGITS.indexOf(ch));
+    const denominator = bigSrcRadix ** BigInt(fracDigits.length);
+
     const multRows: (string | number)[][] = [];
-    let currentFrac = fracVal;
-    const fracDigits: string[] = [];
+    const fracDigitsOut: string[] = [];
+    let remainder = numerator % denominator;
     let stepNum = 1;
 
-    while (currentFrac > 0 && stepNum <= 8) {
-      const multiplied = currentFrac * targetRadix;
-      const intDigit = Math.floor(multiplied);
-      const charDigit = DIGITS[intDigit];
-      fracDigits.push(charDigit);
-
-      const nextFrac = multiplied - intDigit;
+    while (remainder !== 0n && stepNum <= MAX_FRACTION_DIGITS) {
+      const product = remainder * bigRadix;
+      const digitVal = product / denominator;
+      const digitChar = DIGITS[Number(digitVal)];
+      fracDigitsOut.push(digitChar);
 
       multRows.push([
         `Step ${stepNum}`,
-        `${currentFrac.toFixed(6)} × ${targetRadix}`,
-        multiplied.toFixed(6),
-        intDigit,
-        `Digit '${charDigit}'`,
+        `${remainder}/${denominator} × ${targetRadix}`,
+        `${product}/${denominator}`,
+        digitChar,
+        `Digit '${digitChar}'`,
       ]);
 
-      currentFrac = nextFrac;
+      remainder = product % denominator;
       stepNum++;
     }
 
+    const isExact = remainder === 0n;
+    const fracResultDisplay = fracDigitsOut.join('') + (isExact ? '' : '…');
+
     steps.push({
-      title: `Step 2b: Convert Decimal Fraction (${fracVal}) to Base ${targetRadix}`,
+      title: `Step 2b: Convert Fractional Part to Base ${targetRadix}`,
       type: 'multiplication',
-      explanation: `Multiply fractional part successively by Base ${targetRadix} and record integer parts top-down:`,
+      explanation: `Multiply the fraction, kept as an exact ${fracSrcRadix === 10 ? 'decimal' : `base-${fracSrcRadix}`} ratio, successively by Base ${targetRadix} and record each integer part top-down:`,
       tableData: {
-        headers: ['Iteration', 'Operation', 'Product', 'Integer Part', 'Base Digit'],
+        headers: ['Iteration', 'Operation', 'Product (exact)', 'Integer Part', 'Base Digit'],
         rows: multRows,
       },
       equationLines: [
-        `Collected Integer Parts (Top to Bottom): .${fracDigits.join('')}`,
-        `Combined Base ${targetRadix} Fractional Result: .${fracDigits.join('')}`,
+        `Collected Integer Parts (Top to Bottom): .${fracResultDisplay}`,
+        isExact
+          ? `Combined Base ${targetRadix} Fractional Result: .${fracResultDisplay}`
+          : `Combined Base ${targetRadix} Fractional Result ≈ .${fracResultDisplay} (does not terminate within ${MAX_FRACTION_DIGITS} digits)`,
       ],
-      finalResult: `.${fracDigits.join('')}`,
+      finalResult: `.${fracResultDisplay}`,
     });
   }
 
@@ -1163,9 +1239,21 @@ function generateHexToBinarySteps(intHex: string, fracHex: string): StepDetail[]
 }
 
 /**
- * Two's Complement signed calculation generator
+ * Two's Complement signed calculation generator.
+ *
+ * Accepts `number | bigint` for convenience — every existing caller passes
+ * an 8/16/32-bit value that fits exactly in a `number` (well within
+ * Number.MAX_SAFE_INTEGER), so `BigInt(numValue)` never loses anything for
+ * them. But all arithmetic *inside* this function is BigInt-only. That
+ * matters at 64-bit: `Math.pow(2, 63) - 1` is not itself exactly
+ * representable as a `number` (doubles near 2^63 are spaced 2048 apart), so
+ * even computing the valid range with floating point silently corrupts it
+ * before a single user value is examined. A caller that actually needs an
+ * exact 64-bit result must pass a genuine `bigint` (e.g. `9223372036854775807n`)
+ * — precision lost upstream, before this function ever sees the value,
+ * can't be recovered here.
  */
-export function calculateTwosComplement(numValue: number, bitWidth = 8): {
+export function calculateTwosComplement(numValue: number | bigint, bitWidth = 8): {
   binaryStr: string;
   positiveBinary: string;
   onesComplement: string;
@@ -1173,10 +1261,12 @@ export function calculateTwosComplement(numValue: number, bitWidth = 8): {
   hexStr: string;
   steps: StepDetail[];
 } {
-  const maxVal = Math.pow(2, bitWidth - 1) - 1;
-  const minVal = -Math.pow(2, bitWidth - 1);
+  const value = typeof numValue === 'bigint' ? numValue : BigInt(numValue);
+  const bw = BigInt(bitWidth);
+  const maxVal = (1n << (bw - 1n)) - 1n;
+  const minVal = -(1n << (bw - 1n));
 
-  if (numValue > maxVal || numValue < minVal) {
+  if (value > maxVal || value < minVal) {
     return {
       binaryStr: 'Overflow',
       positiveBinary: '',
@@ -1187,17 +1277,17 @@ export function calculateTwosComplement(numValue: number, bitWidth = 8): {
         {
           title: `Bit Width Overflow (${bitWidth}-bit)`,
           type: 'info',
-          explanation: `The value ${numValue} exceeds the signed ${bitWidth}-bit range [${minVal} to ${maxVal}]. Increase bit width to 16-bit or 32-bit.`,
+          explanation: `The value ${value} exceeds the signed ${bitWidth}-bit range [${minVal} to ${maxVal}]. Increase bit width to 16-bit or 32-bit.`,
         },
       ],
     };
   }
 
-  const absVal = Math.abs(numValue);
+  const absVal = value < 0n ? -value : value;
   const posBin = absVal.toString(2).padStart(bitWidth, '0');
 
-  if (numValue >= 0) {
-    const hex = parseInt(posBin, 2).toString(16).toUpperCase().padStart(bitWidth / 4, '0');
+  if (value >= 0n) {
+    const hex = absVal.toString(16).toUpperCase().padStart(bitWidth / 4, '0');
     return {
       binaryStr: posBin,
       positiveBinary: posBin,
@@ -1208,7 +1298,7 @@ export function calculateTwosComplement(numValue: number, bitWidth = 8): {
         {
           title: `Positive Signed ${bitWidth}-bit Integer`,
           type: 'twos_complement',
-          explanation: `For non-negative numbers (${numValue}), Two's Complement representation is identical to standard unsigned binary representation padded to ${bitWidth} bits.`,
+          explanation: `For non-negative numbers (${value}), Two's Complement representation is identical to standard unsigned binary representation padded to ${bitWidth} bits.`,
           finalResult: posBin,
         },
       ],
@@ -1217,7 +1307,7 @@ export function calculateTwosComplement(numValue: number, bitWidth = 8): {
 
   // Negative number Two's Complement computation
   const onesComp = posBin.split('').map(b => (b === '0' ? '1' : '0')).join('');
-  const rawTwosInt = (BigInt(1) << BigInt(bitWidth)) - BigInt(absVal);
+  const rawTwosInt = (1n << bw) - absVal;
   const twosComp = rawTwosInt.toString(2).padStart(bitWidth, '0');
   const hexVal = rawTwosInt.toString(16).toUpperCase().padStart(bitWidth / 4, '0');
 

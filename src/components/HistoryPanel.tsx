@@ -18,8 +18,12 @@ interface HistoryPanelProps {
 
 const MODE_META: Record<HistoryMode, { label: string; icon: React.ElementType }> = {
   converter: { label: 'Number Converter', icon: Calculator },
-  bitgrid: { label: 'Bit Grid', icon: Binary },
-  twos_complement: { label: "Two's Complement", icon: Cpu },
+  // Bit Grid and Two's Complement were merged into the single Bit
+  // Representation lab; these two labels only ever appear on entries saved
+  // before that merge and are no longer a selectable nav destination.
+  bitgrid: { label: 'Bit Grid (legacy)', icon: Binary },
+  twos_complement: { label: "Two's Complement (legacy)", icon: Cpu },
+  bit_representation: { label: 'Bit Representation', icon: Binary },
   ascii: { label: 'Text & ASCII', icon: Type },
   operations: { label: 'Binary Operations', icon: SquareSigma },
   floating_point: { label: 'Floating Point', icon: Layers3 },

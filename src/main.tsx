@@ -1,6 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+import AppRoot from './AppRoot.tsx';
 import { HistoryProvider } from './context/HistoryContext';
 import { ShortcutTargetProvider } from './context/ShortcutTargetContext';
 import { ChatProvider } from './context/ChatContext';
@@ -26,7 +26,7 @@ createRoot(document.getElementById('root')!).render(
       <HistoryProvider>
         <ShortcutTargetProvider>
           <ChatProvider>
-            <App />
+            <AppRoot />
           </ChatProvider>
         </ShortcutTargetProvider>
       </HistoryProvider>

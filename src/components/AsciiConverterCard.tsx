@@ -62,19 +62,19 @@ export const AsciiConverterCard: React.FC = () => {
   });
 
   return (
-    <div className="bg-white dark:bg-[var(--bf-surface)] rounded-xl border border-slate-200 dark:border-[var(--bf-muted)]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
+    <div className="bg-[var(--bf-surface)] rounded-xl border border-[var(--bf-muted)]/40 p-5 sm:p-6 shadow-sm space-y-6 transition-colors">
       
       {/* Header */}
-      <div className="flex items-center justify-between gap-2.5 border-b border-slate-100 dark:border-[var(--bf-muted)]/30 pb-4">
+      <div className="flex items-center justify-between gap-2.5 border-b border-[var(--bf-muted)]/30 pb-4">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-lg bg-[var(--bf-chip)] text-[var(--bf-accent)]">
             <Type className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-display font-semibold tracking-wide text-[var(--bf-chip)] dark:text-[var(--bf-heading)]">
+            <h2 className="text-base font-display font-semibold tracking-wide text-[var(--bf-heading)]">
               Text & UTF-8 Encoding
             </h2>
-            <p className="text-xs text-[var(--bf-muted)] dark:text-[var(--bf-accent)]/80 mt-0.5">
+            <p className="text-xs text-[var(--bf-accent)]/80 mt-0.5">
               Convert text into UTF-8 bytes shown as Binary, Hexadecimal, Octal, and Decimal. Standard ASCII characters (0-127) map to a single 8-bit byte.
             </p>
           </div>
@@ -100,7 +100,7 @@ export const AsciiConverterCard: React.FC = () => {
 
       {/* Input Field */}
       <div>
-        <label htmlFor="bitforge-ascii-input" className="block text-xs font-bold uppercase tracking-wider text-[var(--bf-muted)] dark:text-[var(--bf-accent)] mb-2">
+        <label htmlFor="bitforge-ascii-input" className="block text-xs font-bold uppercase tracking-wider text-[var(--bf-accent)] mb-2">
           Text Input
         </label>
         <input
@@ -112,10 +112,10 @@ export const AsciiConverterCard: React.FC = () => {
           maxLength={MAX_TEXT_LENGTH}
           placeholder="Enter text..."
           aria-describedby={wasTruncated ? 'bitforge-ascii-truncated' : undefined}
-          className="w-full font-mono text-lg font-bold px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-[var(--bf-muted)]/60 bg-slate-50 dark:bg-[var(--bf-surface-deep)] text-[var(--bf-chip)] dark:text-[var(--bf-heading)] outline-none focus:border-[var(--bf-accent)] focus:ring-2 focus:ring-[var(--bf-accent)]/20 transition-all"
+          className="w-full font-mono text-lg font-bold px-4 py-3 rounded-xl border border-[var(--bf-muted)]/60 bg-[var(--bf-surface-deep)] text-[var(--bf-heading)] outline-none focus:border-[var(--bf-accent)] focus:ring-2 focus:ring-[var(--bf-accent)]/20 transition-all"
         />
         {wasTruncated && (
-          <p id="bitforge-ascii-truncated" role="status" className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+          <p id="bitforge-ascii-truncated" role="status" className="mt-1.5 text-xs text-amber-400">
             Trimmed to {MAX_TEXT_LENGTH} characters — that's the limit for this tool.
           </p>
         )}
@@ -163,13 +163,13 @@ export const AsciiConverterCard: React.FC = () => {
       {/* Character-by-Character Table */}
       {text.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-display font-medium uppercase tracking-wide text-[var(--bf-muted)] dark:text-[var(--bf-accent)]">
+          <h3 className="text-xs font-display font-medium uppercase tracking-wide text-[var(--bf-accent)]">
             Character-by-Character Encoding Table
           </h3>
 
-          <div className="overflow-x-auto scrollbar-none rounded-xl border border-slate-200 dark:border-[var(--bf-muted)]/40">
+          <div className="overflow-x-auto scrollbar-none rounded-xl border border-[var(--bf-muted)]/40">
             <table className="w-full text-left font-mono text-xs">
-              <thead className="bg-[#F4FAF9] dark:bg-[var(--bf-chip-alt)] text-[var(--bf-muted)] dark:text-[var(--bf-heading)] border-b border-slate-200 dark:border-[var(--bf-muted)]/40">
+              <thead className="bg-[var(--bf-chip-alt)] text-[var(--bf-heading)] border-b border-[var(--bf-muted)]/40">
                 <tr>
                   <th className="px-4 py-2.5 font-bold">Char</th>
                   <th className="px-4 py-2.5 font-bold">Encoding</th>
@@ -179,18 +179,18 @@ export const AsciiConverterCard: React.FC = () => {
                   <th className="px-4 py-2.5 font-bold">Octal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[var(--bf-muted)]/30 text-[var(--bf-chip)] dark:text-slate-100">
+              <tbody className="divide-y divide-[var(--bf-muted)]/30 text-slate-100">
                 {converted.characters.map((c, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-[var(--bf-chip)]/30">
-                    <td className="px-4 py-2 font-bold text-[var(--bf-accent-dark)] dark:text-[var(--bf-accent)]">
+                  <tr key={i} className="hover:bg-[var(--bf-chip)]/30">
+                    <td className="px-4 py-2 font-bold text-[var(--bf-accent)]">
                       {c.char === ' ' ? '<space>' : c.char}
                     </td>
                     <td className="px-4 py-2">
                       <span
                         className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
                           c.isAscii
-                            ? 'bg-[var(--bf-heading)] text-[var(--bf-chip)] dark:bg-[var(--bf-chip)] dark:text-[var(--bf-accent)]'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                            ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)]'
+                            : 'bg-amber-900/40 text-amber-300'
                         }`}
                       >
                         {c.isAscii ? 'ASCII' : `UTF-8 \u00d7${c.bytes.length}`}

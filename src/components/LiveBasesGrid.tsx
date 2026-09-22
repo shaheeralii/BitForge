@@ -110,11 +110,11 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-xs font-display font-medium uppercase tracking-wide text-[var(--bf-muted)] dark:text-[var(--bf-accent)]">
+        <h2 className="text-xs font-display font-medium uppercase tracking-wide text-[var(--bf-accent)]">
           Real-Time Conversion Matrix
         </h2>
         <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-xs text-[var(--bf-muted)] dark:text-slate-400 font-medium">
+          <span className="hidden sm:inline text-xs text-slate-400 font-medium">
             Click any card to focus step-by-step math derivation
           </span>
           <ShareButton
@@ -162,10 +162,10 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
           return (
             <div
               key={card.id}
-              className={`group relative bg-white dark:bg-[var(--bf-surface)] rounded-xl border transition-all duration-200 shadow-sm ${
+              className={`group relative bg-[var(--bf-surface)] rounded-xl border transition-all duration-200 shadow-sm ${
                 isTarget
-                  ? 'border-[var(--bf-accent)] dark:border-[var(--bf-accent)] ring-2 ring-[var(--bf-accent)]/30 shadow-md bg-gradient-to-b from-white to-[var(--bf-heading)]/20 dark:from-[var(--bf-surface)] dark:to-[var(--bf-chip)]/40'
-                  : 'border-slate-200 dark:border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]/60'
+                  ? 'border-[var(--bf-accent)] ring-2 ring-[var(--bf-accent)]/30 shadow-md'
+                  : 'border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]/60'
               }`}
             >
               <button
@@ -173,13 +173,13 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                 onClick={() => onSelectTargetBase(card.id)}
                 aria-pressed={isTarget}
                 aria-label={`View step-by-step derivation for ${card.name}`}
-                className="w-full h-full text-left p-5 flex flex-col justify-between rounded-xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bf-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[var(--bf-overlay)]"
+                className="w-full h-full text-left p-5 flex flex-col justify-between rounded-xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bf-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bf-overlay)]"
               >
                 <div>
                   {/* Header Sublabel */}
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-[var(--bf-muted)] dark:text-[var(--bf-accent)] uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-[var(--bf-accent)] uppercase tracking-widest">
                         {card.id === 'custom' ? `RADIX ${customRadix}` : `BASE ${card.radix}`}
                       </span>
                       {isSource && (
@@ -191,28 +191,28 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
 
                     <div className="flex items-center gap-1">
                       {card.badgeText && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F4FAF9] dark:bg-[var(--bf-chip-alt)] text-[var(--bf-muted)] dark:text-[var(--bf-heading)] font-medium border border-slate-200 dark:border-[var(--bf-muted)]/30">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bf-chip-alt)] text-[var(--bf-heading)] font-medium border border-[var(--bf-muted)]/30">
                           {card.badgeText}
                         </span>
                       )}
                       {isTarget && (
-                        <span className="flex items-center text-[10px] font-bold text-[var(--bf-chip)] dark:text-[var(--bf-accent)] bg-[var(--bf-heading)] dark:bg-[var(--bf-chip)] px-2 py-0.5 rounded border border-[var(--bf-accent)]/40">
-                          <Target className="w-3 h-3 mr-1 text-[var(--bf-accent-dark)] dark:text-[var(--bf-accent)]" />
+                        <span className="flex items-center text-[10px] font-bold text-[var(--bf-accent)] bg-[var(--bf-chip)] px-2 py-0.5 rounded border border-[var(--bf-accent)]/40">
+                          <Target className="w-3 h-3 mr-1 text-[var(--bf-accent)]" />
                           FOCUSED
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <h3 className="text-sm font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-2">
+                  <h3 className="text-sm font-bold text-[var(--bf-heading)] mb-2">
                     {card.name}
                   </h3>
 
                   {/* Main Large Numerical Output */}
                   <div className="flex items-baseline justify-between gap-2 my-2 pr-10">
-                    <div className="font-mono text-2xl sm:text-3xl font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] break-all leading-tight">
+                    <div className="font-mono text-2xl sm:text-3xl font-bold text-[var(--bf-heading)] break-all leading-tight">
                       {card.prefix && card.value !== 'Error' && (
-                        <span className="text-[var(--bf-muted)] dark:text-slate-500 select-none text-xl mr-1 font-normal">
+                        <span className="text-slate-500 select-none text-xl mr-1 font-normal">
                           {card.prefix}
                         </span>
                       )}
@@ -224,16 +224,16 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                 </div>
 
                 {/* Bottom Visual Progress / Radix Indicator Bar */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[var(--bf-muted)]/30">
-                  <div className="flex items-center justify-between text-[11px] text-[var(--bf-muted)] dark:text-slate-400 mb-1.5 font-mono">
+                <div className="mt-4 pt-3 border-t border-[var(--bf-muted)]/30">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5 font-mono">
                     <span>Radix Scale ({card.radix})</span>
-                    <span className="flex items-center font-medium text-[var(--bf-chip)] dark:text-[var(--bf-accent)] group-hover:underline">
+                    <span className="flex items-center font-medium text-[var(--bf-accent)] group-hover:underline">
                       Math Derivation <ChevronRight className="w-3 h-3 ml-0.5" />
                     </span>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-100 dark:bg-[var(--bf-chip-alt)] rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-[var(--bf-chip-alt)] rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-300 ${isTarget ? 'bg-gradient-to-r from-[var(--bf-muted)] to-[var(--bf-accent)]' : 'bg-[var(--bf-muted)]/40 dark:bg-[var(--bf-muted)]/60'}`}
+                      className={`h-full transition-all duration-300 ${isTarget ? 'bg-gradient-to-r from-[var(--bf-muted)] to-[var(--bf-accent)]' : 'bg-[var(--bf-muted)]/60'}`}
                       style={{ width: `${radixPercent}%` }}
                     />
                   </div>
@@ -252,7 +252,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                     ? 'bg-emerald-600 text-white'
                     : isFailed
                     ? 'bg-rose-600 text-white'
-                    : 'bg-[#F4FAF9] dark:bg-[var(--bf-chip-alt)] text-[var(--bf-muted)] dark:text-slate-300 hover:text-[var(--bf-chip)] dark:hover:text-[var(--bf-accent)] border border-slate-200 dark:border-[var(--bf-muted)]/50 hover:bg-slate-100 dark:hover:bg-[var(--bf-chip)]'
+                    : 'bg-[var(--bf-chip-alt)] text-slate-300 hover:text-[var(--bf-accent)] border border-[var(--bf-muted)]/50 hover:bg-[var(--bf-chip)]'
                 }`}
                 title={isFailed ? 'Copy failed \u2014 clipboard unavailable' : 'Copy converted value'}
                 aria-label={isCopied ? `Copied ${card.name} value` : isFailed ? 'Copy failed — clipboard unavailable' : `Copy ${card.name} value`}

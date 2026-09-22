@@ -632,6 +632,26 @@ export class FlowWaveScene {
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.mql?.removeEventListener?.('change', this.onMotionPrefChange);
 
+    // Blank the drawing buffer before releasing the renderer, so a canvas
+    // that stays mounted after teardown isn't left showing this scene's last
+    // frame. That happens on WebGL context loss, where the element persists
+    // and a replacement scene may not be built for some time. (Theme
+    // switches into Plain no longer rely on this at all — FlowWaveBackground
+    // unmounts the canvas outright there, which is a stronger guarantee than
+    // any clear can give.)
+    //
+    // Wrapped because this runs from a React effect cleanup: the GL context
+    // may already be lost by the time we get here, and letting a throw
+    // escape a cleanup function tears down the React tree above it. Failing
+    // to blank a buffer is cosmetic; blanking the whole app is not.
+    try {
+      this.renderer.setRenderTarget(null);
+      this.renderer.setClearColor(0x000000, 0);
+      this.renderer.clear(true, true, true);
+    } catch {
+      // Context already gone — nothing left to clear, and nothing to do.
+    }
+
     this.sphereGeo.dispose();
     this.pointsMat.dispose();
     this.moteGeo.dispose();
