@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Non-blocking for now: this is the first time this codebase has been
+      # linted at all (see README.md's Development section), and the
+      # existing warnings it surfaces are pre-existing, low-severity, and
+      # each would need its own deliberate look rather than a mechanical
+      # fix bundled into an unrelated change. Failing CI on day one over
+      # findings nobody has triaged yet would just train the team to ignore
+      # red CI. Flip this to a normal blocking step once `npm run lint`
+      # comes back clean (or the remaining warnings are consciously
+      # accepted and suppressed at their call sites, not globally).
+      - name: Lint (informational only — see comment)
+        run: npm run lint
+        continue-on-error: true

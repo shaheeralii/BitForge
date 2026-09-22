@@ -12,7 +12,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss)
 ![Three.js](https://img.shields.io/badge/Three.js-r143-000000?style=flat-square&logo=three.js)
 
-BitForge brings base conversion, bit-level manipulation, binary arithmetic, two's complement, floating-point representation, and ASCII/UTF-8 encoding into one browser-based tool — built for anyone who'd rather *see* a conversion happen than read about it. The six core tools run entirely client-side; the only server-side piece is a small Edge Function powering the optional **BitForge AI** learning assistant.
+BitForge brings base conversion, bit-level manipulation, binary arithmetic, signed integer representations, floating-point representation, and ASCII/UTF-8 encoding into one browser-based tool — built for anyone who'd rather *see* a conversion happen than read about it. Visiting the site opens a landing page with a live, click-to-flip demo of the core idea before you ever reach the tool itself. The five core tools run entirely client-side; the only server-side piece is a small Edge Function powering the optional **BitForge AI** learning assistant.
 
 ---
 
@@ -22,12 +22,11 @@ BitForge brings base conversion, bit-level manipulation, binary arithmetic, two'
 |---|---|
 | 🔢 **Number Converter** | Convert between Decimal, Binary, Octal, Hex, and a custom base (2–36). Auto-detects format from `0x` / `0b` / `0o` prefixes, supports fractional values and negative numbers, and shows every base live alongside a full positional-weight, repeated-division, or bit-grouping derivation. |
 | ➗ **Binary Operations** | Add, subtract, multiply, and divide raw binary values at a chosen bit width (4/8/16/32/64-bit). Every operation shows its full bit-by-bit trace — ripple-carry addition, two's-complement subtraction, shift-and-add multiplication, restoring long division — plus carry, borrow, and overflow flags. |
-| 🧩 **Interactive Bit Grid** | A clickable 8/16/32-bit matrix. Toggle bits directly or use Invert, Shift Left/Right, Clear, and Set All. Live unsigned, signed, hex, and octal readouts, each copyable. |
-| ➕ **Two's Complement Engine** | Enter a signed decimal integer and get its two's complement binary/hex at a chosen width, with range/overflow detection, an invert-and-add-one breakdown, and boundary-value presets. |
+| 🧬 **Bit Representation** | One synchronized workspace: type a signed decimal (any width) or toggle bits directly on an 8/16/32-bit grid, then choose how those bits should be interpreted — Unsigned, Sign-Magnitude, One's Complement, or Two's Complement — each with its own explanation and step-by-step derivation. Includes Invert/Shift/Clear, live hex/octal, and "Same Number, Different Encoding" / "Same Bits, Different Meaning" comparisons that show all four systems side by side. |
 | 🔤 **Text & UTF-8 Encoding** | Encode text into real UTF-8 bytes — decimal, binary, hex, and octal per byte, plus combined byte streams for the full string — correctly handling accented characters, emoji, and anything outside plain ASCII, with each character flagged as ASCII or not. |
 | 🎚️ **Floating-Point Explorer** | See how a decimal number is stored as sign, exponent, and fraction bits, or decode an existing bit pattern back to decimal. Supports the standard Binary16/32/64 formats and a fully configurable Custom Format, with a short plain-language explanation up front and full derivation, rounding, and special-value details available on demand. |
 
-**Also included:** a searchable, persistent Activity History across all six tools; one-click copy and share (Web Share API, with a clipboard fallback) for any result; a keyboard-shortcut reference dialog (`?`); two selectable dark themes — the original Emerald look and a more restrained Premium Dark Gray — switchable from the header and remembered across visits; an animated background that adapts its rendering cost to the device it's running on (and re-tints itself to match the selected theme); and **BitForge AI**, a lightweight chat assistant that teaches number-system and encoding concepts, backing any direct conversion or two's-complement question with BitForge's own verified calculation rather than the model's own arithmetic.
+**Also included:** a searchable, persistent Activity History across all five tools; one-click copy and share (Web Share API, with a clipboard fallback) for any result; a keyboard-shortcut reference dialog (`?`); three selectable themes — the original Emerald look, a more restrained Premium Dark Gray, and a lightweight Plain mode with no background animation at all (the default for new visitors with reduced motion enabled at the OS level) — switchable from the header and remembered across visits; an animated background (skipped entirely under Plain) that adapts its rendering cost to the device it's running on and re-tints itself to match the selected theme; and **BitForge AI**, a lightweight chat assistant that teaches number-system and encoding concepts, backing any direct conversion or signed-representation question with BitForge's own verified calculation rather than the model's own arithmetic.
 
 ---
 
@@ -52,34 +51,47 @@ BitForge/
 ├── index.html
 ├── public/
 │   └── favicon.svg                   # BitForge monogram, also used as the site favicon
+├── api/
+│   └── chat.ts                       # Vercel Edge Function: Gemini proxy + Upstash rate limiting
 ├── src/
 │   ├── main.tsx                      # React entry point; sets device performance tier & theme pre-render
-│   ├── App.tsx                       # Root component, mode routing & layout
+│   ├── AppRoot.tsx                   # Router component: landing page vs. the tool (hash<->route logic lives in routing.ts)
+│   ├── routing.ts                    # parseHash/appRouteToHashPath — hash<->route logic (see routing.test.ts)
+│   ├── App.tsx                       # The tool itself: mode routing & layout
 │   ├── index.css                     # Global styles, theme tokens, glass utilities
 │   ├── types.ts                      # Shared TypeScript types
 │   ├── version.ts                    # Single source of truth for the app version string
 │   ├── utils/
+│   │   ├── numberParsing.ts          # Canonical numeric-literal parser shared by converter.ts and chatIntent.ts
 │   │   ├── converter.ts              # Base conversion, auto-detection & two's complement
+│   │   ├── signedRepresentations.ts  # Unsigned/Sign-Magnitude/One's/Two's Complement encode-decode engine (Bit Representation)
 │   │   ├── binaryOps.ts              # Bit-accurate add/sub/mul/div engine + step traces
+│   │   ├── floatingPoint.ts          # IEEE 754 breakdown/derivation engine (Binary16/32/64 & custom formats)
+│   │   ├── chatIntent.ts             # Routes direct conversion questions through BitForge's own engine before Gemini
+│   │   ├── formatAiText.ts           # Markdown/LaTeX-ish parser for BitForge AI responses
 │   │   ├── downloadUtils.ts          # History export (CSV / JSON / TXT)
 │   │   ├── shareUtils.ts             # Web Share API + clipboard-copy fallback
 │   │   └── devicePerf.ts             # Lightweight device-capability heuristic
 │   ├── hooks/
 │   │   ├── useKeyboardShortcuts.ts   # Global shortcut bindings, input-aware
 │   │   ├── useFocusTrap.ts           # Modal focus management (trap, auto-focus, restore)
+│   │   ├── useScrollLock.ts          # Locks background scroll while a dialog is open
 │   │   └── useAutoResetTimer.ts      # Timed UI-state resets (e.g. "Copied!" labels)
 │   ├── context/
 │   │   ├── HistoryContext.tsx        # Activity History state, persistence & validation
 │   │   ├── ShortcutTargetContext.tsx # Routes shortcuts to the active tool
-│   │   └── ThemeContext.tsx          # Premium Dark / Emerald theme state & persistence
+│   │   ├── ChatContext.tsx           # BitForge AI conversation state (session-only, not persisted)
+│   │   └── ThemeContext.tsx          # Emerald / Premium / Plain theme state & persistence
 │   ├── three/
 │   │   └── FlowWaveScene.ts          # Animated WebGL background (Three.js, tiered quality, per-theme palette)
 │   └── components/
-│       ├── Header.tsx                # Top nav, mode switcher, logo & theme toggle
+│       ├── Header.tsx                # Top nav, mode switcher, logo & theme switcher
 │       ├── BitForgeLogo.tsx          # BitForge monogram (SVG, theme-aware)
-│       ├── ThemeToggle.tsx           # Premium Dark / Emerald theme switcher
-│       ├── FlowWaveBackground.tsx    # React mount point for the animated background
-│       ├── WelcomeBanner.tsx         # First-time user onboarding guide
+│       ├── ThemeSwitcher.tsx         # Emerald / Premium / Plain theme picker
+│       ├── FlowWaveBackground.tsx    # React mount point for the animated background (no-op under Plain)
+│       ├── LandingPage.tsx           # Marketing landing page (route: '#/' — see AppRoot.tsx)
+│       ├── WelcomeBanner.tsx         # First-time user onboarding guide (in-app, not the landing page)
+│       ├── InfoDialog.tsx            # About / Help / Privacy / Terms / Disclaimer tabs
 │       ├── HistoryPanel.tsx          # Activity History slide-over panel
 │       ├── ShortcutsHelpDialog.tsx   # Keyboard shortcut reference dialog
 │       ├── ShareButton.tsx           # Shared copy/share control used across every tool
@@ -89,12 +101,22 @@ BitForge/
 │       ├── StepByStepBreakdown.tsx   # Conversion derivation steps
 │       ├── DerivationDisclosure.tsx  # Shared closed-by-default toggle for derivation panels
 │       ├── BinaryOperationsCard.tsx  # Binary arithmetic UI + derivation tables
-│       ├── BitGridVisualizer.tsx     # Interactive bit grid (8/16/32-bit)
-│       ├── TwosComplementCard.tsx    # Signed integer / two's complement engine
+│       ├── BitCellRow.tsx            # Shared interactive/static bit-row visualization primitive
+│       ├── BitRepresentationLab.tsx  # Bit Representation: unified denary+bit-grid workspace (merges the former Bit Grid & Two's Complement pages)
+│       ├── BitRepresentationPanel.tsx    # Per-representation explanation + derivation panel
+│       ├── BitRepresentationInsights.tsx # Collapsible reference panels (same bits/different meaning, why two's complement, comparison table)
 │       ├── AsciiConverterCard.tsx    # Text ↔ UTF-8/binary/hex/octal encoder
+│       ├── FloatingPointCard.tsx     # Floating-Point Explorer (IEEE 754 & custom formats)
+│       ├── FloatBitStrip.tsx         # Interactive sign/exponent/fraction bit strip
+│       ├── ChatAssistant.tsx         # BitForge AI chat panel & launcher
+│       ├── FormattedAiMessage.tsx    # Renders parsed BitForge AI responses
 │       └── Footer.tsx                # Status footer bar
 ├── package.json
 ├── vite.config.ts
+├── eslint.config.js
+├── .github/
+│   └── workflows/
+│       └── ci.yml                    # install, typecheck, test, build (blocking); lint (informational)
 └── tsconfig.json
 ```
 
@@ -116,6 +138,28 @@ npm run build       # outputs to dist/
 npm run preview      # preview the production build
 ```
 
+### Development
+
+```bash
+npm run typecheck   # tsc --noEmit — the fast, authoritative correctness gate
+npm run lint         # eslint . — catches real mistakes (stale hook deps, unused vars),
+                      # not a style guide; kept deliberately separate from typecheck
+npm test             # vitest run — the full test suite
+```
+
+`npm run typecheck` and `npm run lint` check different things and are not
+interchangeable: TypeScript's structural type-checking doesn't catch a stale
+closure over a `useEffect` dependency, and ESLint doesn't catch a type
+mismatch. Both, plus the test suite and a production build, run in CI
+(`.github/workflows/ci.yml`) on every push and pull request. Lint currently
+runs as informational rather than a blocking gate — see the comment in that
+workflow file for why and what flips it to blocking.
+
+`tsconfig.json` does not enable `noUnusedLocals`/`noUnusedParameters`;
+ESLint's `@typescript-eslint/no-unused-vars` is what catches those instead,
+so an unused import or variable shows up in `npm run lint`, not
+`npm run typecheck`.
+
 ### BitForge AI setup (optional)
 
 The five core tools work with zero configuration. To also run **BitForge AI** locally or in your
@@ -135,6 +179,53 @@ On Vercel, set the same variables under **Project Settings → Environment Varia
 ## Changelog
 
 All notable changes to this project are documented below, newest first.
+
+### v6.0.0 — Bit Representation Redesign, Landing Page, Legal & Compliance
+
+**Added**
+- **Plain theme** — a third background option alongside Emerald and Premium: a flat near-black surface system with no FlowWave/WebGL animation at all. `FlowWaveBackground` never constructs a `FlowWaveScene` under Plain — no canvas context, no Three.js work — rather than just hiding a running one; switching into or out of Plain creates or tears down the scene, while switching between Emerald and Premium still just re-tints the running one as before. First-time visitors (no saved theme yet) default to Plain automatically when the OS reports `prefers-reduced-motion: reduce`, and to Emerald otherwise; a saved choice always wins after that, and the picker itself always offers all three regardless of motion settings.
+- **Three-way theme picker** (`ThemeSwitcher.tsx`) replacing the old two-way cycling toggle — a small dropdown anchored in the same header slot (same collapsed footprint on mobile), with Escape-to-close and focus return to the trigger, mirroring the existing `ExportDropdown` interaction pattern already used in `HistoryPanel`.
+- **Terms & Conditions** tab in the Info dialog — acceptable-use/anti-abuse for the AI backend, IP/licensing (MIT code license plus branding), third-party services subject to their own terms, availability/bugs, a no-payments-so-no-refunds statement, a reasonable limitation-of-liability statement, and a Pakistan-context governing-law note that doesn't claim compliance with every jurisdiction.
+- Site-wide `:focus-visible` outline for buttons, links, and `<summary>` elements — a single consistent accent-colored ring instead of a mix of the browser default and ad-hoc per-component treatments. Uses a negative `outline-offset` so it sits inside the element's own box and is never clipped by a dialog's `overflow-hidden`. Text inputs keep their existing border-color focus treatment untouched.
+- **Marketing landing page** (`LandingPage.tsx`) at the root route — a live, click-to-flip 8-bit demo (built from the same `BitCellRow` and `signedRepresentations` engine as the real tool, not a mockup) demonstrating that one bit pattern reads as four different numbers, and the app's actual `ThemeSwitcher` so the three themes can be previewed before entering. The six tool tiles are real destinations, not decoration: each opens the tool with that mode already selected, and the BitForge AI tile opens it with the chat panel already open. The footer's About/Help/Privacy/Terms/Disclaimer render this page's own `InfoDialog` directly rather than entering the tool to show one. Routing (`AppRoot.tsx` + `routing.ts`) is a small hash-based router rather than a routing library or a second Vite entry point: reading and writing only `location.hash` means a direct link or a page refresh on any route resolves correctly with zero server-side rewrite rules, on any host. Deliberately hardened against one specific failure mode — see `routing.test.ts` — where an unrelated in-page anchor hash change could otherwise be misread as "navigate to landing" and silently eject someone mid-task; only a hash that names a recognized destination is ever treated as a navigation.
+
+**Changed**
+- **Privacy tab** — strengthened the cookies section to state plainly that BitForge sets no cookies of any kind (not just "no advertising cookies"), and that `localStorage` never leaves the device.
+- **BitForge AI chat input** — the small disclaimer next to the input now also states that messages are sent to Google's Gemini API, not just that responses are AI-generated.
+- **Footer** — added a Terms link alongside the existing About/Help/Privacy/Disclaimer links.
+- **Merged Bit Grid and Two's Complement into one Bit Representation lab** (`BitRepresentationLab.tsx`) — a single denary input and interactive bit grid (8/16/32-bit) now drive all four interpretations (Unsigned, Sign-Magnitude, One's Complement, Two's Complement) via a shared encode/decode engine (`utils/signedRepresentations.ts`), rather than two separate tools with overlapping bit-toggle UIs. Adds "Same Number, Different Encoding" and "Same Bits, Different Meaning" comparisons plus a representation reference table, and reuses the existing tested `calculateTwosComplement()` engine rather than re-deriving Two's Complement a second way. Old `bitgrid`/`twos_complement` Activity History entries remain viewable (labeled "(legacy)"); nothing is destroyed.
+- **Bit Representation hierarchy pass** — reordered the page so the representation selector sits immediately after the denary input (previously buried below Bit Width, Bit Controls, and a large Basic Binary Information block), demoted Bit Width to a compact corner control, replaced the three-card Basic Binary Information section with a single compact Binary/Hex/Octal line near the bottom, and gave the active representation panel clearer visual weight as the page's centerpiece.
+- **Visual restraint pass** — removed the welcome banner's gradient background and two purely decorative blurred glow shapes, and thinned its border from 2px to 1px; removed the chat launcher's escalating colored glow and hover-scale bounce in favor of a single static shadow and a plain background-color hover; softened the header's drop shadow; thinned every primary input's border from 2px to 1px across all six tool cards, matching the one card that already used 1px; simplified the Bit Grid's active-toggle and Live Bases Grid's selected-card states from three or four simultaneous emphasis effects (border + ring + shadow, or border + ring + shadow + gradient) down to two.
+- **Dead code removal** — this app runs permanently in dark mode (`<html class="dark">` never toggles), so every Tailwind `dark:` variant was already the only style that ever rendered. Removed the now-provably-dead light-mode counterpart class from every affected element across nine files. No visual change — confirmed via full typecheck, test suite, and production build after every file, after an initial scripted attempt at this same cleanup was caught in review (it conflated same-prefix utilities governing different CSS properties, e.g. `ring-offset` width vs. color) and discarded before touching any real file.
+- **Bit Representation correctness pass** — the main bit grid now labels bits according to the selected representation (`−128 64 32 …` for Two's Complement, `S | 64 32 …` with a sign divider for Sign-Magnitude, neutral `b7…b0` positions for One's Complement, unsigned weights otherwise), resolving a contradiction where the grid called the MSB `128` while the panel directly below called it `−128`. Grid labels, ranges and value formatting now come from the engine (`getBitGridMeta`, `formatRange`, `formatValueForInput`/`formatValueForDisplay`) so the grid and panel render from one definition rather than computing labels separately. Negative zero is now shown as `−0` for Sign-Magnitude `10000000` and One's Complement `11111111` instead of being flattened to `0` by default number conversion (and is never shown for Unsigned or Two's Complement, which have a single zero). Ranges display as `−128 → +127`. Shift Right is relabelled **Logical Shift Right** to be explicit that it shifts a 0 into the MSB regardless of representation. Switching representation now preserves the user's numeric value and re-encodes the bits, rather than reinterpreting the same pattern and making the displayed number jump.
+
+**Fixed**
+- **Premium/Emerald → Plain theme transition** — switching into Plain could leave the last rendered FlowWave frame visible in the persistent `<canvas>` until the page was refreshed. `FlowWaveScene.dispose()` stopped the render loop and freed GPU resources but never explicitly cleared the canvas's drawing buffer, so whatever was last painted stayed on screen indefinitely once nothing was rendering to replace it. `dispose()` now resets the render target and issues one explicit fully-transparent clear before releasing the renderer, so Plain's flat background shows through immediately. Emerald ↔ Premium re-tinting and Plain → Emerald/Premium scene creation are unaffected.
+- **Landing page footer links** — About/Help/Privacy/Terms/Disclaimer previously routed into the tool and opened the Info dialog there, which meant clicking "Privacy" from the landing page flashed the Number Converter behind the dialog before it appeared. The landing page now renders its own `InfoDialog` directly — same component, same content, its own local open/close state — and never enters the tool at all for this. The `#/app/info/<section>` route this used is removed.
+- **Tool tiles on the landing page were inert** — the six-card tools grid was purely decorative. Each tile is now a real button: the five real tools navigate into the tool with that mode already selected (`#/app/mode/<mode>`), and BitForge AI opens the tool with the chat panel already open (`#/app/chat`).
+- **No way back to the landing page from inside the tool** — the BitForge logo/wordmark in the tool's header is now a real link (`href="#/"`) back to the landing page, with no new state or prop plumbing: it sets the same hash the landing page's own navigation already does, and the router's existing hashchange listener picks it up identically.
+- **Hash navigation could go stale while already inside the tool** — switching modes via the Header updated what was displayed but never touched the URL, so refreshing, sharing the link, or hitting Back could return you to a mode you'd already left; conversely, a hash change arriving from outside the current session (Back/Forward, or a fresh `#/app/mode/<mode>` link opened while the tool was already mounted) had no effect on what was shown, since `App.tsx` only ever consumed its initial mode/chat props once, at mount. Fixed with two effects that close both directions without fighting each other: a forward sync writes the current mode/chat state to the URL via `history.replaceState` (never creating a new history entry per mode switch, and — because `replaceState` never fires `hashchange` — never triggering the second effect itself), and a reverse sync reacts to the URL prop changing for a reason other than the app's own last write. The hash↔state mapping (`parseHash`/`appRouteToHashPath`) was pulled into its own `routing.ts` module specifically so the round-trip between the two is unit-tested directly (`routing.test.ts`) rather than only reachable through effects that need a real DOM to exercise.
+- **Unified numeric parsing across the converter and the AI intent system** (new `utils/numberParsing.ts`) — `chatIntent.ts`'s Two's Complement path ran `parseInt(token, 10)` on tokens that could be prefixed or signed, so `"0x2A"` silently parsed as `0` and `"-0xFF"` as `-0` (parseInt stops at the first character invalid for the radix it's told to use — here, at `x`). Both the converter engine and the AI intent system now resolve sign, base prefix (`0x`/`0b`/`0o`), and digits through the same canonical parser, with sign and prefix recognized independently of each other — `autoDetectBase` and `sanitizeInput` had the matching bug in the other direction (checking for a prefix at the very start of the string, which can never match when a sign comes first), fixed the same way. 24 new tests in `numberParsing.test.ts` cover every radix from 2 to 36, negative fractions like `-.5`, and the exact prefixed/signed cases above.
+- **Two's Complement now uses BigInt throughout, not just at the edges** — `calculateTwosComplement` took a plain `number`, which cannot exactly represent 64-bit boundary values (`2^63 - 1` is already outside `Number.MAX_SAFE_INTEGER`), and even computed its own valid range with `Math.pow(2, 63) - 1`, a value that isn't itself exactly representable as a double (doubles are 2048 apart at that magnitude, so the subtraction silently rounds back up to `2^63`). Now accepts `number | bigint` — every existing 8/16/32-bit caller keeps working unchanged, since those magnitudes convert to BigInt exactly — and does every internal computation, including the range check, in BigInt. New tests confirm `2^63 - 1` and `-2^63` round-trip exactly and that `2^63` itself correctly overflows, both directly and through the AI's Two's Complement intent path.
+- **Fractional conversion could silently show a tiny nonzero value as zero** — the pipeline converted a source fraction to a lossy floating-point `number` and stopped early once the running value fell under a fixed `1e-12` epsilon; a genuinely tiny value (e.g. decimal `0.0000000000001`) could hit that threshold within a single digit, displaying as flat `0` — indistinguishable from the value actually being zero. Every fraction conversion — to decimal and to any other target base, including a custom radix — now goes through exact BigInt numerator/denominator long division (`fractionDigitsToExactBase`, generalizing the decimal-only `fractionDigitsToExactDecimal` that already existed) with no floating point anywhere in the path. A value that doesn't terminate within the shared, explicit `MAX_FRACTION_DIGITS` display budget (12, replacing three different ad-hoc limits — 8, 10, and 12 — that used to disagree across three different functions) is marked with a trailing "…" rather than silently presented as complete, and a repeating fraction (e.g. decimal `0.1` in binary) is shown with the repeating part in parentheses. The step-by-step breakdown shown to the user was rewritten to walk the same exact arithmetic one digit at a time, so it can no longer disagree with the final result displayed above it — a real risk with the old float-based table, whose own hardcoded 8-step limit was the third inconsistent value.
+
+**Improved (correctness and maintainability pass)**
+- **`dangerouslySetInnerHTML` removed** — its only actual use was rendering `<sup>` tags for positional-weight exponents in equation-line text. Replaced with real Unicode superscript characters (e.g. `10²`) generated at the source, so the string never contains markup and React can render it as plain text directly. A regression test asserts no equation line produced by any conversion direction contains an HTML tag.
+- **Centralized radix validation** — `MIN_RADIX`/`MAX_RADIX` (2/36) and `isValidRadix()` now live in one place (`numberParsing.ts`) instead of the bounds being repeated as bare `2`/`36` literals in the custom-radix slider, its paired number input, and its clamping logic.
+- **History persistence hardened**: stored data now carries an explicit `{version, entries}` wrapper (`STORAGE_VERSION`) instead of a bare array with no way to detect a future schema change — old bare-array data is still read for backward compatibility. The parsing and serialization logic was pulled into pure functions (`parseStoredHistoryPayload`/`serializeHistoryPayload`, both exported and directly unit-tested in `HistoryContext.test.ts`) decoupled from the `localStorage` global itself, rather than needing a browser environment to test at all. Also added multi-tab sync via the `storage` event, so adding or clearing history in one open tab is reflected in others without a manual refresh.
+- **Linting distinguished from type-checking**: `npm run lint` previously just ran `tsc --noEmit` under a misleading name. `typecheck` now owns that job; `lint` runs a real ESLint flat config (`eslint.config.js`) — the standard recommended JS/TS rules plus `react-hooks`/`react-refresh`, not a broader style guide — added with zero pre-existing errors and 12 low-severity warnings, all pre-existing and left for deliberate future attention rather than a mechanical fix bundled into this change.
+- **CI added** (`.github/workflows/ci.yml`): install, typecheck, test, and build run as blocking checks on every push and pull request. Lint runs too, but non-blocking for now — see the workflow file's comment for why and what flips it to blocking.
+- **Documentation aligned with actual behavior**: the Help tab now explicitly documents the fractional-conversion precision policy (exact arithmetic, a stated 12-digit display budget, repeating-decimal notation, honest truncation marking) where previously nothing was claimed either way, and documents that a sign and a base prefix are recognized independently (`-0xFF` parses as −255 rather than being rejected).
+- **Assessed, deliberately not done**: further splitting `converter.ts` (still the largest file at ~1400 lines) into separate step-generation and exact-arithmetic modules. A clean split is possible but the two halves depend on each other closely enough that separating them cleanly would need a third shared module purely to avoid a circular import between them — a bigger, riskier change than this pass's other extractions (`numberParsing.ts`, `routing.ts`), which had no such entanglement. Left as one cohesive file rather than rushed.
+
+**Fixed (final correctness pass)**
+- **Routing still went stale in the reverse direction** — the previous fix synced App state to the URL, but the URL-to-state direction only ever *opened* things (`if (initialMode && initialMode !== activeMode)`, `if (initialChatOpen && !isChatOpen)`), never reset them: navigating from `#/app/mode/ascii` back to bare `#/app` left the mode showing `ascii`, and `#/app/chat` → `#/app/mode/ascii` left chat open. A route naming no mode/chat means the *default* state, not "no opinion" — both effects now resolve through one function (`resolveAppDisplayState`, in `routing.ts`) that coalesces a missing mode to `converter` and missing chat to closed before comparing. Directly regression-tested as state transitions, not just hash parsing: `routing.test.ts` simulates the exact named scenarios (`#/app/mode/ascii → #/app`, `#/app/chat → #/app/mode/ascii`, every mode to every other mode) and a throwaway script confirmed each one genuinely fails against the old logic before the fix and passes after.
+- **`chatIntent.ts` retained its own numeric grammar that could still fail independently of `numberParsing.ts`**: `findNumberToken()`'s token-locating regex required at least one digit *before* a decimal point, so it could not find `.5` or `-.5` in a message at all — not misparse them, never locate them as a token in the first place, silently falling through to an unverified answer. Fixed to recognize `\.\d+` and `\d+\.\d*` as their own alternatives, and extended the prefixed-literal patterns to allow a fractional suffix (`0x2A.8`, `0b101.101`, `0o17.4`). Separately, `findBareHexToken()` matched only `[0-9A-Fa-f]+`, with no sign capture at all — "`-FF` hex" silently became `+255`. Both are now covered end-to-end via `detectVerifiedContext`, including through the Two's Complement path specifically, which had its own version of the same gap: it defaulted to decimal unconditionally, so `-FF` (bare hex, no prefix) had no way to be recognized as hex there even after the token-finding fix. Now resolves a radix hint through `autoDetectBase`, the same function the general conversion path already trusts — **but only at high confidence**: an early version of this fix trusted the guess unconditionally and broke `"twos complement of -10"`, which `autoDetectBase` also validly reads as binary `10` at medium confidence (regressing `-10` to `-2`). Caught by the pre-existing test for that exact phrase before this reached review; the fix keeps the conventional decimal default for anything below high confidence.
+- **Removed the dead floating-point `fractionVal` field** from `baseToDecimalValue()` — every real consumer already worked from `fractionStr` (the exact digit string) after the fractional-exactness fix earlier in this version, but the lossy `number` computation itself was still sitting there, unused, as a standing invitation for a future shortcut to wire it back in.
+- **A leftover overclaim**: the step-by-step derivation panel's footer still literally read "Math Core 64-Bit Exact" — a prior version's changelog claimed this exact wording had already been corrected (to "Integer Engine: Exact"), but the fix had evidently only reached one occurrence, not this one, and the label was never actually true as written even before that (fractional conversion has a stated, finite display budget — see `MAX_FRACTION_DIGITS` — not unconditional exactness). Now reads "Integer Engine: Exact", matching what's actually guaranteed.
+- **BigInt coverage audited**: `signedRepresentations.ts` (the Unsigned/Sign-Magnitude/One's/Two's Complement engine behind the Bit Representation UI) still uses plain `number`/`Math.pow` throughout, not BigInt. Verified this is correct rather than an oversight — that UI only ever offers 8/16/32-bit widths, and every magnitude those can produce is trivially exact as a double — and documented the constraint explicitly at the top of the file, including exactly what migrating it to 64-bit would require if that ever changes, rather than leaving the range it's safe for unstated.
+
+Test count as of this pass, freshly run rather than carried over from an earlier report: **359 passing** across 10 files (`npm test`), plus a clean `npm run typecheck` and `npm run build`, and `npm run lint` unchanged at 0 errors / 12 pre-existing warnings.
 
 ### v5.1.0 — Selectable Themes, Mobile Popup Fixes & BitForge AI Rendering
 

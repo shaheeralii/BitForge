@@ -1,31 +1,46 @@
+# Dependencies
 node_modules/
+
+# Build output
 build/
 dist/
-coverage/
 
+# Test / coverage output
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Environment variables
 .env
 .env.*
 !.env.example
 
+# Vercel
 .vercel/
 
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# OS files
 .DS_Store
 Thumbs.db
 desktop.ini
 
+# VS Code
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 
+# JetBrains
 .idea/
 *.iml
 
+# Temporary / cache files
 .tmp/
 temp/
 tmp/
@@ -34,10 +49,8 @@ tmp/
 .parcel-cache/
 .vite/
 
+# TypeScript
 *.tsbuildinfo
 
-playwright-report/
-test-results/
-.nyc_output/
-
+# Local-only files
 *.local

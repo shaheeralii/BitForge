@@ -4,7 +4,6 @@ import {
   Sparkles, 
   Calculator, 
   Binary, 
-  Cpu, 
   Type, 
   ArrowRight, 
   X, 
@@ -21,13 +20,11 @@ interface WelcomeBannerProps {
 
 export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
   const [isVisible, setIsVisible] = useState<boolean>(true);
-  const [isDismissedPermanently, setIsDismissedPermanently] = useState<boolean>(false);
 
   useEffect(() => {
     const dismissed = localStorage.getItem('bitforge_welcome_dismissed');
     if (dismissed === 'true') {
       setIsVisible(false);
-      setIsDismissedPermanently(true);
     }
   }, []);
 
@@ -35,7 +32,6 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
     setIsVisible(false);
     if (dontShowAgain) {
       localStorage.setItem('bitforge_welcome_dismissed', 'true');
-      setIsDismissedPermanently(true);
     }
   };
 
@@ -48,7 +44,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
       <div className="flex justify-end mb-2">
         <button
           onClick={handleReopen}
-          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-[var(--bf-muted)] dark:text-[var(--bf-accent)] bg-white dark:bg-[var(--bf-surface)] hover:bg-[#F4FAF9] dark:hover:bg-[var(--bf-chip-alt)] rounded-lg border border-slate-200 dark:border-[var(--bf-muted)]/40 shadow-xs transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-[var(--bf-accent)] bg-[var(--bf-surface)] hover:bg-[var(--bf-chip-alt)] rounded-lg border border-[var(--bf-muted)]/40 transition-colors"
           title="Open Welcome & Getting Started Guide"
         >
           <HelpCircle className="w-3.5 h-3.5 text-[var(--bf-accent)]" />
@@ -59,16 +55,12 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--bf-accent)]/50 bg-gradient-to-br from-[var(--bf-chip)] via-[var(--bf-chip)] to-[var(--bf-surface)] text-white p-5 sm:p-6 shadow-lg shadow-[var(--bf-chip)]/10 mb-6 transition-all animate-fadeIn">
-      {/* Background visual accents */}
-      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-[var(--bf-accent)]/10 blur-2xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/3 -mb-10 w-48 h-48 rounded-full bg-[var(--bf-muted)]/20 blur-3xl pointer-events-none" />
-
+    <div className="relative overflow-hidden rounded-2xl border border-[var(--bf-accent)]/25 bg-[var(--bf-surface)] text-white p-5 sm:p-6 shadow-sm mb-6 animate-fadeIn">
       <div className="relative z-10 space-y-5">
         {/* Header with Title & Dismiss Button */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[var(--bf-accent)] text-[var(--bf-chip)] shadow-md shadow-[var(--bf-accent)]/20 shrink-0">
+            <div className="p-2.5 rounded-xl bg-[var(--bf-accent)] text-[var(--bf-chip)] shadow-sm shadow-[var(--bf-accent)]/20 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -96,7 +88,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
         </div>
 
         {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 pt-1">
           {/* Card 1: Number Converter */}
           <button
             type="button"
@@ -117,10 +109,10 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
             </p>
           </button>
 
-          {/* Card 2: Bit Grid */}
+          {/* Card 2: Bit Representation */}
           <button
             type="button"
-            onClick={() => onNavigate('bitgrid')}
+            onClick={() => onNavigate('bit_representation')}
             className="group cursor-pointer p-3.5 rounded-xl bg-[var(--bf-surface)]/80 hover:bg-[var(--bf-chip)] border border-[var(--bf-muted)]/50 hover:border-[var(--bf-accent)] transition-all space-y-1.5 shadow-sm w-full text-left"
           >
             <div className="flex items-center justify-between">
@@ -130,30 +122,10 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
               <ArrowRight className="w-3.5 h-3.5 text-[var(--bf-heading)]/40 group-hover:text-[var(--bf-accent)] group-hover:translate-x-0.5 transition-all" />
             </div>
             <h3 className="text-xs font-bold text-white group-hover:text-[var(--bf-accent)] transition-colors">
-              Bit Grid
+              Bit Representation
             </h3>
             <p className="text-[11px] text-[var(--bf-heading)]/75 leading-normal">
-              Click individual bits to flip weights (8/16/32-bit), test bit shifts, and inspect live 2's complement evaluations.
-            </p>
-          </button>
-
-          {/* Card 3: Two's Complement */}
-          <button
-            type="button"
-            onClick={() => onNavigate('twos_complement')}
-            className="group cursor-pointer p-3.5 rounded-xl bg-[var(--bf-surface)]/80 hover:bg-[var(--bf-chip)] border border-[var(--bf-muted)]/50 hover:border-[var(--bf-accent)] transition-all space-y-1.5 shadow-sm w-full text-left"
-          >
-            <div className="flex items-center justify-between">
-              <div className="p-1.5 rounded-lg bg-[var(--bf-chip)] group-hover:bg-[var(--bf-accent)] text-[var(--bf-accent)] group-hover:text-[var(--bf-chip)] transition-colors">
-                <Cpu className="w-4 h-4" />
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-[var(--bf-heading)]/40 group-hover:text-[var(--bf-accent)] group-hover:translate-x-0.5 transition-all" />
-            </div>
-            <h3 className="text-xs font-bold text-white group-hover:text-[var(--bf-accent)] transition-colors">
-              Two's Complement
-            </h3>
-            <p className="text-[11px] text-[var(--bf-heading)]/75 leading-normal">
-              Directly enter negative integers to see inversion, adding 1, overflow boundaries, and sign bit mechanics.
+              Toggle bits or type a signed decimal (8/16/32-bit) and see it interpreted as Unsigned, Sign-Magnitude, One's Complement, or Two's Complement.
             </p>
           </button>
 

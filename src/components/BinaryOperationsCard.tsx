@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Plus, Minus, X, Divide, AlertTriangle, Sigma, Table as TableIcon, Hash, Copy, Check } from 'lucide-react';
+import { Plus, Minus, X, Divide, AlertTriangle, Sigma, Table as TableIcon, Copy, Check } from 'lucide-react';
 import {
   BinaryOperator,
   BitWidth,

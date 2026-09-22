@@ -21,7 +21,7 @@ export interface AutoDetectResult {
 
 export interface StepDetail {
   title: string;
-  type: 'division' | 'multiplication' | 'positional' | 'bitgroup' | 'twos_complement' | 'info';
+  type: 'division' | 'multiplication' | 'positional' | 'bitgroup' | 'twos_complement' | 'unsigned' | 'sign_magnitude' | 'ones_complement' | 'info';
   explanation: string;
   tableData?: {
     headers: string[];
@@ -65,7 +65,12 @@ export interface PresetItem {
   description?: string;
 }
 
-export type HistoryMode = 'converter' | 'bitgrid' | 'twos_complement' | 'ascii' | 'operations' | 'floating_point';
+// 'bitgrid' and 'twos_complement' are kept in this union (rather than
+// removed) purely so already-saved localStorage history entries from
+// before the two pages were merged into 'bit_representation' still
+// type-check and remain viewable in the History panel. Neither is a
+// selectable nav destination any more — see Header.tsx's AppMode.
+export type HistoryMode = 'converter' | 'bitgrid' | 'twos_complement' | 'bit_representation' | 'ascii' | 'operations' | 'floating_point';
 
 export interface HistoryEntry {
   id: string;

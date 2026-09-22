@@ -21,6 +21,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenInfo }) => {
         <span className="text-[var(--bf-muted)]">·</span>
         <button onClick={() => onOpenInfo('privacy')} className="hover:text-[var(--bf-accent)] transition-colors">Privacy</button>
         <span className="text-[var(--bf-muted)]">·</span>
+        <button onClick={() => onOpenInfo('terms')} className="hover:text-[var(--bf-accent)] transition-colors">Terms</button>
+        <span className="text-[var(--bf-muted)]">·</span>
         <button onClick={() => onOpenInfo('disclaimer')} className="hover:text-[var(--bf-accent)] transition-colors">Disclaimer</button>
         <span className="text-[var(--bf-muted)]">·</span>
         <a

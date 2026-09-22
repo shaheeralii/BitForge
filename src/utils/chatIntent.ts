@@ -1,5 +1,6 @@
 import { BaseType } from '../types';
 import { autoDetectBase, convertNumber, calculateTwosComplement } from './converter';
+import { parseSignedIntegerLiteral } from './numberParsing';
 
 /**
  * BitForge AI is instructed to teach, not to silently guess at arithmetic.
@@ -67,18 +68,35 @@ function findBareHexToken(text: string): string | null {
   const before = text.slice(0, hexWordMatch.index);
   const after = text.slice(hexWordMatch.index + hexWordMatch[0].length);
 
-  const beforeMatch = before.match(/([0-9A-Fa-f]+)\s*$/);
+  // A leading sign is captured here, not dropped: "-FF hex" previously
+  // matched only "FF", silently discarding the negative and computing the
+  // wrong value downstream with no indication anything was lost.
+  const beforeMatch = before.match(/([-+]?[0-9A-Fa-f]+)\s*$/);
   if (beforeMatch && /[A-Fa-f]/.test(beforeMatch[1])) return beforeMatch[1];
 
-  const afterMatch = after.match(/^\s*(?:of\s+)?([0-9A-Fa-f]+)\b/);
+  const afterMatch = after.match(/^\s*(?:of\s+)?([-+]?[0-9A-Fa-f]+)\b/);
   if (afterMatch && /[A-Fa-f]/.test(afterMatch[1])) return afterMatch[1];
 
   return null;
 }
 
-/** Pulls the first thing that looks like a number token (incl. 0x/0b/0o prefixed or signed). */
+/**
+ * Pulls the first thing that looks like a number token (incl. 0x/0b/0o
+ * prefixed or signed, with or without a fractional part).
+ *
+ * The digit alternative used to require at least one digit *before* the
+ * decimal point (`\d+\.?\d*`), which cannot match ".5" or "-.5" at all —
+ * not "parses it wrong", but never finds a token there in the first place,
+ * so the canonical parser downstream never even gets a chance to run. Each
+ * alternative below independently allows a leading-dot form: `\d+\.\d*` (a
+ * mandatory point after digits, so "5." matches too), `\.\d+` (a point with
+ * nothing before it), or plain `\d+`.
+ */
 function findNumberToken(text: string): string | null {
-  const match = text.match(/[-+]?(0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|\d+\.?\d*)/);
+  const fracOrInt = '(?:\\d+\\.\\d*|\\.\\d+|\\d+)';
+  const match = text.match(new RegExp(
+    `[-+]?(0[xX][0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?|0[bB][01]+(?:\\.[01]+)?|0[oO][0-7]+(?:\\.[0-7]+)?|${fracOrInt})`
+  ));
 
   if (!match) {
     // No digit-based token anywhere — the only remaining possibility is a
@@ -131,8 +149,31 @@ export function detectVerifiedContext(userMessage: string): VerifiedContext | nu
 
     const numberToken = findNumberToken(textWithoutBitWidth);
     if (numberToken) {
-      const numValue = parseInt(numberToken, 10);
-      if (!Number.isNaN(numValue)) {
+      // parseInt(numberToken, 10) was the original bug this replaced: called
+      // with an explicit radix of 10 regardless of what the token actually
+      // was, it silently mis-parsed a prefixed token like "0x2A" as 0 and
+      // "-0xFF" as -0 (parseInt stops at the first character invalid for
+      // the given radix — here, at 'x'). A hardcoded radix of 10 without a
+      // prefix was a narrower version of the same mistake: "-FF" (bare hex,
+      // reached via findBareHexToken because the message says "hex") has no
+      // prefix for parseSignedIntegerLiteral to detect, so it needs a radix
+      // hint from autoDetectBase, same as the general conversion path below.
+      // But autoDetectBase's guess must be trusted the same conservative way
+      // that path already trusts it: a bare, unprefixed token like "-10" is
+      // *also* validly read as binary (autoDetectBase says so, at medium
+      // confidence) — trusting that guess unconditionally regressed "twos
+      // complement of -10" from meaning decimal -10 to meaning binary -10
+      // (= -2) during development of this fix, caught by the existing test
+      // for exactly that phrase. Only a *high*-confidence non-decimal guess
+      // (an explicit 0x/0b/0o prefix, or letters that are only valid as hex)
+      // overrides the conventional decimal default. Every signed 64-bit-range
+      // value this can produce is exact BigInt, never a `number` that could
+      // have already lost precision before reaching calculateTwosComplement.
+      const detected = autoDetectBase(numberToken);
+      const radixHint = detected.confidence === 'high' ? Number(detected.detectedBase) || 10 : 10;
+      const parsed = parseSignedIntegerLiteral(numberToken, radixHint);
+      if (parsed.valid) {
+        const numValue = parsed.isNegative ? -parsed.value : parsed.value;
         const result = calculateTwosComplement(numValue, bitWidth);
         if (result.twosComplement) {
           return {

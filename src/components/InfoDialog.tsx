@@ -1,13 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
-  X, Info, HelpCircle, ShieldCheck, AlertTriangle,
+  X, Info, HelpCircle, ShieldCheck, Scale, AlertTriangle,
   Github, Linkedin, Sparkles, GraduationCap,
 } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { APP_VERSION } from '../version';
 
-export type InfoSection = 'about' | 'help' | 'privacy' | 'disclaimer';
+export type InfoSection = 'about' | 'help' | 'privacy' | 'terms' | 'disclaimer';
 
 interface InfoDialogProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ const TABS: { id: InfoSection; label: string; icon: React.ElementType }[] = [
   { id: 'about', label: 'About', icon: Info },
   { id: 'help', label: 'Help / FAQ', icon: HelpCircle },
   { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
+  { id: 'terms', label: 'Terms', icon: Scale },
   { id: 'disclaimer', label: 'Disclaimer', icon: AlertTriangle },
 ];
 
@@ -54,7 +55,7 @@ const AboutContent: React.FC = () => (
 
     <H>Why it exists</H>
     <P>
-      BitForge was created by Syed Shaheer Ali, a BS Computer Science student at Bahria University,
+      BitForge was created by <strong>Syed Shaheer Ali</strong>, a{" "} <strong>BS Computer Science</strong> student at Bahria University,
       while studying number systems and computer organization concepts.
     </P>
     <P>
@@ -67,10 +68,10 @@ const AboutContent: React.FC = () => (
     <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
       <li>Positional notation and base conversion across binary, octal, decimal, hexadecimal, and custom radices</li>
       <li>Binary arithmetic, including addition and subtraction with carry and borrow</li>
-      <li>Signed number representation using two's complement</li>
+      <li>Signed number representation across Unsigned, Sign-Magnitude, One's Complement, and Two's Complement</li>
       <li>Text and byte-level encoding, including UTF-8 and ASCII</li>
       <li>Bitwise operations such as AND, OR, XOR, NOT, and bit shifts</li>
-      <li>Bit-level representations and visualizations of numerical data</li>
+      <li>Interactive bit-level manipulation and visualization of numerical data</li>
       <li>Floating-point representation (Binary16, Binary32, Binary64, and custom formats), including normalization and rounding</li>
     </ul>
 
@@ -124,8 +125,7 @@ const HelpContent: React.FC = () => (
     <P>BitForge is a collection of focused tools for exploring how numbers, bits, and text are represented and manipulated:</P>
     <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
       <li><strong className="text-[var(--bf-heading)]">Number Converter</strong> — Convert values between number systems with step-by-step derivations</li>
-      <li><strong className="text-[var(--bf-heading)]">Bit Grid</strong> — Explore 8-, 16-, and 32-bit values interactively</li>
-      <li><strong className="text-[var(--bf-heading)]">Two's Complement</strong> — Explore signed binary representation and value ranges</li>
+      <li><strong className="text-[var(--bf-heading)]">Bit Representation</strong> — Toggle or type an 8-, 16-, or 32-bit value and interpret it as Unsigned, Sign-Magnitude, One's Complement, or Two's Complement</li>
       <li><strong className="text-[var(--bf-heading)]">Text &amp; UTF-8</strong> — Explore how text is represented as bytes</li>
       <li><strong className="text-[var(--bf-heading)]">Binary Operations</strong> — Perform and visualize common bitwise and binary arithmetic operations</li>
       <li><strong className="text-[var(--bf-heading)]">Floating Point</strong> — Explore how a decimal number is stored as sign, exponent, and fraction bits (or decode one back to decimal) using the standard Binary16/32/64 formats or a custom bit-width layout</li>
@@ -145,17 +145,16 @@ const HelpContent: React.FC = () => (
     <P>Binary Operations supports AND, OR, XOR, NOT, left and right shifts, addition, and subtraction.</P>
     <P>Operations use arbitrary-precision arithmetic where supported and can include step-by-step carry or borrow information.</P>
 
-    <H>How does Bit Grid work?</H>
-    <P>Bit Grid lets you interact directly with individual bits.</P>
+    <H>How does Bit Representation work?</H>
+    <P>Bit Representation is a single workspace with two synchronized inputs: a denary field and an interactive bit grid.</P>
     <P>
-      Click a bit to toggle it between <code className="font-mono text-[var(--bf-accent)]/90">0</code> and{' '}
-      <code className="font-mono text-[var(--bf-accent)]/90">1</code>, then see the represented decimal and
-      hexadecimal values update. You can switch between 8-, 16-, and 32-bit widths.
+      Type a decimal value (positive or negative) or click a bit to toggle it between{' '}
+      <code className="font-mono text-[var(--bf-accent)]/90">0</code> and{' '}
+      <code className="font-mono text-[var(--bf-accent)]/90">1</code> — the other input updates immediately. Switch between
+      8-, 16-, and 32-bit widths, then choose how the bits should be interpreted: Unsigned, Sign-Magnitude, One's
+      Complement, or Two's Complement. Each interpretation shows its own explanation, calculation, and result, and the
+      "Same Number, Different Encoding" and "Same Bits, Different Meaning" panels compare all systems side by side.
     </P>
-
-    <H>What is Two's Complement?</H>
-    <P>The Two's Complement tool helps you understand how signed integers are represented in binary.</P>
-    <P>Enter a supported signed decimal or binary value to view its corresponding bit pattern and the representable range for the selected bit width.</P>
 
     <H>How does Text &amp; UTF-8 work?</H>
     <P>Text &amp; UTF-8 shows how characters are represented as bytes.</P>
@@ -179,6 +178,17 @@ const HelpContent: React.FC = () => (
       infinity, NaN, and subnormal numbers.
     </P>
 
+    <H>How precise are fractional conversions?</H>
+    <P>
+      A fraction's digits in the target base are computed exactly, using whole-number arithmetic
+      rather than floating point, so a genuinely tiny value is never mistaken for zero. Digits are
+      shown up to a fixed limit (12); a fraction that repeats forever (like decimal 0.1 in binary)
+      is marked with the repeating part in parentheses, and one that neither terminates nor
+      visibly repeats within that limit is shown with a trailing "…" rather than presented as
+      complete. Nothing is ever rounded up or down to hide this — a truncated result is always
+      marked as truncated.
+    </P>
+
     <H>What input rules should I know?</H>
     <P>BitForge validates input according to the selected operation and number system.</P>
     <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
@@ -186,6 +196,7 @@ const HelpContent: React.FC = () => (
       <li>Binary input accepts only 0 and 1</li>
       <li>Empty input is treated as invalid rather than being interpreted as zero</li>
       <li>Custom radices must be between 2 and 36</li>
+      <li>A sign (+ or −) and a base prefix (0x, 0b, 0o) are recognized independently, so "-0xFF" is parsed as negative 255, not rejected</li>
       <li>Values exceeding the active bit width are flagged instead of being silently wrapped</li>
     </ul>
     <P>When an input is invalid, BitForge aims to explain the problem and indicate how to correct it.</P>
@@ -222,7 +233,7 @@ const PrivacyContent: React.FC = () => (
 
     <H>Core Tools</H>
     <P>
-      The Number Converter, Bit Grid, Two's Complement, Text &amp; UTF-8, Binary Operations, and
+      The Number Converter, Bit Representation, Text &amp; UTF-8, Binary Operations, and
       Floating Point tools process your inputs locally on your device.
     </P>
     <P>BitForge does not intentionally collect or transmit these inputs to its server-side services.</P>
@@ -250,7 +261,8 @@ const PrivacyContent: React.FC = () => (
     <P>Rate-limit data is used to control request frequency and is not used as BitForge's AI conversation storage.</P>
 
     <H>Cookies &amp; Analytics</H>
-    <P>BitForge does not intentionally use advertising cookies, analytics scripts, or third-party tracking.</P>
+    <P>BitForge does not set cookies of any kind and does not use advertising trackers, analytics scripts, or third-party tracking pixels.</P>
+    <P>The <code className="font-mono text-[var(--bf-accent)]/90">localStorage</code> described above is the only client-side data BitForge stores, and it stays on your device — it is never transmitted anywhere.</P>
 
     <H>Hosting &amp; Third-Party Services</H>
     <P>BitForge is hosted on Vercel and currently uses:</P>
@@ -266,6 +278,81 @@ const PrivacyContent: React.FC = () => (
 
     <H>Questions</H>
     <P>If you have questions about BitForge's privacy practices, please open an issue through the project's GitHub repository.</P>
+  </div>
+);
+
+const TermsContent: React.FC = () => (
+  <div>
+    <span className="text-[11px] font-mono text-[var(--bf-heading)]/50">Last updated: September 13, 2026</span>
+
+    <P>
+      These Terms apply to your use of BitForge, a free, student-built educational toolkit. By
+      using BitForge, you agree to the points below.
+    </P>
+
+    <H>What BitForge Is</H>
+    <P>
+      BitForge is provided for learning and experimentation with number systems, encoding, and
+      bit-level concepts. It is not a professional, academic, legal, financial, or other expert
+      advisory service, and nothing in BitForge — including responses from BitForge AI — should be
+      treated as such.
+    </P>
+    <P>Results should be independently verified when accuracy matters, including for exams, coursework, or professional use.</P>
+
+    <H>Acceptable Use</H>
+    <P>
+      BitForge, including BitForge AI, is intended for personal, non-commercial, educational use.
+      Please don't attempt to abuse, overload, scrape at scale, or circumvent the rate limiting or
+      other protections on BitForge's backend or API.
+    </P>
+
+    <H>Ownership &amp; Licensing</H>
+    <P>
+      BitForge's original source code is released under the MIT License (see the project's LICENSE
+      file for full terms). The BitForge name and branding, as used on this site, belong to its
+      developer. Third-party libraries, fonts, and services used by BitForge remain the property of
+      their respective owners and are subject to their own licenses.
+    </P>
+
+    <H>Third-Party Services</H>
+    <P>
+      BitForge relies on third-party infrastructure — currently Vercel, Google's Gemini API, and
+      Upstash — each governed by its own terms and policies. BitForge is not responsible for the
+      availability, accuracy, or content of these third-party services.
+    </P>
+
+    <H>Availability</H>
+    <P>
+      BitForge is provided on an "as available" basis. Features, tools, and availability may change
+      over time, and the software may contain bugs, limitations, or unexpected edge-case behavior.
+    </P>
+
+    <H>No Payments or Refunds</H>
+    <P>
+      BitForge is free to use. It does not currently sell anything or accept payments, subscriptions,
+      or donations, so no refund process currently applies. If that changes, this section will be
+      updated to reflect it.
+    </P>
+
+    <H>Limitation of Liability</H>
+    <P>
+      BitForge is provided "as is," without warranty of any kind, to the extent permitted by
+      applicable law. As a free educational project, the developer is not liable for damages arising
+      from your use of BitForge; use is at your own risk.
+    </P>
+
+    <H>Governing Law</H>
+    <P>
+      These Terms are written from the developer's context in Pakistan, but BitForge is accessible
+      globally. No claim is made that BitForge complies with the laws of every jurisdiction, and
+      nothing here is a substitute for independent legal advice.
+    </P>
+
+    <H>Changes to These Terms</H>
+    <P>These Terms may be updated as BitForge's functionality changes. The date above indicates the latest revision — please check back periodically.</P>
+
+    <H>Contact</H>
+    <P>Questions about these Terms can be raised by opening an issue through the project's GitHub repository.</P>
   </div>
 );
 
@@ -309,6 +396,7 @@ export const InfoDialog: React.FC<InfoDialogProps> = ({ isOpen, activeSection, o
     about: AboutContent,
     help: HelpContent,
     privacy: PrivacyContent,
+    terms: TermsContent,
     disclaimer: DisclaimerContent,
   }[activeSection];
 

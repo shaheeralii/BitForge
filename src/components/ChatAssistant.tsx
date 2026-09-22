@@ -82,7 +82,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onOpen, on
       {!isOpen && (
         <button
           onClick={onOpen}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 pl-3.5 pr-4 py-3 rounded-full bg-[var(--bf-accent)] text-[var(--bf-chip)] shadow-lg shadow-[var(--bf-accent)]/30 hover:shadow-xl hover:shadow-[var(--bf-accent)]/40 hover:scale-105 transition-all font-bold text-sm"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 pl-3.5 pr-4 py-3 rounded-full bg-[var(--bf-accent)] hover:bg-[var(--bf-accent-hover)] text-[var(--bf-chip)] shadow-md shadow-[var(--bf-accent)]/20 transition-colors font-bold text-sm"
           aria-label="Open BitForge AI learning assistant"
           title="Ask BitForge AI"
         >
@@ -229,7 +229,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onOpen, on
                 </button>
               </div>
               <div className="flex items-center justify-between mt-1.5 px-0.5">
-                <p className="text-[9px] text-[var(--bf-heading)]/35">AI-generated — verify anything critical.</p>
+                <p className="text-[9px] text-[var(--bf-heading)]/35">Sent to Google's Gemini API — AI-generated, verify anything critical.</p>
                 {nearLimit && (
                   <p className={`text-[9px] font-mono ${draft.length >= maxMessageLength ? 'text-red-400' : 'text-[var(--bf-heading)]/40'}`}>
                     {draft.length}/{maxMessageLength}

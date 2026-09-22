@@ -1,6 +1,6 @@
 import React from 'react';
-import { BaseType, PresetItem } from '../types';
-import { Sparkles, Bookmark } from 'lucide-react';
+import { PresetItem } from '../types';
+import { Bookmark } from 'lucide-react';
 
 interface PresetsBarProps {
   onSelectPreset: (preset: PresetItem) => void;
@@ -61,7 +61,7 @@ export const PRESETS: PresetItem[] = [
 export const PresetsBar: React.FC<PresetsBarProps> = ({ onSelectPreset }) => {
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-      <div className="flex items-center gap-1.5 text-[var(--bf-muted)] dark:text-[var(--bf-accent)] font-bold uppercase tracking-wider shrink-0 mr-1">
+      <div className="flex items-center gap-1.5 text-[var(--bf-accent)] font-bold uppercase tracking-wider shrink-0 mr-1">
         <Bookmark className="w-3.5 h-3.5 text-[var(--bf-accent)]" />
         <span>Quick Presets:</span>
       </div>
@@ -70,7 +70,7 @@ export const PresetsBar: React.FC<PresetsBarProps> = ({ onSelectPreset }) => {
         <button
           key={idx}
           onClick={() => onSelectPreset(p)}
-          className="shrink-0 px-3 py-1.5 rounded-lg bg-white dark:bg-[var(--bf-chip-alt)] hover:bg-[var(--bf-heading)] hover:text-[var(--bf-chip)] dark:hover:bg-[var(--bf-chip)] dark:hover:text-[var(--bf-accent)] text-[var(--bf-chip)] dark:text-[var(--bf-heading)] border border-slate-200 dark:border-[var(--bf-muted)]/40 transition-all font-medium shadow-xs"
+          className="shrink-0 px-3 py-1.5 rounded-lg bg-[var(--bf-chip-alt)] hover:bg-[var(--bf-chip)] hover:text-[var(--bf-accent)] text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-all font-medium shadow-xs"
           title={p.description}
         >
           {p.label}

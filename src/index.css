@@ -118,8 +118,8 @@ html[data-fx="reduced"] .glass-panel-solid {
 /*
  * Theme tokens
  * ------------
- * BitForge ships two selectable *dark* themes (see ThemeContext /
- * ThemeToggle) — this is a separate axis from the pre-existing
+ * BitForge ships three selectable *dark* themes (see ThemeContext /
+ * ThemeSwitcher) — this is a separate axis from the pre-existing
  * `.dark`/light Tailwind variant above, which stays permanently on
  * (see index.html) and is untouched by this system.
  *
@@ -127,6 +127,9 @@ html[data-fx="reduced"] .glass-panel-solid {
  *    value below is the exact hex this app already shipped with.
  *  - "premium": a neutral charcoal/slate-gray surface system with the
  *    brand emerald kept only as a restrained, desaturated accent.
+ *  - "plain": v5.2's lightweight option — a flat near-black surface system
+ *    (no FlowWave/WebGL background at all, see FlowWaveBackground.tsx) with
+ *    its own restrained accent tone, distinct from both of the above.
  *
  * Components reference these via `var(--bf-*)` inside Tailwind arbitrary
  * values (e.g. `text-[var(--bf-accent)]`) instead of hardcoded hex, so a
@@ -180,8 +183,79 @@ html[data-fx="reduced"] .glass-panel-solid {
   --bf-overlay-rgb: 17 19 24;
 }
 
+[data-theme="plain"] {
+  --bf-app-bg: #0B0C0D;
+  --bf-overlay: #131416;
+  --bf-surface-deep: #0E0F11;
+  --bf-surface-inset: #17181B;
+  --bf-surface: #1C1D20;
+  --bf-chip-alt: #212225;
+  --bf-chip: #26282B;
+  --bf-chip-alt-hover: #2C2E32;
+  --bf-accent: #4FAE87;
+  --bf-accent-hover: #5EBD96;
+  --bf-accent-dark: #3D8A6B;
+  --bf-muted: #55585E;
+  --bf-heading: #E7E9EA;
+  --bf-text: #C9CCD1;
+
+  --bf-accent-rgb: 79 174 135;
+  --bf-surface-rgb: 28 29 32;
+  --bf-overlay-rgb: 19 20 22;
+}
+
 html, body, #root {
   background: var(--bf-app-bg);
+}
+
+/*
+ * Site-wide keyboard-focus ring
+ * -----------------------------
+ * Text inputs already have their own deliberate focus treatment (a
+ * border-color change, sometimes paired with a soft ring) and are left
+ * alone here. Plain buttons and links mostly relied on the browser
+ * default before this, which is inconsistent with the rest of the design
+ * system — this gives them one consistent, on-brand indicator instead.
+ * outline-offset is negative so the ring sits inside the element's own
+ * box and is never clipped by an ancestor's overflow-hidden (several
+ * dialogs and cards use it). :focus-visible only, so it shows for
+ * keyboard/assistive-tech navigation, not every mouse click. Elements
+ * that already define their own focus-visible treatment (a handful of
+ * card buttons) keep it — a same-specificity `outline: none` on the
+ * element's own classes wins over this element-level default.
+ */
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--bf-accent);
+  outline-offset: -2px;
+}
+
+/*
+ * Plain-mode restraint overrides
+ * -------------------------------
+ * Plain has no FlowWave canvas behind it (FlowWaveBackground.tsx skips
+ * WebGL entirely under this theme), so effects designed to sit on top of
+ * that animated scene — glass blur, accent glow, the header's drop shadow —
+ * have nothing to read through and are just wasted GPU work and visual
+ * noise here. This turns them off for Plain only; Emerald and Premium are
+ * untouched. Nothing else (layout, component structure, spacing) changes.
+ */
+html[data-theme="plain"] [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-theme="plain"] .glass-panel {
+  background: rgb(var(--bf-surface-rgb) / 96%);
+}
+html[data-theme="plain"] .glass-panel-solid {
+  background: rgb(var(--bf-overlay-rgb) / 98%);
+}
+html[data-theme="plain"] .mint-glow {
+  box-shadow: none;
+}
+html[data-theme="plain"] header {
+  box-shadow: none;
 }
 
 /* Softens the swap between themes without animating every hover/focus

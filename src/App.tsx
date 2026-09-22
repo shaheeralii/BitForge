@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { BaseType, HistoryEntry, PresetItem } from './types';
 import { autoDetectBase, convertNumber } from './utils/converter';
 import { Header, AppMode } from './components/Header';
+import { appRouteToHashPath, resolveAppDisplayState } from './routing';
 import { ConversionInput } from './components/ConversionInput';
 import { LiveBasesGrid } from './components/LiveBasesGrid';
 import { StepByStepBreakdown } from './components/StepByStepBreakdown';
-import { BitGridVisualizer } from './components/BitGridVisualizer';
-import { TwosComplementCard } from './components/TwosComplementCard';
+import { BitRepresentationLab } from './components/BitRepresentationLab';
 import { AsciiConverterCard } from './components/AsciiConverterCard';
 import { WelcomeBanner } from './components/WelcomeBanner';
 import { PresetsBar } from './components/PresetsBar';
@@ -34,14 +34,24 @@ const FloatingPointCard = lazy(() =>
 /** Shell-matched placeholder shown only for the brief moment a mode's chunk is fetching. */
 function ModeCardFallback() {
   return (
-    <div className="bg-white dark:bg-[var(--bf-surface)] rounded-xl border border-slate-200 dark:border-[var(--bf-muted)]/40 p-5 sm:p-6 shadow-sm flex items-center justify-center min-h-[280px]">
+    <div className="bg-[var(--bf-surface)] rounded-xl border border-[var(--bf-muted)]/40 p-5 sm:p-6 shadow-sm flex items-center justify-center min-h-[280px]">
       <Loader2 className="w-5 h-5 text-[var(--bf-accent)] animate-spin" />
     </div>
   );
 }
 
-export default function App() {
-  const [activeMode, setActiveMode] = useState<AppMode>('converter');
+interface AppProps {
+  /** Set when the landing page routes in with a specific tool tile clicked
+   * ('#/app/mode/<mode>') — selects that mode immediately instead of
+   * requiring a second click once inside. */
+  initialMode?: AppMode;
+  /** Set when the landing page's BitForge AI tile is clicked ('#/app/chat')
+   * — opens the chat panel immediately on entry. */
+  initialChatOpen?: boolean;
+}
+
+export default function App({ initialMode, initialChatOpen }: AppProps = {}) {
+  const [activeMode, setActiveMode] = useState<AppMode>(initialMode ?? 'converter');
   const [inputVal, setInputVal] = useState<string>('255.625');
   const [sourceBase, setSourceBase] = useState<BaseType>('10');
   const [targetBase, setTargetBase] = useState<BaseType>('2');
@@ -96,6 +106,7 @@ export default function App() {
     setIsInfoOpen(true);
   }, []);
   const closeInfo = useCallback(() => setIsInfoOpen(false), []);
+
   const openChat = useCallback(() => {
     setIsHistoryOpen(false);
     setIsShortcutsHelpOpen(false);
@@ -103,6 +114,65 @@ export default function App() {
     setIsChatOpen(true);
   }, []);
   const closeChat = useCallback(() => setIsChatOpen(false), []);
+
+  // --- Keeping the URL and the displayed app state consistent ---
+  //
+  // AppRoot only mounts a fresh `App` instance on the landing→app
+  // transition; every hash change *after* that (clicking a different mode
+  // tab, the browser's Back/Forward buttons, a fresh '#/app/mode/<mode>' or
+  // '#/app/chat' link opened while this tab is already on the tool) updates
+  // props on this same instance rather than remounting it. `initialMode`/
+  // `initialChatOpen` being consumed only once, at mount, was exactly the
+  // bug: switching modes via the Header left the URL frozen on whatever
+  // mode the tool happened to start on, and a hash change arriving from
+  // outside (Back/Forward, a pasted link) had no effect on what was
+  // actually displayed. Two effects close both directions:
+
+  // Forward (App state → URL): keeps the URL bar an accurate reflection of
+  // what's on screen, so refreshing or sharing it while on, say, Bit
+  // Representation actually reopens Bit Representation. Uses
+  // `history.replaceState` rather than assigning `location.hash` so it
+  // edits the current entry in place instead of adding a new one for every
+  // mode switch — Back from anywhere in the tool still returns directly to
+  // the landing page — and, just as importantly, `replaceState` never
+  // fires a `hashchange` event, so it cannot loop into the reverse-sync
+  // effect below.
+  useEffect(() => {
+    window.history.replaceState(null, '', '#' + appRouteToHashPath(activeMode, isChatOpen));
+  }, [activeMode, isChatOpen]);
+
+  // Reverse (URL → App state): reacts to a hash change this App instance
+  // did not itself just cause — since the effect above never triggers a
+  // `hashchange`, the only way `initialMode`/`initialChatOpen` change after
+  // mount is a genuine external navigation. Comparing against the current
+  // state before setting it means a user's own click is never fought: by
+  // the time AppRoot's updated prop reaches here, `activeMode` already
+  // equals it.
+  //
+  // A route that names no mode/chat at all (bare '#/app') means the
+  // *default* state — converter, chat closed — not "leave whatever was
+  // already showing alone". The first version of this effect got that
+  // backwards (`if (initialMode && initialMode !== activeMode)`, `if
+  // (initialChatOpen && !isChatOpen)`): since `initialMode`/`initialChatOpen`
+  // are `undefined` for that route, both conditions were simply false, so
+  // navigating from e.g. '#/app/mode/ascii' back to '#/app' — or from
+  // '#/app/chat' to '#/app/mode/ascii', which needs chat to *close* — left
+  // the tool showing whatever it last showed instead of resetting. Coalescing
+  // to the default with `??` before comparing fixes both directions at once,
+  // including the closing direction the old chat effect couldn't express at
+  // all (it only ever opened, never closed).
+  useEffect(() => {
+    const desired = resolveAppDisplayState({ mode: initialMode, openChat: initialChatOpen });
+    if (desired.mode !== activeMode) setActiveMode(desired.mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMode]);
+  useEffect(() => {
+    const desired = resolveAppDisplayState({ mode: initialMode, openChat: initialChatOpen });
+    if (desired.chatOpen !== isChatOpen) {
+      if (desired.chatOpen) openChat(); else closeChat();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialChatOpen]);
 
   useKeyboardShortcuts({
     targetRef: shortcutTargetRef,
@@ -156,7 +226,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen relative text-slate-900 dark:text-[var(--bf-text)] flex flex-col justify-between font-sans transition-colors selection:bg-[var(--bf-accent)] selection:text-[var(--bf-chip)]">
+    <div className="min-h-screen relative text-[var(--bf-text)] flex flex-col justify-between font-sans transition-colors selection:bg-[var(--bf-accent)] selection:text-[var(--bf-chip)]">
 
       {/* Animated premium emerald/mint background */}
       <FlowWaveBackground />
@@ -213,16 +283,16 @@ export default function App() {
               />
 
               {/* Quick Reference Cheat Sheet Footer Card */}
-              <div className="bg-white dark:bg-[var(--bf-surface)]/60 dark:backdrop-blur-[18px] rounded-xl border border-slate-200 dark:border-[var(--bf-accent)]/[0.14] p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-sm dark:shadow-[0_8px_30px_-8px_rgb(var(--bf-accent-rgb)/25%)]">
+              <div className="bg-[var(--bf-surface)]/60 backdrop-blur-[18px] rounded-xl border border-[var(--bf-accent)]/[0.14] p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs shadow-[0_8px_30px_-8px_rgb(var(--bf-accent-rgb)/25%)]">
                 <div className="flex items-start gap-3">
                   <div className="p-2 rounded-lg bg-[var(--bf-chip)] text-[var(--bf-accent)] shrink-0 shadow-xs">
                     <Calculator className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
                       Positional Weights (rⁿ)
                     </h4>
-                    <p className="text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-slate-300 leading-relaxed font-sans">
                       Values are calculated by multiplying each digit by Radix^position. Fractional digits use negative powers (Radix⁻ⁱ).
                     </p>
                   </div>
@@ -233,10 +303,10 @@ export default function App() {
                     <Zap className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
                       Fast Bit Grouping
                     </h4>
-                    <p className="text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-slate-300 leading-relaxed font-sans">
                       Octal uses 3-bit triplets (2³ = 8). Hexadecimal uses 4-bit nibbles (2⁴ = 16), providing direct bit alignment.
                     </p>
                   </div>
@@ -247,10 +317,10 @@ export default function App() {
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-[var(--bf-chip)] dark:text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
+                    <h4 className="font-bold text-[var(--bf-heading)] mb-0.5 uppercase tracking-wider text-[11px]">
                       Repeated Division
                     </h4>
-                    <p className="text-[var(--bf-muted)] dark:text-slate-300 leading-relaxed font-sans">
+                    <p className="text-slate-300 leading-relaxed font-sans">
                       Converting Decimal to Base Y divides repeatedly by Y. Remainders collected bottom-to-top yield the target representation.
                     </p>
                   </div>
@@ -260,11 +330,8 @@ export default function App() {
             </div>
           )}
 
-          {/* Interactive Bit Grid Mode */}
-          {activeMode === 'bitgrid' && <BitGridVisualizer />}
-
-          {/* Two's Complement Signed Mode */}
-          {activeMode === 'twos_complement' && <TwosComplementCard />}
+          {/* Unified Bit Representation Lab (merges the former Bit Grid and Two's Complement pages) */}
+          {activeMode === 'bit_representation' && <BitRepresentationLab />}
 
           {/* ASCII / Text Mode */}
           {activeMode === 'ascii' && <AsciiConverterCard />}
