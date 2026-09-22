@@ -55,7 +55,7 @@ const AboutContent: React.FC = () => (
 
     <H>Why it exists</H>
     <P>
-      BitForge was created by Syed Shaheer Ali, a BS Computer Science student at Bahria University,
+      BitForge was created by <strong>Syed Shaheer Ali</strong>, a{" "} <strong>BS Computer Science</strong> student at Bahria University,
       while studying number systems and computer organization concepts.
     </P>
     <P>
