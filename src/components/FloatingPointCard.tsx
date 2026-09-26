@@ -62,11 +62,11 @@ export const FloatingPointCard: React.FC = () => {
 
         <div className="flex items-center gap-1.5 bg-[var(--bf-chip-alt)] p-1 rounded-lg border border-[var(--bf-muted)]/40 text-xs font-bold w-fit max-w-full overflow-x-auto scrollbar-none">
           <button onClick={() => setDirection('encode')} aria-pressed={direction === 'encode'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${direction === 'encode' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm border border-[var(--bf-accent)]/40' : 'text-slate-400 hover:text-[var(--bf-heading)]'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${direction === 'encode' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm border border-[var(--bf-accent)]/40' : 'text-[var(--bf-heading)]/65 hover:text-[var(--bf-heading)]'}`}>
             <ArrowRight className="w-3.5 h-3.5" /><span>Decimal → Floating Point</span>
           </button>
           <button onClick={() => setDirection('decode')} aria-pressed={direction === 'decode'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${direction === 'decode' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm border border-[var(--bf-accent)]/40' : 'text-slate-400 hover:text-[var(--bf-heading)]'}`}>
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${direction === 'decode' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm border border-[var(--bf-accent)]/40' : 'text-[var(--bf-heading)]/65 hover:text-[var(--bf-heading)]'}`}>
             <ArrowLeftRight className="w-3.5 h-3.5" /><span>Floating Point → Decimal</span>
           </button>
         </div>
@@ -111,7 +111,7 @@ const FormatPicker: React.FC<{
       <div className="flex flex-wrap gap-1.5">
         {options.map(o => (
           <button key={o.id} onClick={() => onFormatChange(o.id)} aria-pressed={formatId === o.id}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${formatId === o.id ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${formatId === o.id ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>
             {o.label}
           </button>
         ))}
@@ -120,7 +120,7 @@ const FormatPicker: React.FC<{
       {formatId === 'custom' && (
         <div className="bg-[var(--bf-surface-inset)] rounded-xl border border-[var(--bf-muted)]/40 p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Custom Floating-Point Format</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Custom Floating-Point Format</span>
             <span className="flex items-center gap-1 text-[10px] font-semibold text-sky-300 bg-sky-950/30 border border-sky-900/40 rounded-full px-2 py-0.5">
               <Info className="w-3 h-3" /> Not an IEEE 754 standard format
             </span>
@@ -143,9 +143,9 @@ const FormatPicker: React.FC<{
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-400">BitForge's custom model always uses one sign bit; only exponent and fraction widths are configurable.</p>
+          <p className="text-[11px] text-[var(--bf-heading)]/65">BitForge's custom model always uses one sign bit; only exponent and fraction widths are configurable.</p>
 
-          <div className="text-xs font-mono text-slate-400">
+          <div className="text-xs font-mono text-[var(--bf-heading)]/65">
             1 + {customExpBits || 0} + {customFracBits || 0} = <strong className="text-[var(--bf-heading)]">{customTotal} bits</strong>
           </div>
 
@@ -182,7 +182,7 @@ const FieldBlurbs: React.FC<{ onJump: (seg: FloatSegment) => void }> = ({ onJump
     {(['sign', 'exponent', 'fraction'] as FloatSegment[]).map(seg => (
       <button key={seg} onClick={() => onJump(seg)} className="text-left rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-surface-inset)] p-3 hover:border-[var(--bf-accent)] transition-colors">
         <div className="text-xs font-bold text-[var(--bf-heading)]">{FIELD_BLURBS[seg].title}</div>
-        <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{FIELD_BLURBS[seg].text}</div>
+        <div className="text-[11px] text-[var(--bf-heading)]/65 mt-0.5 leading-relaxed">{FIELD_BLURBS[seg].text}</div>
       </button>
     ))}
   </div>
@@ -207,7 +207,7 @@ const StepCard: React.FC<{ step: FPStep; index: number; highlighted: boolean; ch
         <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[var(--bf-chip)] text-[var(--bf-accent)] border border-[var(--bf-accent)]/30 shrink-0">{step.finalResult}</span>
       </div>
 
-      <p className="text-xs text-slate-300 leading-relaxed font-sans">{step.explanation}</p>
+      <p className="text-xs text-[var(--bf-heading)]/80 leading-relaxed font-sans">{step.explanation}</p>
 
       {children}
 
@@ -293,7 +293,7 @@ const EncodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
         <div className="flex flex-wrap gap-1.5 pt-1">
           {ENCODE_PRESETS.map(p => (
             <button key={p.label} onClick={() => setInputStr(p.value)} aria-pressed={inputStr === p.value}
-              className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors ${inputStr === p.value ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>
+              className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors ${inputStr === p.value ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>
               {p.label}
             </button>
           ))}
@@ -301,14 +301,14 @@ const EncodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
       </div>
 
       {!breakdown && (
-        <div className="bg-[var(--bf-surface-inset)]/50 rounded-xl border border-dashed border-[var(--bf-muted)]/40 p-8 text-center text-slate-400">
+        <div className="bg-[var(--bf-surface-inset)]/50 rounded-xl border border-dashed border-[var(--bf-muted)]/40 p-8 text-center text-[var(--bf-heading)]/65">
           <HelpCircle className="w-8 h-8 mx-auto mb-2 text-[var(--bf-muted)] opacity-60" /><p className="font-semibold text-sm">Enter a valid decimal number above</p>
         </div>
       )}
 
       {breakdown && (
         <>
-          <div className="bg-[var(--bf-chip)] text-white p-4 sm:p-5 rounded-xl border border-[var(--bf-muted)]/60 shadow-sm relative overflow-hidden space-y-4">
+          <div className="bg-[var(--bf-chip)] text-[var(--bf-heading)] p-4 sm:p-5 rounded-xl border border-[var(--bf-muted)]/60 shadow-sm relative overflow-hidden space-y-4">
             <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-[var(--bf-accent)]/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10 flex items-center justify-between flex-wrap gap-2 text-xs">
               <span className="font-bold tracking-wider uppercase text-[var(--bf-accent)]">Stored Representation</span>
@@ -336,18 +336,18 @@ const EncodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
             </div>
           </div>
 
-          <div className="bg-[var(--bf-chip)] text-white p-5 rounded-xl border border-[var(--bf-muted)]/60 shadow-sm relative overflow-hidden">
+          <div className="bg-[var(--bf-chip)] text-[var(--bf-heading)] p-5 rounded-xl border border-[var(--bf-muted)]/60 shadow-sm relative overflow-hidden">
             <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-[var(--bf-accent)]/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10 text-xs font-bold tracking-wider uppercase text-[var(--bf-accent)] mb-2">Result</div>
             <div className="relative z-10 font-mono text-2xl sm:text-3xl font-bold text-[var(--bf-accent)] mb-3">{breakdown.input}</div>
             <div className="relative z-10 space-y-1.5 text-xs font-mono">
-              <div className="flex flex-wrap gap-x-2 items-baseline text-slate-300">
+              <div className="flex flex-wrap gap-x-2 items-baseline text-[var(--bf-heading)]/80">
                 <span className="text-[var(--bf-heading)]/60 font-sans not-italic">Stored representation:</span>
                 <span className="text-amber-300">{breakdown.signBit}</span>
                 <span className="text-sky-300">{breakdown.exponentBits}</span>
                 <span className="text-[var(--bf-accent)] break-all">{breakdown.fractionBits}</span>
               </div>
-              {breakdown.hex && <div className="text-slate-300"><span className="text-[var(--bf-heading)]/60 font-sans">Hex: </span><strong className="text-[var(--bf-heading)]">0x{breakdown.hex}</strong></div>}
+              {breakdown.hex && <div className="text-[var(--bf-heading)]/80"><span className="text-[var(--bf-heading)]/60 font-sans">Hex: </span><strong className="text-[var(--bf-heading)]">0x{breakdown.hex}</strong></div>}
               {breakdown.conversionChangedValue && <div className="text-amber-300 font-sans text-[11px]">Target-format conversion changed the value — see Precision &amp; Rounding below.</div>}
             </div>
             <div className="relative z-10 flex items-center gap-2 pt-4 mt-4 border-t border-[var(--bf-muted)]/40 flex-wrap">
@@ -381,9 +381,9 @@ const NormalizationVisual: React.FC<{ breakdown: FloatBreakdown }> = ({ breakdow
   const shift = breakdown.unbiasedExponent;
   return (
     <div className="bg-[var(--bf-chip-alt)] rounded-lg border border-[var(--bf-muted)]/40 p-3 space-y-3">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Binary Point Movement</div>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/50">Binary Point Movement</div>
       <PointRow digits={digits} pointPos={originalPointPos} label="Plain form" accent="text-[var(--bf-heading)]" />
-      <div className="flex items-center gap-2 pl-1 text-[11px] font-mono text-slate-400">
+      <div className="flex items-center gap-2 pl-1 text-[11px] font-mono text-[var(--bf-heading)]/65">
         <ArrowLeftRight className="w-3.5 h-3.5 text-[var(--bf-accent)]" /><span>Point moves {Math.abs(shift)} place{Math.abs(shift) === 1 ? '' : 's'} {shift >= 0 ? 'left' : 'right'}</span>
       </div>
       <PointRow digits={digits} pointPos={firstOneIndex(digits) + 1} label="Normalized form" accent="text-[var(--bf-accent)]" />
@@ -417,17 +417,17 @@ const LongDivisionTrace: React.FC<{ breakdown: FloatBreakdown }> = ({ breakdown 
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {breakdown.integerDivisionRows.length > 0 && (
         <div className="rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-chip-alt)] overflow-hidden">
-          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-[var(--bf-surface)] border-b border-[var(--bf-muted)]/40">Integer ÷ 2</div>
+          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65 bg-[var(--bf-surface)] border-b border-[var(--bf-muted)]/40">Integer ÷ 2</div>
           <table className="w-full text-left text-xs font-mono"><tbody className="divide-y divide-[var(--bf-muted)]/30">
-            {intRows.map((row, i) => (<tr key={i}><td className="px-3 py-1 text-slate-200">{row.before} ÷ 2</td><td className="px-3 py-1 text-slate-400">= {row.after} r</td><td className="px-3 py-1 font-bold text-[var(--bf-accent)]">{row.bit}</td></tr>))}
+            {intRows.map((row, i) => (<tr key={i}><td className="px-3 py-1 text-[var(--bf-heading)]">{row.before} ÷ 2</td><td className="px-3 py-1 text-[var(--bf-heading)]/65">= {row.after} r</td><td className="px-3 py-1 font-bold text-[var(--bf-accent)]">{row.bit}</td></tr>))}
           </tbody></table>
         </div>
       )}
       {breakdown.fractionMultiplyRows.length > 0 && (
         <div className="rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-chip-alt)] overflow-hidden">
-          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-[var(--bf-surface)] border-b border-[var(--bf-muted)]/40">Fraction × 2</div>
+          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65 bg-[var(--bf-surface)] border-b border-[var(--bf-muted)]/40">Fraction × 2</div>
           <table className="w-full text-left text-xs font-mono"><tbody className="divide-y divide-[var(--bf-muted)]/30">
-            {fracRows.map((row, i) => (<tr key={i}><td className="px-3 py-1 text-slate-200">{row.before} × 2</td><td className="px-3 py-1 text-slate-400">= {row.after}</td><td className="px-3 py-1 font-bold text-[var(--bf-accent)]">{row.bit}</td></tr>))}
+            {fracRows.map((row, i) => (<tr key={i}><td className="px-3 py-1 text-[var(--bf-heading)]">{row.before} × 2</td><td className="px-3 py-1 text-[var(--bf-heading)]/65">= {row.after}</td><td className="px-3 py-1 font-bold text-[var(--bf-accent)]">{row.bit}</td></tr>))}
           </tbody></table>
         </div>
       )}
@@ -458,28 +458,28 @@ const ExploreMore: React.FC<{
     <div className="space-y-3">
       <div className="text-xs font-bold uppercase tracking-wider text-[var(--bf-accent)]">Explore More</div>
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => onToggle(explorePanel === 'special' ? null : 'special')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${explorePanel === 'special' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>Special Values</button>
-        <button onClick={() => onToggle(explorePanel === 'rounding' ? null : 'rounding')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${explorePanel === 'rounding' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>Precision &amp; Rounding</button>
+        <button onClick={() => onToggle(explorePanel === 'special' ? null : 'special')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${explorePanel === 'special' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>Special Values</button>
+        <button onClick={() => onToggle(explorePanel === 'rounding' ? null : 'rounding')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${explorePanel === 'rounding' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>Precision &amp; Rounding</button>
       </div>
 
       {explorePanel === 'special' && (
         <div className="rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-surface-inset)] p-4 space-y-3">
-          <p className="text-xs text-slate-300 leading-relaxed">Certain bit patterns are reserved to represent values outside ordinary numbers. Pick one to see its field configuration for {format.label}.</p>
+          <p className="text-xs text-[var(--bf-heading)]/80 leading-relaxed">Certain bit patterns are reserved to represent values outside ordinary numbers. Pick one to see its field configuration for {format.label}.</p>
           <div className="flex flex-wrap gap-1.5">
             {SPECIAL_VALUE_KINDS.map(sv => (
               <button key={sv.kind} onClick={() => setPreviewKind(sv.kind === previewKind ? null : sv.kind)} aria-pressed={previewKind === sv.kind}
-                className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors ${previewKind === sv.kind ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>
+                className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors ${previewKind === sv.kind ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>
                 {sv.label}
               </button>
             ))}
           </div>
           {previewKind && previewDecoded && (
             <div className="space-y-2">
-              <p className="text-[11px] text-slate-400 italic">{SPECIAL_VALUE_BLURBS[previewKind]}</p>
+              <p className="text-[11px] text-[var(--bf-heading)]/65 italic">{SPECIAL_VALUE_BLURBS[previewKind]}</p>
               <div className="bg-[var(--bf-chip)] text-[var(--bf-accent)] p-3 rounded-lg font-mono text-xs space-y-1 border border-[var(--bf-muted)]/40">
                 <div>Exponent = {previewDecoded.exponentBits} {previewDecoded.category === 'zero' || previewDecoded.category === 'subnormal' ? '(all zero)' : '(all one)'}</div>
                 <div>Fraction {previewDecoded.category === 'nan' ? '\u2260' : '='} {previewDecoded.fractionBits}</div>
-                <div className="pt-1 border-t border-[var(--bf-muted)]/40 text-white">→ {CATEGORY_LABEL[previewDecoded.category]} ({previewDecoded.formula})</div>
+                <div className="pt-1 border-t border-[var(--bf-muted)]/40 text-[var(--bf-heading)]">→ {CATEGORY_LABEL[previewDecoded.category]} ({previewDecoded.formula})</div>
               </div>
             </div>
           )}
@@ -488,7 +488,7 @@ const ExploreMore: React.FC<{
 
       {explorePanel === 'rounding' && (
         <div className="rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-surface-inset)] p-4 space-y-3">
-          <p className="text-xs text-slate-300 leading-relaxed">Floating-point formats have limited storage space. When a number needs more bits than the format provides, it gets rounded to the nearest representable value.</p>
+          <p className="text-xs text-[var(--bf-heading)]/80 leading-relaxed">Floating-point formats have limited storage space. When a number needs more bits than the format provides, it gets rounded to the nearest representable value.</p>
           {breakdown.roundTripPreserved ? (
             <div className="text-xs font-semibold text-emerald-300 bg-emerald-950/30 border border-emerald-900/40 rounded-md p-2.5">
               ✓ Round-trip preserved — decoding these bits back gives the same value BitForge started from. (This doesn't guarantee {breakdown.input} has an exact finite binary form in general — only that no <em>additional</em> rounding happened in this conversion.)
@@ -591,7 +591,7 @@ const DecodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
     <div className="space-y-6">
       <DirectBitInputs format={format} bitString={decoded.bitString} hex={decoded.hex} onCommit={applyBits} />
 
-      <div className="bg-[var(--bf-chip)] text-white p-4 sm:p-5 rounded-xl border border-[var(--bf-muted)]/60 shadow-sm relative overflow-hidden space-y-4">
+      <div className="bg-[var(--bf-chip)] text-[var(--bf-heading)] p-4 sm:p-5 rounded-xl border border-[var(--bf-muted)]/60 shadow-sm relative overflow-hidden space-y-4">
         <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-[var(--bf-accent)]/10 rounded-full blur-2xl pointer-events-none" />
         <div className="relative z-10 flex items-center justify-between flex-wrap gap-2">
           <span className="font-bold tracking-wider uppercase text-xs text-[var(--bf-accent)]">Click Bits to Toggle</span>
@@ -616,7 +616,7 @@ const DecodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
         </div>
       </div>
 
-      <div className="bg-[var(--bf-chip)] text-white p-5 rounded-xl border border-[var(--bf-muted)]/60 flex flex-col justify-between shadow-sm relative overflow-hidden">
+      <div className="bg-[var(--bf-chip)] text-[var(--bf-heading)] p-5 rounded-xl border border-[var(--bf-muted)]/60 flex flex-col justify-between shadow-sm relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-[var(--bf-accent)]/10 rounded-full blur-2xl pointer-events-none" />
         <div className="relative z-10">
           <div className="flex items-center justify-between text-xs text-[var(--bf-accent)] flex-wrap gap-1">
@@ -626,7 +626,7 @@ const DecodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
           <div className="mt-3 font-mono text-2xl sm:text-3xl font-bold text-[var(--bf-accent)] break-all leading-tight">{formatDecodedValue(decoded.value)}</div>
         </div>
         <div className="relative z-10 flex items-center justify-between pt-4 mt-4 border-t border-[var(--bf-muted)]/40 flex-wrap gap-2">
-          <div className="text-[11px] text-slate-300 font-sans">{decoded.hex ? <>Hex: <span className="font-mono font-bold text-[var(--bf-heading)]">0x{decoded.hex}</span></> : <>Bits: <span className="font-mono font-bold text-[var(--bf-heading)]">{decoded.bitString}</span></>}</div>
+          <div className="text-[11px] text-[var(--bf-heading)]/80 font-sans">{decoded.hex ? <>Hex: <span className="font-mono font-bold text-[var(--bf-heading)]">0x{decoded.hex}</span></> : <>Bits: <span className="font-mono font-bold text-[var(--bf-heading)]">{decoded.bitString}</span></>}</div>
           <div className="flex items-center gap-2">
             <button onClick={() => copyValue(formatDecodedValue(decoded.value), 'value')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copiedKey === 'value' ? 'bg-emerald-500 text-white' : failedKey === 'value' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-muted)] hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-white'}`}>
               {copiedKey === 'value' ? <Check className="w-3.5 h-3.5" /> : failedKey === 'value' ? <AlertCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}<span>Copy Value</span>
@@ -641,13 +641,13 @@ const DecodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
 
       <div className="space-y-3">
         <div className="text-xs font-bold uppercase tracking-wider text-[var(--bf-accent)]">Explore More</div>
-        <button onClick={() => setExplorePanel(explorePanel === 'special' ? null : 'special')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${explorePanel === 'special' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>Special Values</button>
+        <button onClick={() => setExplorePanel(explorePanel === 'special' ? null : 'special')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${explorePanel === 'special' ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)]' : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'}`}>Special Values</button>
         {explorePanel === 'special' && (
           <div className="rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-surface-inset)] p-4 space-y-3">
-            <p className="text-xs text-slate-300 leading-relaxed">Load a reserved bit pattern directly into the grid above.</p>
+            <p className="text-xs text-[var(--bf-heading)]/80 leading-relaxed">Load a reserved bit pattern directly into the grid above.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {SPECIAL_VALUE_KINDS.map(sv => (
-                <button key={sv.kind} onClick={() => applyBits(bitsFor(format, sv.kind))} className="text-left px-3 py-2 rounded-md border bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)] transition-colors">
+                <button key={sv.kind} onClick={() => applyBits(bitsFor(format, sv.kind))} className="text-left px-3 py-2 rounded-md border bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)] transition-colors">
                   <div className="font-mono text-xs font-bold text-[var(--bf-heading)]">{sv.label}</div>
                   <div className="text-[11px] mt-0.5 opacity-80">{SPECIAL_VALUE_BLURBS[sv.kind]}</div>
                 </button>
@@ -694,8 +694,8 @@ const DirectBitInputs: React.FC<{ format: FloatFormat; bitString: string; hex: s
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label htmlFor="fp-decode-binary" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Binary</label>
-          <span className={`text-[10px] font-mono ${binaryDraft.length === bits ? 'text-emerald-400' : 'text-slate-500'}`}>{binaryDraft.length} / {bits} bits</span>
+          <label htmlFor="fp-decode-binary" className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Binary</label>
+          <span className={`text-[10px] font-mono ${binaryDraft.length === bits ? 'text-emerald-400' : 'text-[var(--bf-heading)]/50'}`}>{binaryDraft.length} / {bits} bits</span>
         </div>
         <input id="fp-decode-binary" type="text" value={binaryDraft} onChange={e => handleBinaryChange(e.target.value)}
           placeholder={`Enter ${bits} bits to decode`}
@@ -703,8 +703,8 @@ const DirectBitInputs: React.FC<{ format: FloatFormat; bitString: string; hex: s
       </div>
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label htmlFor="fp-decode-hex" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hexadecimal</label>
-          <span className={`text-[10px] font-mono ${!hexDigits ? 'text-slate-500' : hexDraft.length === hexDigits ? 'text-emerald-400' : 'text-slate-500'}`}>
+          <label htmlFor="fp-decode-hex" className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Hexadecimal</label>
+          <span className={`text-[10px] font-mono ${!hexDigits ? 'text-[var(--bf-heading)]/50' : hexDraft.length === hexDigits ? 'text-emerald-400' : 'text-[var(--bf-heading)]/50'}`}>
             {hexDigits ? `${hexDraft.length} / ${hexDigits} hex digits` : 'unavailable for this bit width'}
           </span>
         </div>

@@ -304,3 +304,140 @@ describe('detectVerifiedContext — base conversion requests', () => {
     expect(detectVerifiedContext('')).toBeNull();
   });
 });
+
+describe('bare hex tokens are recognized whole (Copilot finding: "A5" was read as 5)', () => {
+  const summaryOf = (msg: string) => detectVerifiedContext(msg)?.summary ?? null;
+
+  describe('conversion requests framed with the word "hex"', () => {
+    it('"convert A5 hex to decimal" -> 165 (not 5)', () => {
+      const s = summaryOf('convert A5 hex to decimal');
+      expect(s).not.toBeNull();
+      expect(s).toContain('A5 (interpreted as hexadecimal, as stated)');
+      expect(s).toContain('= 165 in decimal');
+      expect(s).not.toMatch(/\b5 \(interpreted/);
+    });
+    it('"convert 2A hex to decimal" -> 42', () => {
+      expect(summaryOf('convert 2A hex to decimal')).toContain('= 42 in decimal');
+    });
+    it('"convert FF hex to decimal" -> 255', () => {
+      expect(summaryOf('convert FF hex to decimal')).toContain('= 255 in decimal');
+    });
+    it('"convert -A5 hex to decimal" keeps the sign -> -165', () => {
+      const s = summaryOf('convert -A5 hex to decimal');
+      expect(s).toContain('-A5 (interpreted as hexadecimal, as stated)');
+      expect(s).toContain('= -165 in decimal');
+    });
+    it('"convert +A5 hex to decimal" -> 165', () => {
+      expect(summaryOf('convert +A5 hex to decimal')).toContain('= 165 in decimal');
+    });
+    it('lowercase bare hex works too: "convert a5 hex to decimal" -> 165', () => {
+      expect(summaryOf('convert a5 hex to decimal')).toContain('= 165 in decimal');
+    });
+    it('"<hex> hex to <base>" for other targets: "convert 2A hex to binary" -> 101010', () => {
+      expect(summaryOf('convert 2A hex to binary')).toContain('= 101010 in binary');
+    });
+    it('"hex of <value>": "hex of A5" reads A5 as one token', () => {
+      const s = summaryOf('hex of A5');
+      expect(s).not.toBeNull();
+      expect(s).toContain('A5 (detected as hexadecimal)');
+      expect(s).toContain('165 in decimal');
+    });
+    it('"hex A5" (word before the token): "convert hex A5 to decimal" -> 165', () => {
+      expect(summaryOf('convert hex A5 to decimal')).toContain('= 165 in decimal');
+    });
+    it('a digit-bearing bare hex token wins over an unrelated number elsewhere: "what is A5 hex in 8 bits" never reads the 8 as the operand', () => {
+      const s = summaryOf('what is A5 hex in 8 bits');
+      expect(s === null || !/\b8 \(interpreted/.test(s)).toBe(true);
+    });
+    it('a bit-width qualifier is not the operand: "convert FF hex to 8 bit binary" -> FF, not 8', () => {
+      const s = summaryOf('convert FF hex to 8 bit binary');
+      expect(s).toContain('FF (interpreted as hexadecimal, as stated)');
+      expect(s).toContain('= 11111111 in binary');
+    });
+  });
+
+  describe("two's complement requests", () => {
+    it("\"16-bit two's complement of A5 hex\" uses 0xA5 = 165", () => {
+      const s = summaryOf("16-bit two's complement of A5 hex");
+      expect(s).not.toBeNull();
+      expect(s).toContain('165');
+      expect(s).toContain('0000000010100101');
+      expect(s).toContain('0x00A5');
+    });
+    it("\"16-bit two's complement of -A5 hex\" uses -0xA5 = -165", () => {
+      const s = summaryOf("16-bit two's complement of -A5 hex");
+      expect(s).not.toBeNull();
+      expect(s).toContain('-165');
+      expect(s).toContain('1111111101011011');
+    });
+    it("\"8-bit two's complement of A5 hex\": 165 does not fit signed 8-bit, so this is a verified overflow for 165 (never a result for 5)", () => {
+      const s = summaryOf("8-bit two's complement of A5 hex");
+      expect(s).toContain('165');
+      expect(s!.toLowerCase()).toContain('out of range');
+    });
+    it('"FF hex" still works with the width first or last', () => {
+      expect(summaryOf("16-bit two's complement of FF hex")).toContain('255');
+      expect(summaryOf("two's complement of 2A hex")).toContain('42');
+    });
+  });
+
+  describe('explicit-hex framing stays deliberate (conservative)', () => {
+    it('without the word "hex", a bare letter/digit token is NOT guessed as hex: "convert A5 to decimal" is left to the model', () => {
+      expect(summaryOf('convert A5 to decimal')).toBeNull();
+      expect(summaryOf("two's complement of A5")).toBeNull();
+    });
+    it('a digit must never be extracted from the middle of a word', () => {
+      expect(summaryOf('convert abc5 to binary')).toBeNull();
+      expect(summaryOf('convert v1.5 to binary')).toBeNull();
+    });
+    it('the article "a" / "A" next to "hex" is not a number', () => {
+      expect(summaryOf('what is a hex value in binary?')).toBeNull();
+      expect(summaryOf('A hex value in binary')).toBeNull();
+    });
+    it('the tail of an ordinary word is not extracted as a hex token ("code" -> "de")', () => {
+      expect(summaryOf('the code hex to decimal')).toBeNull();
+    });
+    it('a real decimal number is not displaced by a hex-looking base abbreviation: "convert 255 dec hex"', () => {
+      const s = summaryOf('convert 255 dec hex');
+      expect(s).not.toBeNull();
+      expect(s).toContain('255');
+      expect(s).toContain('FF in hex');
+    });
+    it('"convert 255 to hex and back" is still the decimal 255', () => {
+      expect(summaryOf('convert 255 to hex and back')).toContain('255 (interpreted as decimal) = FF in hexadecimal');
+    });
+  });
+
+  describe('existing explicit cases do not regress', () => {
+    it('"convert decimal 10 to hex" -> A', () => {
+      expect(summaryOf('convert decimal 10 to hex')).toContain('= A in hexadecimal');
+    });
+    it('"convert 10 to hex" stays conservative/ambiguous (null)', () => {
+      expect(summaryOf('convert 10 to hex')).toBeNull();
+    });
+    it('"convert 0xA5 to decimal" -> 165', () => {
+      const s = summaryOf('convert 0xA5 to decimal');
+      expect(s).toContain('0xA5 (interpreted as hexadecimal)');
+      expect(s).toContain('= 165 in decimal');
+    });
+    it('"convert -0xA5 to decimal" -> -165', () => {
+      const s = summaryOf('convert -0xA5 to decimal');
+      expect(s).toContain('-0xA5');
+      expect(s).toContain('= -165 in decimal');
+    });
+    it('0b / 0o prefixes still parse', () => {
+      expect(summaryOf('convert 0b1010 to decimal')).toContain('= 10 in decimal');
+      expect(summaryOf('convert 0o17 to decimal')).toContain('= 15 in decimal');
+    });
+    it('a leading bit-width phrase is skipped, so the real operand is used: "convert 8 bit 5 to binary" -> 101 (not 1000)', () => {
+      const s = summaryOf('convert 8 bit 5 to binary');
+      expect(s).toContain('= 101 in binary');
+      expect(s).not.toContain('1000');
+    });
+    it('twos complement of -10 stays decimal -10, not binary -2', () => {
+      const s = summaryOf('twos complement of -10');
+      expect(s).toContain('-10');
+      expect(s).not.toContain('-2 ');
+    });
+  });
+});

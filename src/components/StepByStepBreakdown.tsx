@@ -17,10 +17,10 @@ export const StepByStepBreakdown: React.FC<StepByStepBreakdownProps> = ({
 }) => {
   if (!conversion.isValid || conversion.steps.length === 0) {
     return (
-      <div className="bg-[var(--bf-surface)]/50 rounded-xl border border-dashed border-[var(--bf-muted)]/40 p-8 text-center text-slate-400">
+      <div className="bg-[var(--bf-surface)]/50 rounded-xl border border-dashed border-[var(--bf-muted)]/40 p-8 text-center text-[var(--bf-heading)]/65">
         <HelpCircle className="w-8 h-8 mx-auto mb-2 text-[var(--bf-muted)] opacity-60" />
         <p className="font-semibold text-sm">No mathematical derivation available</p>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-[var(--bf-heading)]/65 mt-1">
           Enter a valid number above to generate real-time step-by-step calculation steps.
         </p>
       </div>
@@ -81,7 +81,7 @@ export const StepByStepBreakdown: React.FC<StepByStepBreakdownProps> = ({
           </div>
 
           {/* Footer Verification Notice */}
-          <div className="pt-4 border-t border-[var(--bf-muted)]/30 italic text-slate-400 text-[11px] font-mono flex items-center justify-between">
+          <div className="pt-4 border-t border-[var(--bf-muted)]/30 italic text-[var(--bf-heading)]/65 text-[11px] font-mono flex items-center justify-between">
             <span>BitForge Engine Logic verified</span>
             <span>Integer Engine: Exact</span>
           </div>
@@ -112,7 +112,7 @@ const StepCard: React.FC<{ step: StepDetail; index: number }> = ({ step, index }
       </div>
 
       {/* Explanation Text */}
-      <p className="text-xs text-slate-300 leading-relaxed font-sans">
+      <p className="text-xs text-[var(--bf-heading)]/80 leading-relaxed font-sans">
         {step.explanation}
       </p>
 
@@ -129,7 +129,7 @@ const StepCard: React.FC<{ step: StepDetail; index: number }> = ({ step, index }
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--bf-muted)]/30 text-slate-200">
+            <tbody className="divide-y divide-[var(--bf-muted)]/30 text-[var(--bf-heading)]">
               {step.tableData.rows.map((row, rIdx) => (
                 <tr key={rIdx} className="hover:bg-[var(--bf-chip)]/40 transition-colors">
                   {row.map((cell, cIdx) => (
@@ -158,7 +158,7 @@ const StepCard: React.FC<{ step: StepDetail; index: number }> = ({ step, index }
       {/* Final Step Result Badge */}
       {step.finalResult && (
         <div className="flex items-center justify-between text-xs font-mono font-bold text-[var(--bf-heading)] bg-[var(--bf-chip-alt)] p-2.5 rounded-md border border-[var(--bf-muted)]/40">
-          <span className="text-slate-400 font-sans">Step Outcome:</span>
+          <span className="text-[var(--bf-heading)]/65 font-sans">Step Outcome:</span>
           <span className="text-[var(--bf-accent)] font-bold">{step.finalResult}</span>
         </div>
       )}

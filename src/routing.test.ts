@@ -212,3 +212,67 @@ describe('parseHash and appRouteToHashPath round-trip — the core of the hash-n
     expect(parseHash('#' + path)).toEqual({ view: 'app' });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Route state (AppRoot's single source of truth) and its URL projection
+// ---------------------------------------------------------------------------
+import {
+  LANDING_STATE,
+  RouteState,
+  hashToPath,
+  routeStateFromRoute,
+  routeStateToHashPath,
+  routeStatesEqual,
+} from './routing';
+
+describe('routeStateFromRoute — total state from a partial URL route', () => {
+  it('landing', () => {
+    expect(routeStateFromRoute({ view: 'landing' })).toEqual(LANDING_STATE);
+  });
+  it('bare /app -> converter, chat closed', () => {
+    expect(routeStateFromRoute(parseHash('#/app')!)).toEqual({ view: 'app', mode: 'converter', chatOpen: false });
+  });
+  it('/app/chat -> converter, chat open', () => {
+    expect(routeStateFromRoute(parseHash('#/app/chat')!)).toEqual({ view: 'app', mode: 'converter', chatOpen: true });
+  });
+  it('every mode deep link', () => {
+    for (const mode of ALL_MODES) {
+      expect(routeStateFromRoute(parseHash(`#/app/mode/${mode}`)!)).toEqual({ view: 'app', mode, chatOpen: false });
+    }
+  });
+});
+
+describe('routeStateToHashPath / hashToPath — URL projection of the state', () => {
+  it('landing projects to "/" and empty/bare hashes normalize to it', () => {
+    expect(routeStateToHashPath(LANDING_STATE)).toBe('/');
+    expect(hashToPath('')).toBe('/');
+    expect(hashToPath('#')).toBe('/');
+    expect(hashToPath('#/')).toBe('/');
+  });
+  it('app states project like appRouteToHashPath, and chat wins over mode', () => {
+    expect(routeStateToHashPath({ view: 'app', mode: 'converter', chatOpen: false })).toBe('/app');
+    expect(routeStateToHashPath({ view: 'app', mode: 'ascii', chatOpen: false })).toBe('/app/mode/ascii');
+    expect(routeStateToHashPath({ view: 'app', mode: 'ascii', chatOpen: true })).toBe('/app/chat');
+  });
+  it('every recognized hash survives hash -> state -> path -> hash', () => {
+    const hashes = ['#/', '#/app', '#/app/chat', ...ALL_MODES.filter(m => m !== 'converter').map(m => `#/app/mode/${m}`)];
+    for (const h of hashes) {
+      const state = routeStateFromRoute(parseHash(h)!);
+      expect('#' + routeStateToHashPath(state)).toBe(h);
+    }
+  });
+  it('"#/app/mode/converter" is a valid alias that resolves to the same state as "#/app"', () => {
+    expect(routeStateFromRoute(parseHash('#/app/mode/converter')!)).toEqual(routeStateFromRoute(parseHash('#/app')!));
+  });
+});
+
+describe('routeStatesEqual', () => {
+  const app = (mode: (typeof ALL_MODES)[number], chatOpen = false): RouteState => ({ view: 'app', mode, chatOpen });
+  it('compares view, mode and chat', () => {
+    expect(routeStatesEqual(LANDING_STATE, { view: 'landing' })).toBe(true);
+    expect(routeStatesEqual(LANDING_STATE, app('converter'))).toBe(false);
+    expect(routeStatesEqual(app('ascii'), app('ascii'))).toBe(true);
+    expect(routeStatesEqual(app('ascii'), app('operations'))).toBe(false);
+    expect(routeStatesEqual(app('ascii'), app('ascii', true))).toBe(false);
+  });
+});

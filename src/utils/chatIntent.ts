@@ -52,58 +52,117 @@ function isFramedAsHex(text: string): boolean {
   return /\bhex(?:adecimal)?\b/i.test(text);
 }
 
+interface TokenMatch {
+  token: string;
+  /** Index of `token` within the searched text, so callers never have to re-find it. */
+  index: number;
+}
+
 /**
  * Looks for a bare hex value (no 0x prefix, containing at least one A–F
  * letter) sitting immediately next to the literal word "hex"/"hexadecimal" —
- * e.g. "FF hex to binary" or "hex of FF". Deliberately anchored to that
- * word's position rather than scanned across the whole message: plenty of
- * ordinary English words (dead, face, cafe, beef, decade) are technically
- * valid hex digits, so matching one anywhere the word "hex" merely appears
- * in the message would risk treating an unrelated word as a number.
+ * e.g. "FF hex to binary", "A5 hex to decimal", "-A5 hex" or "hex of FF".
+ * Deliberately anchored to that word's position rather than scanned across
+ * the whole message: plenty of ordinary English words (dead, face, cafe,
+ * beef, decade) are technically valid hex digits, so matching one anywhere
+ * the word "hex" merely appears in the message would risk treating an
+ * unrelated word as a number.
+ *
+ * Two rules keep that anchoring honest:
+ *  - The token must START at a token boundary (start of text, or after a
+ *    character that is not a letter/digit). Without this, "the code hex"
+ *    yielded "de" — the tail of "code" — as if it were a number.
+ *  - A single letter is never a bare hex token ("what is a hex value…" must
+ *    not read the article "a" as 0xA). Single hex digits are still fine when
+ *    written with a prefix (0xA) or a digit-bearing form.
+ *
+ * A leading sign is captured, not dropped: "-FF hex" previously matched only
+ * "FF", silently discarding the negative.
  */
-function findBareHexToken(text: string): string | null {
+function findBareHexMatch(text: string): TokenMatch | null {
   const hexWordMatch = text.match(/\bhex(?:adecimal)?\b/i);
   if (!hexWordMatch || hexWordMatch.index === undefined) return null;
 
+  const isPlausible = (tok: string) => /[A-Fa-f]/.test(tok) && tok.replace(/^[-+]/, '').length >= 2;
+
+  // Token immediately BEFORE the word: "A5 hex", "-A5 hex".
   const before = text.slice(0, hexWordMatch.index);
-  const after = text.slice(hexWordMatch.index + hexWordMatch[0].length);
+  const beforeMatch = before.match(/(^|[^0-9A-Za-z])([-+]?[0-9A-Fa-f]+)\s*$/);
+  if (beforeMatch && beforeMatch.index !== undefined && isPlausible(beforeMatch[2])) {
+    return { token: beforeMatch[2], index: beforeMatch.index + beforeMatch[1].length };
+  }
 
-  // A leading sign is captured here, not dropped: "-FF hex" previously
-  // matched only "FF", silently discarding the negative and computing the
-  // wrong value downstream with no indication anything was lost.
-  const beforeMatch = before.match(/([-+]?[0-9A-Fa-f]+)\s*$/);
-  if (beforeMatch && /[A-Fa-f]/.test(beforeMatch[1])) return beforeMatch[1];
-
-  const afterMatch = after.match(/^\s*(?:of\s+)?([-+]?[0-9A-Fa-f]+)\b/);
-  if (afterMatch && /[A-Fa-f]/.test(afterMatch[1])) return afterMatch[1];
+  // Token immediately AFTER the word: "hex A5", "hex of -A5".
+  const afterStart = hexWordMatch.index + hexWordMatch[0].length;
+  const afterMatch = text.slice(afterStart).match(/^(\s*(?:of\s+)?)([-+]?[0-9A-Fa-f]+)\b/);
+  if (afterMatch && isPlausible(afterMatch[2])) {
+    return { token: afterMatch[2], index: afterStart + afterMatch[1].length };
+  }
 
   return null;
 }
 
 /**
  * Pulls the first thing that looks like a number token (incl. 0x/0b/0o
- * prefixed or signed, with or without a fractional part).
+ * prefixed or signed, with or without a fractional part), together with its
+ * position in the text.
  *
- * The digit alternative used to require at least one digit *before* the
- * decimal point (`\d+\.?\d*`), which cannot match ".5" or "-.5" at all —
- * not "parses it wrong", but never finds a token there in the first place,
- * so the canonical parser downstream never even gets a chance to run. Each
- * alternative below independently allows a leading-dot form: `\d+\.\d*` (a
- * mandatory point after digits, so "5." matches too), `\.\d+` (a point with
- * nothing before it), or plain `\d+`.
+ * Token boundaries matter more than anything else here. A generic digit
+ * match must never begin in the MIDDLE of an alphanumeric word: "A5" contains
+ * the digit "5", and a regex that simply looks for digits returns 5 — a
+ * verified-looking but wrong answer for 0xA5. So every generic match must
+ * start at the beginning of the text or after a character that is not a
+ * letter, digit or '.' (the '.' exclusion also stops "v1.5" from yielding
+ * "5"). Bare hex written next to the word "hex" is recognized first, as one
+ * complete token, for the same reason.
+ *
+ * Order of precedence:
+ *  1. A digit-bearing bare hex token framed by "hex" ("A5 hex", "hex of 2A"):
+ *     unmistakably one hex literal, and it must win over an unrelated number
+ *     elsewhere in the sentence ("A5 hex in 8 bits").
+ *  2. The first boundary-respecting generic number (prefixed, fractional or
+ *     plain digits), extended over trailing hex digits when framed as hex.
+ *  3. A letters-only bare hex token ("FF hex"). This stays a last resort, as
+ *     before: letters-only words such as "dec" or "add" sit next to "hex"
+ *     in ordinary phrasing ("255 dec hex"), and must not displace a real
+ *     number found elsewhere.
+ *
+ * The digit alternative allows a leading-dot form: `\d+\.\d*` (a mandatory
+ * point after digits, so "5." matches too), `\.\d+` (a point with nothing
+ * before it), or plain `\d+`.
  */
-function findNumberToken(text: string): string | null {
+function findNumberMatch(text: string): TokenMatch | null {
+  const framedAsHex = isFramedAsHex(text);
+  const bareHex = framedAsHex ? findBareHexMatch(text) : null;
+
+  if (bareHex && /\d/.test(bareHex.token)) return bareHex;
+
   const fracOrInt = '(?:\\d+\\.\\d*|\\.\\d+|\\d+)';
-  const match = text.match(new RegExp(
-    `[-+]?(0[xX][0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?|0[bB][01]+(?:\\.[01]+)?|0[oO][0-7]+(?:\\.[0-7]+)?|${fracOrInt})`
-  ));
+  const genericRe = new RegExp(
+    `(^|[^0-9A-Za-z.])([-+]?(?:0[xX][0-9a-fA-F]+(?:\\.[0-9a-fA-F]+)?|0[bB][01]+(?:\\.[01]+)?|0[oO][0-7]+(?:\\.[0-7]+)?|${fracOrInt}))`,
+    'g',
+  );
+  // A number that is really a bit-width ("8 bit", "16-bit", "32 bits") is a
+  // qualifier, not the operand — skip it so "FF hex to 8 bit binary" converts
+  // FF rather than reading the 8. (The two's-complement path strips its own
+  // width phrase first; this covers the general conversion path.)
+  let match: RegExpMatchArray | null = null;
+  for (const candidate of text.matchAll(genericRe)) {
+    const end = candidate.index! + candidate[0].length;
+    if (/^\s*-?\s*bits?\b/i.test(text.slice(end))) continue;
+    match = candidate;
+    break;
+  }
 
   if (!match) {
     // No digit-based token anywhere — the only remaining possibility is a
     // bare hex value like "FF" that's entirely letters, which the pattern
     // above can't match at all (it requires at least one digit).
-    return findBareHexToken(text);
+    return bareHex;
   }
+
+  const token = match[2];
+  const index = match.index! + match[1].length;
 
   // A digit-based match was found, but it may have been truncated: "2A"
   // only matches as "2" above, since the regex has no way to know "A" was
@@ -111,14 +170,13 @@ function findNumberToken(text: string): string | null {
   // hex digits with *zero gap* (so we know it's genuinely one contiguous
   // token, not two separate words) and the message frames this as hex,
   // extend the match rather than silently drop the trailing digits.
-  const isAlreadyPrefixed = /^[-+]?0[xX]/.test(match[0]);
-  if (!isAlreadyPrefixed && isFramedAsHex(text)) {
-    const matchEnd = match.index! + match[0].length;
-    const tail = text.slice(matchEnd).match(/^[0-9A-Fa-f]+/);
-    if (tail) return match[0] + tail[0];
+  const isAlreadyPrefixed = /^[-+]?0[xX]/.test(token);
+  if (!isAlreadyPrefixed && framedAsHex) {
+    const tail = text.slice(index + token.length).match(/^[0-9A-Fa-f]+/);
+    if (tail) return { token: token + tail[0], index };
   }
 
-  return match[0];
+  return { token, index };
 }
 
 export interface VerifiedContext {
@@ -137,7 +195,7 @@ export function detectVerifiedContext(userMessage: string): VerifiedContext | nu
     // numbers — the width (8) and the operand (-42) — and the width can
     // appear *before* the operand in the message. Find the bit-width phrase
     // first and remove it from the text before looking for the operand, so
-    // findNumberToken() can never latch onto the width digit by mistake.
+    // findNumberMatch() can never latch onto the width digit by mistake.
     const bitWidthMatch = userMessage.match(/(4|8|16|32|64)\s*-?\s*bit/i);
     const bitWidth = bitWidthMatch
       ? (Number(bitWidthMatch[1]) as 4 | 8 | 16 | 32 | 64)
@@ -147,7 +205,7 @@ export function detectVerifiedContext(userMessage: string): VerifiedContext | nu
         userMessage.slice(bitWidthMatch.index! + bitWidthMatch[0].length)
       : userMessage;
 
-    const numberToken = findNumberToken(textWithoutBitWidth);
+    const numberToken = findNumberMatch(textWithoutBitWidth)?.token;
     if (numberToken) {
       // parseInt(numberToken, 10) was the original bug this replaced: called
       // with an explicit radix of 10 regardless of what the token actually
@@ -155,7 +213,7 @@ export function detectVerifiedContext(userMessage: string): VerifiedContext | nu
       // "-0xFF" as -0 (parseInt stops at the first character invalid for
       // the given radix — here, at 'x'). A hardcoded radix of 10 without a
       // prefix was a narrower version of the same mistake: "-FF" (bare hex,
-      // reached via findBareHexToken because the message says "hex") has no
+      // reached via findBareHexMatch because the message says "hex") has no
       // prefix for parseSignedIntegerLiteral to detect, so it needs a radix
       // hint from autoDetectBase, same as the general conversion path below.
       // But autoDetectBase's guess must be trusted the same conservative way
@@ -205,10 +263,14 @@ export function detectVerifiedContext(userMessage: string): VerifiedContext | nu
   // "convert decimal 10 to hex" can't have its source and target confused
   // just because "decimal" happens to be checked before "hex" in an
   // unordered word list.
-  const numberToken = findNumberToken(userMessage);
-  if (!numberToken) return null;
+  const numberMatch = findNumberMatch(userMessage);
+  if (!numberMatch) return null;
 
-  const numberIndex = userMessage.indexOf(numberToken);
+  // Use the position the token was actually found at. Re-searching with
+  // indexOf(token) could land on an earlier, unrelated occurrence of the same
+  // characters (e.g. the "5" of "A5" for the token "5") and split the message
+  // into the wrong "before"/"after" halves.
+  const { token: numberToken, index: numberIndex } = numberMatch;
   const before = userMessage.slice(0, numberIndex);
   const afterNumber = userMessage.slice(numberIndex + numberToken.length);
 

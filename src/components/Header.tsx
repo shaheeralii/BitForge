@@ -10,11 +10,13 @@ export type AppMode = 'converter' | 'bit_representation' | 'ascii' | 'operations
 interface HeaderProps {
   activeMode: AppMode;
   onModeChange: (mode: AppMode) => void;
+  /** Navigate to the landing page via AppRoot's centralized navigation. */
+  onGoHome: () => void;
   onOpenHistory: () => void;
   onOpenShortcutsHelp: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpenHistory, onOpenShortcutsHelp }) => {
+export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onGoHome, onOpenHistory, onOpenShortcutsHelp }) => {
   const { entries } = useHistory();
   const modes = [
     {
@@ -46,11 +48,22 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onOpen
 
   return (
     <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[var(--bf-overlay)]/55 backdrop-blur-xl text-white border-b border-[var(--bf-accent)]/15 shadow-sm shadow-black/20 sticky top-0 z-30 transition-colors gap-3">
-      {/* Branding — a real link (not a button) back to the landing page.
-          It works with zero extra plumbing: href="#/" sets the same hash
-          AppRoot's own navigate() would, so its hashchange listener picks
-          it up exactly as if a landing-page button had been clicked. */}
-      <a href="#/" className="flex items-center gap-3 rounded-lg -m-1 p-1 hover:bg-white/5 transition-colors" aria-label="Back to the BitForge landing page">
+      {/* Branding — a real link back to the landing page, so it keeps link
+          semantics (focusable, "copy link address", open in new tab all work
+          and point at the landing route). A plain left click is intercepted
+          and routed through AppRoot's centralized navigation (onGoHome), the
+          same path the landing tiles and mode tabs use, so state and URL
+          change together in the same call rather than relying on a
+          hashchange event to be noticed afterwards. Modified clicks
+          (ctrl/cmd/shift/middle) fall through to the browser. */}
+      <a
+        href="#/"
+        onClick={(e) => {
+          if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          onGoHome();
+        }}
+        className="flex items-center gap-3 rounded-lg -m-1 p-1 hover:bg-white/5 transition-colors" aria-label="Back to the BitForge landing page">
         <BitForgeLogo className="w-9 h-9 shrink-0" />
         <div>
           <div className="flex items-center gap-2">

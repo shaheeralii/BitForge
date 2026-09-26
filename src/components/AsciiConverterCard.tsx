@@ -125,12 +125,12 @@ export const AsciiConverterCard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Full Binary Stream */}
-        <div className="bg-[var(--bf-chip)] text-white p-4 rounded-xl border border-[var(--bf-muted)]/60 space-y-2">
+        <div className="bg-[var(--bf-chip)] text-[var(--bf-heading)] p-4 rounded-xl border border-[var(--bf-muted)]/60 space-y-2">
           <div className="flex items-center justify-between text-xs text-[var(--bf-accent)]">
             <span className="font-bold">8-Bit Binary Stream</span>
             <button
               onClick={() => copyVal(converted.fullBinary, 'fullBin', '8-Bit Binary Stream')}
-              className="p-1 text-slate-400 hover:text-white"
+              className="p-1 text-[var(--bf-heading)]/65 hover:text-white"
               aria-label={copiedKey === 'fullBin' ? 'Copied binary stream' : failedKey === 'fullBin' ? 'Copy failed — clipboard unavailable' : 'Copy 8-bit binary stream'}
             >
               {copiedKey === 'fullBin' ? <Check className="w-4 h-4 text-emerald-400" /> : failedKey === 'fullBin' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <Copy className="w-4 h-4" />}
@@ -142,12 +142,12 @@ export const AsciiConverterCard: React.FC = () => {
         </div>
 
         {/* Full Hex Stream */}
-        <div className="bg-[var(--bf-chip)] text-white p-4 rounded-xl border border-[var(--bf-muted)]/60 space-y-2">
+        <div className="bg-[var(--bf-chip)] text-[var(--bf-heading)] p-4 rounded-xl border border-[var(--bf-muted)]/60 space-y-2">
           <div className="flex items-center justify-between text-xs text-[var(--bf-accent)]">
             <span className="font-bold">Hexadecimal Bytes</span>
             <button
               onClick={() => copyVal(converted.fullHex, 'fullHex', 'Hexadecimal Bytes')}
-              className="p-1 text-slate-400 hover:text-white"
+              className="p-1 text-[var(--bf-heading)]/65 hover:text-white"
               aria-label={copiedKey === 'fullHex' ? 'Copied hexadecimal bytes' : failedKey === 'fullHex' ? 'Copy failed — clipboard unavailable' : 'Copy hexadecimal bytes'}
             >
               {copiedKey === 'fullHex' ? <Check className="w-4 h-4 text-emerald-400" /> : failedKey === 'fullHex' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <Copy className="w-4 h-4" />}
@@ -179,7 +179,7 @@ export const AsciiConverterCard: React.FC = () => {
                   <th className="px-4 py-2.5 font-bold">Octal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--bf-muted)]/30 text-slate-100">
+              <tbody className="divide-y divide-[var(--bf-muted)]/30 text-[var(--bf-heading)]">
                 {converted.characters.map((c, i) => (
                   <tr key={i} className="hover:bg-[var(--bf-chip)]/30">
                     <td className="px-4 py-2 font-bold text-[var(--bf-accent)]">
