@@ -258,6 +258,20 @@ html[data-theme="plain"] header {
   box-shadow: none;
 }
 
+/*
+ * Plain kill-switch for the FlowWave canvas. FlowWaveBackground.tsx already
+ * unmounts the canvas (and disposes its scene) under Plain, but React's
+ * cleanup is not what should decide what is on screen: the moment
+ * data-theme becomes "plain" this rule makes any still-attached canvas
+ * invisible and non-rendering, so its last WebGL frame can never win over
+ * the static base layer (#bf-base-bg / html background) — not even for one
+ * frame. It hides only; it does not replace the teardown.
+ */
+html[data-theme="plain"] #flow-wave-scene {
+  display: none !important;
+  visibility: hidden !important;
+}
+
 /* Softens the swap between themes without animating every hover/focus
    color transition app-wide (most interactive elements already carry
    their own `transition-colors`). Disabled entirely under reduced motion. */

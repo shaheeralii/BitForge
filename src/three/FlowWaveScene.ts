@@ -622,6 +622,9 @@ export class FlowWaveScene {
   };
 
   dispose() {
+    // Idempotent: the context-lost handler, the context-restored handler and
+    // React's effect cleanup can all reach here for the same scene.
+    if (this.disposed) return;
     this.disposed = true;
     this.stopLoop();
     if (this.resizeRafId) cancelAnimationFrame(this.resizeRafId);
@@ -652,18 +655,29 @@ export class FlowWaveScene {
       // Context already gone — nothing left to clear, and nothing to do.
     }
 
-    this.sphereGeo.dispose();
-    this.pointsMat.dispose();
-    this.moteGeo.dispose();
-    this.moteMat.dispose();
+    // Every release step is isolated: dispose() runs from a React effect
+    // cleanup (and from the WebGL context-lost handler), where a throw would
+    // take the component tree down and leave later steps — the renderer's
+    // GPU resources — un-released. One failing step must not skip the rest.
+    const release = (fn: () => void) => {
+      try {
+        fn();
+      } catch (e) {
+        console.warn('FlowWaveScene dispose step failed:', e);
+      }
+    };
+    release(() => this.sphereGeo.dispose());
+    release(() => this.pointsMat.dispose());
+    release(() => this.moteGeo.dispose());
+    release(() => this.moteMat.dispose());
     // EffectComposer.dispose() only frees its own render targets, not the
     // materials owned by passes added to it — ShaderPass wraps our final
     // composite shader in its own ShaderMaterial (compiled GPU program) that
     // nothing else references, so it must be disposed explicitly here or it
     // leaks on every WebGL context-loss/restore cycle (each of which tears
     // down and reconstructs the whole scene).
-    this.finalPass?.material.dispose();
-    this.composer?.dispose();
-    this.renderer.dispose();
+    release(() => this.finalPass?.material.dispose());
+    release(() => this.composer?.dispose());
+    release(() => this.renderer.dispose());
   }
 }

@@ -180,7 +180,7 @@ export const BitRepresentationLab: React.FC = () => {
               touched, and keeping it out of the input row leaves that row a
               single full-width field instead of a cramped two-column split. */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bit width</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/50">Bit width</span>
             <div className="flex items-center gap-0.5 bg-[var(--bf-chip-alt)] p-0.5 rounded-md border border-[var(--bf-muted)]/40 text-[11px] font-semibold">
               {BIT_WIDTHS.map(w => (
                 <button
@@ -191,7 +191,7 @@ export const BitRepresentationLab: React.FC = () => {
                   className={`px-2 py-1 rounded transition-all ${
                     bitWidth === w
                       ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] font-bold'
-                      : 'text-slate-400 hover:text-[var(--bf-heading)]'
+                      : 'text-[var(--bf-heading)]/65 hover:text-[var(--bf-heading)]'
                   }`}
                 >
                   {w}
@@ -200,7 +200,7 @@ export const BitRepresentationLab: React.FC = () => {
             </div>
           </div>
         </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
+        <p className="text-xs text-[var(--bf-heading)]/65 leading-relaxed">
           A sequence of bits can represent different values depending on how those bits are interpreted.
         </p>
       </div>
@@ -215,7 +215,7 @@ export const BitRepresentationLab: React.FC = () => {
               <label htmlFor="bitforge-denary-input" className="text-xs font-bold uppercase tracking-wider text-[var(--bf-accent)]">
                 Denary
               </label>
-              <span className="text-[11px] font-mono text-slate-400 truncate">
+              <span className="text-[11px] font-mono text-[var(--bf-heading)]/65 truncate">
                 as {REPRESENTATION_LABELS[activeRepresentation]}
               </span>
             </div>
@@ -233,7 +233,7 @@ export const BitRepresentationLab: React.FC = () => {
                   : 'border-[var(--bf-muted)]/60 text-[var(--bf-heading)] focus:border-[var(--bf-accent)] focus:ring-2 focus:ring-[var(--bf-accent)]/20'
               }`}
             />
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <div className="flex items-center justify-between text-[11px] font-mono text-[var(--bf-heading)]/65">
               <span>Range: {formatRange(activeRepresentation, bitWidth)}</span>
               {isOutOfRange && (
                 <span className="flex items-center gap-1 text-rose-500 font-bold">
@@ -256,7 +256,7 @@ export const BitRepresentationLab: React.FC = () => {
                 className={`px-3 py-1.5 rounded-md whitespace-nowrap transition-all ${
                   activeRepresentation === id
                     ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] shadow-sm border border-[var(--bf-accent)]/40'
-                    : 'text-slate-400 hover:text-[var(--bf-heading)]'
+                    : 'text-[var(--bf-heading)]/65 hover:text-[var(--bf-heading)]'
                 }`}
               >
                 {REPRESENTATION_LABELS[id]}
@@ -267,7 +267,7 @@ export const BitRepresentationLab: React.FC = () => {
 
         {/* Interactive Bit Grid */}
         <div className="space-y-1.5">
-          <div className="text-xs font-bold text-slate-400 flex justify-between px-1">
+          <div className="text-xs font-bold text-[var(--bf-heading)]/65 flex justify-between px-1">
             <span>MSB (Bit {bitWidth - 1})</span>
             <span>LSB (Bit 0)</span>
           </div>
@@ -282,16 +282,16 @@ export const BitRepresentationLab: React.FC = () => {
 
         {/* Bit Controls — functional, visually subordinate to the grid and representation selector */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <button onClick={handleInvert} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-slate-300 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
+          <button onClick={handleInvert} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
             <Zap className="w-3 h-3 text-[var(--bf-accent)]" /><span>Invert</span>
           </button>
-          <button onClick={handleShiftLeft} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-slate-300 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
+          <button onClick={handleShiftLeft} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
             <ArrowLeft className="w-3 h-3 text-[var(--bf-accent)]" /><span>Shift Left</span>
           </button>
-          <button onClick={handleShiftRight} title="Logical shift right — shifts a 0 into the MSB regardless of representation" className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-slate-300 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
+          <button onClick={handleShiftRight} title="Logical shift right — shifts a 0 into the MSB regardless of representation" className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
             <ArrowRight className="w-3 h-3 text-[var(--bf-accent)]" /><span>Logical Shift Right</span>
           </button>
-          <button onClick={handleClear} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-slate-300 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
+          <button onClick={handleClear} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 hover:bg-[var(--bf-chip)] hover:text-[var(--bf-heading)] border border-[var(--bf-muted)]/40 transition-colors font-medium">
             <RotateCcw className="w-3 h-3 text-[var(--bf-accent)]" /><span>Clear</span>
           </button>
         </div>
@@ -325,7 +325,7 @@ export const BitRepresentationLab: React.FC = () => {
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{REPRESENTATION_LABELS[id]}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--bf-heading)]/65">{REPRESENTATION_LABELS[id]}</span>
                   {isActive && (
                     <span className="text-[9px] font-bold uppercase tracking-wide text-[var(--bf-accent)] shrink-0">Current</span>
                   )}
@@ -346,14 +346,14 @@ export const BitRepresentationLab: React.FC = () => {
 
       {/* Compact secondary metadata — supporting details, not the lesson */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-3 border-t border-[var(--bf-muted)]/30">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-mono text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-mono text-[var(--bf-heading)]/65">
           {[
             { key: 'bits', label: 'Binary', value: bits },
             { key: 'hex', label: 'Hex', value: `0x${hexVal}` },
             { key: 'octal', label: 'Octal', value: octalVal },
           ].map(row => (
             <span key={row.key} className="inline-flex items-center gap-1">
-              <span className="text-slate-500">{row.label}:</span>
+              <span className="text-[var(--bf-heading)]/50">{row.label}:</span>
               <span className="text-[var(--bf-heading)] font-semibold">{row.value}</span>
               <button
                 onClick={() => copyVal(row.value, row.key, row.label)}

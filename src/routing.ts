@@ -13,9 +13,13 @@ export interface Route {
 }
 
 /**
- * BitForge is otherwise a single-view SPA (App.tsx switches "modes" with
- * plain useState, not a route each), so pulling in a routing library for
- * one more screen would be a lot of new surface for very little gained.
+ * BitForge is a small SPA, so pulling in a routing library for a handful of
+ * screens would be a lot of new surface for very little gained. AppRoot.tsx
+ * owns the current route as React state — the ONE source of truth for which
+ * view, tool mode and chat state are displayed — and this module is the pure
+ * translation layer between that state and `location.hash`. Nothing else
+ * holds a second copy of the route: App.tsx is a controlled component that
+ * receives its mode/chat state as props and asks AppRoot to navigate.
  * This reads/writes only `location.hash`, which needs no server-side
  * rewrite rule to work: unlike a path-based route (e.g. '/app'), the hash
  * portion of a URL is never sent to the server, so a direct visit or a
@@ -29,9 +33,9 @@ export interface Route {
  *   '#/app/mode/<mode>'          -> the tool, with <mode> already selected
  *   '#/app/chat'                 -> the tool, with BitForge AI already open
  * Anything else returns null rather than forcing a view change. This
- * matters for the hashchange listener in AppRoot.tsx, not just the initial
- * load: if anything ever adds an in-page anchor (the landing page's own
- * '#tools'/'#why' links, e.g.) while a route change here treated every
+ * matters for the hashchange/popstate listener in AppRoot.tsx, not just the
+ * initial load: if anything ever adds an in-page anchor (the landing page's
+ * own '#tools'/'#why' links, e.g.) while a route change here treated every
  * unrecognized hash as "go to landing", that anchor would silently eject
  * someone from the middle of using the tool. Only a hash that actually
  * names a known destination is allowed to change the view; AppRoot's
@@ -64,16 +68,13 @@ export interface AppDisplayState {
  * state. The property this exists to guarantee, and to let be tested
  * directly without a DOM: a route naming no mode or chat (bare '#/app')
  * resolves to the *default* state (converter, chat closed) — not "leave
- * whatever was already displayed alone". That distinction was the actual
- * routing-consistency bug: App.tsx's first version of its reverse-sync
- * effects checked `if (initialMode && initialMode !== activeMode)`, so for
- * a route with no mode at all, the condition was simply false and nothing
- * happened. Navigating from '#/app/mode/ascii' back to bare '#/app' — or
- * from '#/app/chat' to '#/app/mode/ascii', which needs chat to close —
- * left the tool showing stale state instead of resetting.
+ * whatever was already displayed alone". Navigating from '#/app/mode/ascii'
+ * back to bare '#/app', or from '#/app/chat' to '#/app/mode/ascii' (which
+ * needs chat to close), must reset the tool rather than leave it showing
+ * stale state.
  *
- * App.tsx's two reverse-sync effects both call this and only update React
- * state when the result disagrees with what's currently displayed.
+ * AppRoot.tsx calls this for every route that arrives from outside the app
+ * (initial load, Back/Forward, a pasted link, a hash edited by hand).
  */
 export function resolveAppDisplayState(route: Pick<Route, 'mode' | 'openChat'>): AppDisplayState {
   return {
@@ -83,24 +84,54 @@ export function resolveAppDisplayState(route: Pick<Route, 'mode' | 'openChat'>):
 }
 
 /**
- * The inverse of `parseHash`'s 'app' routes: given what's currently
- * displayed inside the tool, produces the hash path that should be in the
- * URL bar. App.tsx's forward-sync effect (state -> URL, via
- * `history.replaceState`) calls this on every mode/chat change so the URL
- * never goes stale after the initial navigation — the bug this whole
- * routing module addresses was that switching modes inside the tool left
- * the address bar frozen on whatever mode/chat state the tool happened to
- * start on, and conversely that a hash change arriving from outside
- * (Back/Forward, a pasted link) had no effect on what App.tsx displayed,
- * because it only ever consumed `initialMode`/`initialChatOpen` once, at
- * mount. App.tsx now also reacts to those props changing after mount — see
- * its two effects — closing both directions.
+ * The inverse of `parseHash`'s 'app' routes: given what's displayed inside
+ * the tool, produces the hash path that belongs in the URL bar. Chat wins
+ * over mode ('#/app/chat' means "converter + chat" when loaded cold), which
+ * is why the URL is a lossy projection of the route state — AppRoot keeps
+ * the underlying mode while chat is open so closing the panel returns to the
+ * tool the person was actually using.
  *
- * Kept here, next to `parseHash`, specifically so the round-trip between
- * the two is directly testable (see routing.test.ts) rather than only
- * indirectly through App.tsx's effects, which need a real DOM to exercise.
+ * Kept here, next to `parseHash`, so the round-trip between the two is
+ * directly testable (see routing.test.ts).
  */
 export function appRouteToHashPath(mode: AppMode, chatOpen: boolean): string {
   if (chatOpen) return '/app/chat';
   return mode === 'converter' ? '/app' : `/app/mode/${mode}`;
+}
+
+/**
+ * Everything AppRoot needs to render: the fully-resolved route. Unlike
+ * `Route` (what a URL can express — optional fields, chat XOR mode), this is
+ * total: an 'app' state always has a concrete mode and chat flag.
+ */
+export type RouteState =
+  | { view: 'landing' }
+  | { view: 'app'; mode: AppMode; chatOpen: boolean };
+
+export const LANDING_STATE: RouteState = { view: 'landing' };
+
+export function routeStateFromRoute(route: Route): RouteState {
+  if (route.view === 'landing') return LANDING_STATE;
+  const { mode, chatOpen } = resolveAppDisplayState(route);
+  return { view: 'app', mode, chatOpen };
+}
+
+/** The hash path ('/', '/app', '/app/mode/x', '/app/chat') a state projects to. */
+export function routeStateToHashPath(state: RouteState): string {
+  return state.view === 'landing' ? '/' : appRouteToHashPath(state.mode, state.chatOpen);
+}
+
+export function routeStatesEqual(a: RouteState, b: RouteState): boolean {
+  if (a.view === 'landing' || b.view === 'landing') return a.view === b.view;
+  return a.mode === b.mode && a.chatOpen === b.chatOpen;
+}
+
+/**
+ * Normalizes a raw `location.hash` ('', '#', '#/', '#/app/...') into the same
+ * path form `routeStateToHashPath` produces, so "is the URL already showing
+ * this route?" is a plain string comparison. Empty/bare hashes are landing.
+ */
+export function hashToPath(hash: string): string {
+  const path = hash.replace(/^#/, '');
+  return path === '' ? '/' : path;
 }

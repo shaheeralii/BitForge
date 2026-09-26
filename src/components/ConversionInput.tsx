@@ -75,10 +75,10 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
           <div className="flex items-center gap-2 text-xs bg-[var(--bf-chip)] border border-[var(--bf-accent)]/40 px-3 py-1 rounded-md text-[var(--bf-heading)] font-mono">
             <Sparkles className="w-3.5 h-3.5 text-[var(--bf-accent)] animate-pulse shrink-0" />
             <span className="font-sans font-semibold text-[var(--bf-accent)]">AUTO-DETECTED:</span>
-            <span className="font-bold uppercase text-white">
+            <span className="font-bold uppercase text-[var(--bf-heading)]">
               {BASE_OPTIONS[autoDetect.detectedBase]?.name || `Base ${autoDetect.detectedBase}`}
             </span>
-            <span className="text-slate-300 text-[11px] hidden md:inline font-sans">
+            <span className="text-[var(--bf-heading)]/80 text-[11px] hidden md:inline font-sans">
               ({autoDetect.reasoning})
             </span>
           </div>
@@ -108,7 +108,7 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
           {inputVal && (
             <button
               onClick={() => onInputChange('')}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-[var(--bf-chip)] rounded-lg transition-colors"
+              className="p-1.5 text-[var(--bf-heading)]/65 hover:text-[var(--bf-heading)] hover:bg-[var(--bf-chip)] rounded-lg transition-colors"
               title="Clear Input"
               aria-label="Clear input"
             >
@@ -136,11 +136,11 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
               className={`relative flex flex-col items-start p-2.5 sm:p-3 rounded-lg border text-left transition-all ${
                 isSelected
                   ? 'bg-[var(--bf-chip)] text-[var(--bf-accent)] border-[var(--bf-accent)] shadow-sm'
-                  : 'bg-[var(--bf-chip-alt)] text-slate-300 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'
+                  : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-1">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isSelected ? 'text-[var(--bf-heading)]' : 'text-slate-400'}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${isSelected ? 'text-[var(--bf-heading)]' : 'text-[var(--bf-heading)]/65'}`}>
                   {key === 'custom' ? `Base ${customRadix}` : `Base ${opt.radix}`}
                 </span>
                 {isSelected && <Check className="w-3.5 h-3.5 text-[var(--bf-accent)] shrink-0" />}
@@ -148,7 +148,7 @@ export const ConversionInput: React.FC<ConversionInputProps> = ({
                   <span className="w-2 h-2 rounded-full bg-[var(--bf-accent)] animate-ping" title="Auto-Detected Candidate" />
                 )}
               </div>
-              <span className={`text-xs font-bold truncate w-full ${isSelected ? 'text-white' : 'text-slate-100'}`}>
+              <span className={`text-xs font-bold truncate w-full ${isSelected ? 'text-[var(--bf-heading)]' : 'text-[var(--bf-heading)]'}`}>
                 {key === 'custom' ? 'Custom Base' : opt.name}
               </span>
             </button>

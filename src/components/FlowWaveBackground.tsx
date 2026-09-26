@@ -1,21 +1,30 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { FlowWaveScene } from '../three/FlowWaveScene';
 import { useTheme } from '../context/ThemeContext';
 
 /**
- * Full-viewport animated particle-wave backdrop. Its color palette follows
- * the selected app theme (see ThemeContext) — bright emerald for the
- * original theme, a restrained neutral tint for Premium Dark — via
- * FlowWaveScene.setTheme(), which re-tints in place without rebuilding the
- * WebGL scene.
+ * Full-viewport animated particle-wave backdrop, in two layers:
  *
- * Plain is the exception: it has no animated backdrop at all. This
- * component never constructs a FlowWaveScene — no WebGL context, no
- * render loop, no Three.js work of any kind — while theme === 'plain'
- * (not just a hidden canvas), so Plain carries none of FlowWave's runtime
- * cost. Switching into or out of Plain creates or tears down the scene;
- * switching between Emerald and Premium re-tints the already-running one,
- * exactly as before.
+ *  1. `#bf-base-bg` — a static, always-mounted layer painted with the theme's
+ *     `--bf-app-bg`. It is the page's base surface under EVERY theme, so what
+ *     the person sees never depends on whether a canvas has finished being
+ *     created or torn down.
+ *  2. `#flow-wave-scene` — the WebGL canvas, an enhancement stacked above the
+ *     base layer for Emerald/Premium only.
+ *
+ * Plain has no animated backdrop at all: this component never constructs a
+ * FlowWaveScene — no WebGL context, no render loop, no Three.js work of any
+ * kind — while theme === 'plain', and the canvas element itself is not
+ * rendered. Switching into Plain unmounts the canvas and disposes the scene;
+ * switching out of Plain mounts a fresh canvas and builds a fresh scene;
+ * switching between Emerald and Premium re-tints the running scene in place
+ * (no rebuild).
+ *
+ * Belt and braces for the Plain switch: index.css also hides
+ * `#flow-wave-scene` under `html[data-theme="plain"]`. ThemeProvider sets that
+ * attribute in the same commit that unmounts the canvas, so the last WebGL
+ * frame can never remain visible even if React's passive-effect cleanup runs
+ * a frame later.
  *
  * Fixed behind all app content (z-index: 0), pointer-events disabled so it
  * never intercepts clicks. App surfaces sit on top using translucent /
@@ -26,27 +35,34 @@ export const FlowWaveBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<FlowWaveScene | null>(null);
   const { theme } = useTheme();
+  const isPlain = theme === 'plain';
 
+  // Always holds the *current* theme. The lifecycle effect below is keyed on
+  // `isPlain` only (so Emerald <-> Premium does not rebuild the scene), which
+  // means anything it defines closes over the theme from when it last ran.
+  // WebGL context restoration happens long after that — so `create()` must
+  // read the theme from this ref at call time, not from a closure, or a
+  // restored Premium scene would be rebuilt with Emerald's palette (or vice
+  // versa). Layout effect: updated before any passive effect or event can
+  // observe it.
+  const themeRef = useRef(theme);
+  useLayoutEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
+  // Scene lifecycle: exists exactly while a canvas is mounted (non-Plain).
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    if (theme === 'plain') {
-      // Normally unreachable: under Plain this component renders null, so
-      // canvasRef.current is already null and the guard above returns first.
-      // Kept as a belt-and-braces teardown in case that render path ever
-      // changes back to keeping a mounted-but-inactive canvas.
-      sceneRef.current?.dispose();
-      sceneRef.current = null;
-      return;
-    }
-
+    if (isPlain) return; // Plain: no canvas is rendered, so nothing to build.
     const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const create = () => {
+      const current = themeRef.current;
+      if (current === 'plain') return; // Never build WebGL for Plain.
       try {
-        sceneRef.current = new FlowWaveScene(canvas, theme);
+        sceneRef.current = new FlowWaveScene(canvas, current);
       } catch (e) {
-        // Fail silently to a plain gradient background if WebGL is unavailable.
+        // Fail silently to the static base layer if WebGL is unavailable.
         console.warn('FlowWaveScene failed to initialize:', e);
         sceneRef.current = null;
       }
@@ -54,19 +70,18 @@ export const FlowWaveBackground: React.FC = () => {
 
     // Mobile browsers (iOS Safari and Android Chrome especially) can kill a
     // page's WebGL context under memory pressure or when a tab is
-    // backgrounded, well after the scene has already started rendering
-    // fine. Without handling this, the canvas silently stops updating and
-    // just shows its flat background color instead of the animated scene.
-    // Calling preventDefault() here is required for the browser to attempt
-    // restoration at all; on restore, the whole scene is rebuilt from
-    // scratch since the old context's GPU resources are gone.
+    // backgrounded, well after the scene has already started rendering fine.
+    // Calling preventDefault() is required for the browser to attempt
+    // restoration at all; on restore the scene is rebuilt from scratch (the
+    // old context's GPU resources are gone) using the CURRENT theme.
     const handleContextLost = (e: Event) => {
       e.preventDefault();
       sceneRef.current?.dispose();
       sceneRef.current = null;
     };
-
     const handleContextRestored = () => {
+      sceneRef.current?.dispose(); // defensive: never leave two scenes alive
+      sceneRef.current = null;
       create();
     };
 
@@ -81,11 +96,7 @@ export const FlowWaveBackground: React.FC = () => {
       sceneRef.current?.dispose();
       sceneRef.current = null;
     };
-    // Deliberately keyed on whether theme IS Plain, not the exact theme
-    // value: entering/leaving Plain needs a full create/teardown, but an
-    // Emerald <-> Premium change should re-tint the running scene in place
-    // (handled by the effect below) rather than rebuild it from scratch.
-  }, [theme === 'plain']); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isPlain]);
 
   // Re-tint the already-running scene when switching between the two
   // FlowWave variants. No-op under Plain, where sceneRef is always null.
@@ -94,35 +105,35 @@ export const FlowWaveBackground: React.FC = () => {
     sceneRef.current?.setTheme(theme);
   }, [theme]);
 
-  // Under Plain the <canvas> is removed from the DOM entirely rather than
-  // left mounted and blanked. A canvas that has ever had a WebGL context
-  // keeps showing its last drawing-buffer contents until something repaints
-  // it, and disposing the scene (stopping the loop, freeing GPU resources)
-  // does not itself repaint anything — which is why switching into Plain
-  // could strand the final FlowWave frame on screen until a refresh.
-  // Clearing the buffer during dispose was not a reliable fix: it depends on
-  // the GL context still being valid at teardown, and a throw there happens
-  // inside an effect cleanup, which takes the React tree down with it.
-  // Unmounting sidesteps all of that — no element, no context, no stale
-  // pixels, nothing to clear. The backdrop is not lost: html/body/#root all
-  // carry `background: var(--bf-app-bg)` (index.css), so the themed
-  // background keeps painting via CSS the moment data-theme changes.
-  if (theme === 'plain') return null;
-
   return (
-    <canvas
-      ref={canvasRef}
-      id="flow-wave-scene"
-      aria-hidden="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 0,
-        pointerEvents: 'none',
-        background: 'var(--bf-app-bg)',
-      }}
-    />
+    <>
+      <div
+        id="bf-base-bg"
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background: 'var(--bf-app-bg)',
+        }}
+      />
+      {!isPlain && (
+        <canvas
+          ref={canvasRef}
+          id="flow-wave-scene"
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 0,
+            pointerEvents: 'none',
+            background: 'var(--bf-app-bg)',
+          }}
+        />
+      )}
+    </>
   );
 };

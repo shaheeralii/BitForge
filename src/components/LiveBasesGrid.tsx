@@ -114,7 +114,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
           Real-Time Conversion Matrix
         </h2>
         <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-xs text-slate-400 font-medium">
+          <span className="hidden sm:inline text-xs text-[var(--bf-heading)]/65 font-medium">
             Click any card to focus step-by-step math derivation
           </span>
           <ShareButton
@@ -212,7 +212,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                   <div className="flex items-baseline justify-between gap-2 my-2 pr-10">
                     <div className="font-mono text-2xl sm:text-3xl font-bold text-[var(--bf-heading)] break-all leading-tight">
                       {card.prefix && card.value !== 'Error' && (
-                        <span className="text-slate-500 select-none text-xl mr-1 font-normal">
+                        <span className="text-[var(--bf-heading)]/50 select-none text-xl mr-1 font-normal">
                           {card.prefix}
                         </span>
                       )}
@@ -225,7 +225,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
 
                 {/* Bottom Visual Progress / Radix Indicator Bar */}
                 <div className="mt-4 pt-3 border-t border-[var(--bf-muted)]/30">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5 font-mono">
+                  <div className="flex items-center justify-between text-[11px] text-[var(--bf-heading)]/65 mb-1.5 font-mono">
                     <span>Radix Scale ({card.radix})</span>
                     <span className="flex items-center font-medium text-[var(--bf-accent)] group-hover:underline">
                       Math Derivation <ChevronRight className="w-3 h-3 ml-0.5" />
@@ -252,7 +252,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                     ? 'bg-emerald-600 text-white'
                     : isFailed
                     ? 'bg-rose-600 text-white'
-                    : 'bg-[var(--bf-chip-alt)] text-slate-300 hover:text-[var(--bf-accent)] border border-[var(--bf-muted)]/50 hover:bg-[var(--bf-chip)]'
+                    : 'bg-[var(--bf-chip-alt)] text-[var(--bf-heading)]/80 hover:text-[var(--bf-accent)] border border-[var(--bf-muted)]/50 hover:bg-[var(--bf-chip)]'
                 }`}
                 title={isFailed ? 'Copy failed \u2014 clipboard unavailable' : 'Copy converted value'}
                 aria-label={isCopied ? `Copied ${card.name} value` : isFailed ? 'Copy failed — clipboard unavailable' : `Copy ${card.name} value`}

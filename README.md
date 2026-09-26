@@ -55,9 +55,9 @@ BitForge/
 │   └── chat.ts                       # Vercel Edge Function: Gemini proxy + Upstash rate limiting
 ├── src/
 │   ├── main.tsx                      # React entry point; sets device performance tier & theme pre-render
-│   ├── AppRoot.tsx                   # Router component: landing page vs. the tool (hash<->route logic lives in routing.ts)
-│   ├── routing.ts                    # parseHash/appRouteToHashPath — hash<->route logic (see routing.test.ts)
-│   ├── App.tsx                       # The tool itself: mode routing & layout
+│   ├── AppRoot.tsx                   # Owns the route (single source of truth): landing vs. tool, mode, chat; all navigation goes through it
+│   ├── routing.ts                    # Pure hash<->route logic: parseHash, RouteState, URL projection (see routing.test.ts)
+│   ├── App.tsx                       # The tool itself (controlled by AppRoot: receives mode/chat as props): layout & overlays
 │   ├── index.css                     # Global styles, theme tokens, glass utilities
 │   ├── types.ts                      # Shared TypeScript types
 │   ├── version.ts                    # Single source of truth for the app version string
@@ -78,17 +78,20 @@ BitForge/
 │   │   ├── useScrollLock.ts          # Locks background scroll while a dialog is open
 │   │   └── useAutoResetTimer.ts      # Timed UI-state resets (e.g. "Copied!" labels)
 │   ├── context/
-│   │   ├── HistoryContext.tsx        # Activity History state, persistence & validation
+│   │   ├── HistoryContext.tsx        # Activity History provider: React state mirrors the persisted list; cross-tab `storage` sync
+│   │   ├── historyStore.ts           # History persistence: validation, versioned wrapper, lock-serialized operations (no lost writes)
 │   │   ├── ShortcutTargetContext.tsx # Routes shortcuts to the active tool
 │   │   ├── ChatContext.tsx           # BitForge AI conversation state (session-only, not persisted)
-│   │   └── ThemeContext.tsx          # Emerald / Premium / Plain theme state & persistence
+│   │   ├── ThemeContext.tsx          # Theme provider: one React state, applied to the DOM by one effect; cross-tab `storage` sync
+│   │   └── themeCore.ts              # Theme list, storage validation, applyThemeToDocument (data-theme + browser chrome colors)
+│   ├── test/                         # Shared jsdom test helpers and a fake FlowWaveScene
 │   ├── three/
 │   │   └── FlowWaveScene.ts          # Animated WebGL background (Three.js, tiered quality, per-theme palette)
 │   └── components/
 │       ├── Header.tsx                # Top nav, mode switcher, logo & theme switcher
 │       ├── BitForgeLogo.tsx          # BitForge monogram (SVG, theme-aware)
 │       ├── ThemeSwitcher.tsx         # Emerald / Premium / Plain theme picker
-│       ├── FlowWaveBackground.tsx    # React mount point for the animated background (no-op under Plain)
+│       ├── FlowWaveBackground.tsx    # Static base layer + FlowWave canvas (canvas and scene exist only under Emerald/Premium)
 │       ├── LandingPage.tsx           # Marketing landing page (route: '#/' — see AppRoot.tsx)
 │       ├── WelcomeBanner.tsx         # First-time user onboarding guide (in-app, not the landing page)
 │       ├── InfoDialog.tsx            # About / Help / Privacy / Terms / Disclaimer tabs
@@ -179,6 +182,39 @@ On Vercel, set the same variables under **Project Settings → Environment Varia
 ## Changelog
 
 All notable changes to this project are documented below, newest first.
+
+### v6.1.0 — UI Synchronization, Route Ownership & Lossless Multi-Tab History
+
+This release is about *one source of truth per piece of state*, so nothing in normal use can leave the UI showing something the state doesn't say. It was verified by driving the built app in a real Chromium (with WebGL) rather than only by unit tests. See "Verification notes" below for exactly what did and did not reproduce.
+
+**Fixed**
+- **Route state was duplicated and could desynchronize.** `AppRoot` held the parsed route while `App` held its own `activeMode`/`isChatOpen`, mirrored back and forth by two suppressed-lint effects and a URL-writing effect. If the router already held a mode (e.g. `ascii`), the person switched tabs (URL rewritten in place to `#/app`), and then navigated to `#/app/mode/ascii` again — or closed chat and re-opened `#/app/chat` — the prop looked *unchanged* to App's effect, so the URL changed but the display did not. Reproduced in the previous build; fixed by removing the duplicate state entirely (see Changed).
+- **WebGL context restore could rebuild the scene with the wrong palette.** The FlowWave lifecycle effect is deliberately keyed on `theme === 'plain'` (so Emerald ↔ Premium re-tints in place), which meant its `create()` closure kept the theme from when the effect last ran; a context restore after an Emerald → Premium switch rebuilt an *Emerald* scene. Recovery now reads the current theme from a ref. The in-place re-tint optimization is unchanged.
+- **`chatIntent.ts` read `A5` as `5`** (Copilot finding). The generic digit regex could begin in the middle of a bare hex token, so `convert A5 hex to decimal` produced a "verified" result for 5, and `-A5`, `16-bit two's complement of A5 hex` were wrong the same way. Number tokens must now start at a token boundary, and a digit-bearing bare hex token framed by the word "hex" is recognized whole (`A5`, `2A`, `-A5`, `hex of 4A`) before the generic match. The same review fixed adjacent false positives: `the code hex` no longer yields `de`, `what is a hex value…` no longer reads the article "a" as 0xA, a bit-width phrase (`8 bit`) is no longer mistaken for the operand (`FF hex to 8 bit binary` converts FF), and the token's real position is used instead of re-searching it with `indexOf`. Letters-only tokens (`FF hex`) remain a last-resort fallback so `255 dec hex` still means decimal 255. Unprefixed hex without the word "hex" is still deliberately *not* guessed.
+- **Concurrent History writes from two tabs could lose entries** (Copilot finding). Each tab saved its whole in-memory list from an effect, so near-simultaneous additions overwrote one another. History now treats `localStorage` as the source of truth and React state as a mirror: every mutation (add / remove / clear all / clear mode) is an *operation* applied to the latest persisted list under a Web Locks lock, then written. Deletes and clears therefore cannot be undone by another tab's stale copy, and no merge heuristics or tombstones are needed. Without `navigator.locks`, operations fall back to an in-tab queue with a single synchronous read-modify-write each (documented as best-effort across tabs). Stored format, validation, the 200-entry cap, duplicate suppression and legacy bare-array reading are unchanged; entries are now also de-duplicated by id and kept newest-first.
+- Theme and route state can no longer drift from the DOM/URL by construction (details below), rather than by a comment claiming they stay in sync.
+
+**Changed**
+- **`AppRoot` owns the route; `App` is controlled.** `App` receives `mode` and `chatOpen` as props and asks `AppRoot` to navigate (`onModeChange`, `onChatOpenChange`, `onGoHome`). Every navigation — landing tiles, header tabs, the BitForge logo, chat launcher, overlays closing chat, Back/Forward, pasted links — goes through one `commit()` that updates React state and the URL in the same synchronous call (via `history.pushState`/`replaceState`, which never fire `hashchange`, so there is no loop). Only navigation originating *outside* the app arrives through the `hashchange`/`popstate` listener, and is ignored when it matches what the state already projects to. History semantics are unchanged: landing ↔ tool pushes an entry; switching mode/chat inside the tool replaces the current entry. Chat now preserves the underlying mode (closing it returns to the same tool). Unrecognized hashes (`#tools`, `#why`) still never change the view. The two reverse-sync effects and their lint suppressions are gone.
+- **The header logo stays a real link** (`href="#/"`) but a plain left-click is routed through the same centralized navigation; modified clicks still fall through to the browser.
+- **Single theme synchronization path.** `ThemeProvider`'s React state is authoritative; one layout effect writes `data-theme` (via `applyThemeToDocument` in the new `themeCore.ts`, the same function `main.tsx` uses before mount). `setTheme` persists the person's choice; changes arriving from another tab update state only and are never written back. Stored values are validated against the allowed themes.
+- **Two-layer background.** `FlowWaveBackground` now always renders a static `#bf-base-bg` layer painted from `--bf-app-bg`, with the FlowWave canvas as an enhancement above it for Emerald/Premium only. Plain still builds no WebGL context, render loop or Three.js resources; the canvas is not rendered and the scene is disposed.
+- **Defensive Plain kill-switch** in `index.css`: `html[data-theme="plain"] #flow-wave-scene { display: none; visibility: hidden }`, so a still-attached canvas can never show its last frame regardless of when React's cleanup runs.
+- **`FlowWaveScene.dispose()`** is idempotent and every release step is isolated, so one failing step can't skip the rest or throw out of a React cleanup.
+- **Browser chrome follows the theme:** `<meta name="theme-color">` and the `mask-icon` color update with the active theme (safe if the elements are missing). The static default in `index.html` is now the Emerald page background (`#02160C`, previously the header tint `#041A11`). `themeCore.test.ts` parses `index.css` and fails if the TypeScript copy of these colors drifts from `--bf-app-bg`/`--bf-accent`.
+- **Text-color token consistency.** The older tool cards (Floating Point, Bit Representation lab/panel/insights, Converter input, Text & ASCII, Live Bases, Step-by-Step, the converter cheat-sheet) used theme-independent `text-slate-*` greys and `text-white` on themed surfaces, while newer components already used `--bf-*` text tokens. Those neutral text greys now use `--bf-heading` at the same visual hierarchy, so Emerald/Premium/Plain tint text consistently. Semantic colors are intentionally untouched: success (emerald), error (rose), warning (amber), and the sign/exponent/mantissa bit-field colors.
+- `<html data-app-version>` is set at startup so a deployed build can be identified from DevTools without reading hashed asset names.
+
+**Tests** (359 → 530)
+- New jsdom integration tests drive the real `AppRoot`/`App`/`Header`/`ThemeSwitcher` with a fake `FlowWaveScene`: theme transitions (all six, plus rapid toggling) checking state, `data-theme`, canvas presence, scene count and disposal; WebGL lose/restore for Emerald and Premium including the stale-closure regression; every-mode logo navigation; Back/Forward; deep links; unrecognized hashes; chat transitions; and the two route-desync regressions.
+- Cross-tab tests for theme (`storage` events, invalid values, no write-back) and History (two providers over shared storage, deletes/clears not resurrected).
+- `historyStore` tests with a fake lock manager for interleaved additions, the 200-entry cap, duplicate suppression across tabs, destructive operations, legacy payloads, corrupt/unavailable storage, and lock-acquisition failure.
+- `chatIntent` regression tests for every case in the Copilot report, plus the false-positive guards above.
+- Dev dependencies added: `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`. Node-only suites are unaffected (jsdom is opted into per file).
+
+**Verification notes**
+- The attached v6.0.0 source, built and run in Chromium, did **not** reproduce a stuck Plain theme or a failed logo click in the straightforward paths (canvas removed and rAF loop cancelled immediately on Emerald/Premium → Plain; logo returned to landing from every mode). What it did reproduce were the route desyncs and the restore-palette closure above, which are the state-synchronization defects behind the reported class of symptom. If the deployed site still misbehaves after this release, check `<html data-app-version>` in DevTools first: a mismatch means an old build is being served, not that the fix failed.
+- The production site itself could not be inspected from the environment this release was prepared in (no access to its bundle, DevTools, or headers).
 
 ### v6.0.0 — Bit Representation Redesign, Landing Page, Legal & Compliance
 

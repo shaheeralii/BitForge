@@ -62,12 +62,12 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {REPR_ORDER.map(id => (
                 <div key={id} className="bg-[var(--bf-surface-inset)] rounded-lg border border-[var(--bf-muted)]/40 p-2.5">
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{REPRESENTATION_LABELS[id]}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--bf-heading)]/65">{REPRESENTATION_LABELS[id]}</div>
                   <div className="font-mono text-base font-bold text-[var(--bf-accent)]">{formatValueForDisplay(decoded[id])}</div>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-[var(--bf-heading)]/65 leading-relaxed">
               A bit pattern has no universal signed meaning on its own — its value depends entirely on which representation system is being applied to it.
             </p>
           </div>
@@ -91,7 +91,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
           }
         >
           <div className="border-t border-[var(--bf-muted)]/30 pt-3 space-y-3">
-            <ul className="text-xs text-slate-300 leading-relaxed space-y-1.5 list-disc list-inside">
+            <ul className="text-xs text-[var(--bf-heading)]/80 leading-relaxed space-y-1.5 list-disc list-inside">
               <li>Only <strong className="text-[var(--bf-heading)]">one</strong> representation of zero — no wasted or ambiguous bit pattern.</li>
               <li>Addition and subtraction reuse the exact same binary adder hardware as unsigned arithmetic — no special-cased circuitry for signs.</li>
               <li>Negative numbers participate naturally in ordinary binary addition; the sign never needs to be handled separately.</li>
@@ -99,13 +99,13 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
             </ul>
             {sum && (
               <div>
-                <p className="text-xs text-slate-400 mb-1.5">{demoValue} + (−{demoValue}) using ordinary binary addition:</p>
+                <p className="text-xs text-[var(--bf-heading)]/65 mb-1.5">{demoValue} + (−{demoValue}) using ordinary binary addition:</p>
                 <div className="bg-[var(--bf-chip)] text-[var(--bf-accent)] p-3 rounded-lg font-mono text-xs space-y-0.5 overflow-x-auto scrollbar-none">
                   <div>{'  '}{posEnc.bits}{'   ('}+{demoValue}{')'}</div>
                   <div>+ {negEnc.bits}{'   ('}−{demoValue}{')'}</div>
                   <div className="border-t border-[var(--bf-accent)]/30 pt-0.5">{sum.carryOut === '1' ? sum.carryOut : ''} {sum.sumBits}</div>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1.5">
+                <p className="text-[11px] text-[var(--bf-heading)]/50 mt-1.5">
                   The result is <code className="font-mono text-[var(--bf-accent)]">{sum.sumBits}</code> = 0{sum.carryOut === '1' ? ' — the extra carry bit simply falls off the end of the register and is discarded' : ''}.
                 </p>
               </div>
@@ -140,7 +140,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--bf-muted)]/30 text-slate-200">
+                <tbody className="divide-y divide-[var(--bf-muted)]/30 text-[var(--bf-heading)]">
                   {COMPARISON_ROWS.map(row => {
                     const range = getRepresentationRange(row.id, bitWidth);
                     return (
@@ -156,7 +156,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
                 </tbody>
               </table>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed italic border-t border-[var(--bf-muted)]/30 pt-2.5">
+            <p className="text-[11px] text-[var(--bf-heading)]/65 leading-relaxed italic border-t border-[var(--bf-muted)]/30 pt-2.5">
               The same bits can mean different numbers under different representation systems. Sign-Magnitude uses a dedicated sign bit, One's Complement inverts every bit, and Two's Complement inverts every bit and adds 1. Modern computers primarily use Two's Complement because it provides a single zero and works naturally with binary arithmetic.
             </p>
           </div>

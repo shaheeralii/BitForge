@@ -42,7 +42,7 @@ export const BitCellRow: React.FC<BitCellRowProps> = ({
             ? 'bg-amber-400/15 border-amber-400/70 text-amber-300'
             : bit === '1'
             ? 'bg-[var(--bf-chip)] border-[var(--bf-accent)] text-[var(--bf-accent)] ring-1 ring-[var(--bf-accent)]/30'
-            : 'bg-[var(--bf-surface-deep)] border-[var(--bf-muted)]/40 text-slate-500'
+            : 'bg-[var(--bf-surface-deep)] border-[var(--bf-muted)]/40 text-[var(--bf-heading)]/50'
         }`;
 
         return (
@@ -62,7 +62,7 @@ export const BitCellRow: React.FC<BitCellRowProps> = ({
                 <div className={cellClasses}>{bit}</div>
               )}
               {subLabels && (
-                <span className={`text-[9px] sm:text-[10px] font-mono leading-none ${isHighlighted ? 'text-amber-300 font-bold' : 'text-slate-500'}`}>
+                <span className={`text-[9px] sm:text-[10px] font-mono leading-none ${isHighlighted ? 'text-amber-300 font-bold' : 'text-[var(--bf-heading)]/50'}`}>
                   {subLabels[idx]}
                 </span>
               )}
