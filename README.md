@@ -1,4 +1,4 @@
-<img width="3282" height="1312" alt="Cartoon banner (1)" src="https://github.com/user-attachments/assets/903e4220-766c-4af6-a10d-b3497690d4cf" />
+<img width="2172" height="724" alt="github repo banner" src="https://github.com/user-attachments/assets/7bd303be-59aa-4ee3-98bb-5d6a84b8ecdd" />
 
 
 > An interactive toolkit for exploring number systems, binary arithmetic, bit-level manipulation, and text encoding; with every result backed by a live, step-by-step derivation.
