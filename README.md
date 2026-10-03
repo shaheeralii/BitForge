@@ -4,9 +4,8 @@
 
 > An interactive toolkit for understanding how computers represent and manipulate numbers — with every result backed by a live, step-by-step derivation.
 
-**[▶ Live Demo](https://bitforge-tool.vercel.app/)** · **[GitHub](https://github.com/shaheeralii/BitForge)** · [Changelog](CHANGELOG.md)
+**[Live Demo](https://bitforge-tool.vercel.app/)** · **[GitHub](https://github.com/shaheeralii/BitForge)** · [Changelog](CHANGELOG.md)
 
-![CI](https://github.com/shaheeralii/BitForge/actions/workflows/ci.yml/badge.svg)
 ![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite)
