@@ -52,8 +52,24 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onOpen, on
   const [draft, setDraft] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
   useFocusTrap(panelRef, isOpen);
   useScrollLock(isOpen);
+
+  // The launcher is unmounted while the panel is open, so the generic
+  // "restore focus to whatever opened the dialog" in useFocusTrap finds a
+  // detached element and focus fell back to <body> — a keyboard user pressing
+  // Escape lost their place on the page. When the panel closes, put focus on
+  // the (freshly re-mounted) launcher, but only if focus is currently nowhere
+  // useful, so a click elsewhere is never overridden.
+  useEffect(() => {
+    if (wasOpenRef.current && !isOpen) {
+      const active = document.activeElement;
+      if (!active || active === document.body) launcherRef.current?.focus();
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -81,6 +97,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onOpen, on
       {/* Floating launcher — hidden while the panel is open to avoid a redundant control */}
       {!isOpen && (
         <button
+          ref={launcherRef}
           onClick={onOpen}
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2 pl-3.5 pr-4 py-3 rounded-full bg-[var(--bf-accent)] hover:bg-[var(--bf-accent-hover)] text-[var(--bf-chip)] shadow-md shadow-[var(--bf-accent)]/20 transition-colors font-bold text-sm"
           aria-label="Open BitForge AI learning assistant"

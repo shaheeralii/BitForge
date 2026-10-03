@@ -181,10 +181,22 @@ export function subtractBinary(aBits: string, bBits: string, width: number): Add
   const aVal = bitsToUnsignedBigInt(aBits);
   const bVal = bitsToUnsignedBigInt(bBits);
   const unsignedOverflow = aVal < bVal; // true subtraction would go negative in unsigned terms
-  const borrow = finalCarryOut === '0'; // no end-around carry => borrow occurred
 
-  const signRow = rows[rows.length - 1];
-  const signedOverflow = signRow.carryIn !== signRow.carryOut;
+  // Borrow is defined directly on the operands: A - B borrows exactly when
+  // A < B as unsigned values. It must NOT be read off the final carry of the
+  // A + (~B + 1) adder below: for B = 0, ~B + 1 wraps to 0 (its own carry is
+  // discarded in the first step), so A + 0 never carries and "no carry" would
+  // wrongly report a borrow for every A - 0.
+  const borrow = aVal < bVal;
+
+  // Signed overflow by the standard operand-sign rule: it can only happen when
+  // the operands have different signs, and the result's sign differs from A's
+  // (e.g. positive - negative giving a negative). The adder's own
+  // carry-into/out-of-the-sign-bit test (used by addBinary) is NOT valid here
+  // because the adder sees A + (-B), and for B = the minimum signed value
+  // -B does not exist (it wraps back to itself), so 0 - (-128) looked fine to
+  // the adder even though the true result, +128, does not fit in 8 bits.
+  const signedOverflow = aBits[0] !== bBits[0] && resultBits[0] !== aBits[0];
 
   return {
     operator: '-',

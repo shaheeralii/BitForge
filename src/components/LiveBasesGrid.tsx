@@ -102,9 +102,13 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
     },
   ];
 
+  // Temporarily incomplete input ("0.", "-"): show neutral placeholders, not
+  // "Error" and not a finished-looking value, and keep copy/share inert.
+  const isPending = Boolean(conversion.incompleteHint);
+
   const targetCard = cards.find(c => c.id === targetBase);
   useRegisterShortcutTarget({
-    copyResult: targetCard ? () => copyToClipboard(targetCard.value, targetCard.id, targetCard.name) : undefined,
+    copyResult: targetCard && !isPending ? () => copyToClipboard(targetCard.value, targetCard.id, targetCard.name) : undefined,
   });
 
   return (
@@ -120,6 +124,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
           <ShareButton
             label="Share"
             shareTitle="BitForge Conversion"
+            disabled={isPending}
             getText={() =>
               `BitForge Conversion\nInput: ${conversion.sourceValue} (${BASE_OPTIONS[conversion.sourceBase]?.name})\n\n` +
               cards.map(c => `${c.name}: ${c.prefix}${c.value}`).join('\n')
@@ -138,8 +143,18 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map(card => {
+      {/* Five cards never divide evenly into 3 (desktop) or 2 (tablet) columns,
+          which used to leave an empty slot / a lone orphan card in the last
+          row. The grid is drawn on a 6-column track at lg and 2 at md, and the
+          trailing cards widen to finish each row: 3 + 2 cards at lg (the last
+          two span three tracks each) and 2 + 2 + 1 at md (the last spans both).
+          Mobile stays a single column. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        {cards.map((card, index) => {
+          const remainderLg = cards.length % 3; // cards left over in the last desktop row
+          const inLastLgRow = remainderLg !== 0 && index >= cards.length - remainderLg;
+          const lgSpan = inLastLgRow ? (remainderLg === 1 ? 'lg:col-span-6' : 'lg:col-span-3') : 'lg:col-span-2';
+          const mdSpan = cards.length % 2 === 1 && index === cards.length - 1 ? 'md:col-span-2' : 'md:col-span-1';
           const isTarget = targetBase === card.id;
           const isSource = conversion.sourceBase === card.id;
           const isCopied = copiedKey === card.id;
@@ -162,7 +177,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
           return (
             <div
               key={card.id}
-              className={`group relative bg-[var(--bf-surface)] rounded-xl border transition-all duration-200 shadow-sm ${
+              className={`group relative bg-[var(--bf-surface)] rounded-xl border transition-all duration-200 shadow-sm ${mdSpan} ${lgSpan} ${
                 isTarget
                   ? 'border-[var(--bf-accent)] ring-2 ring-[var(--bf-accent)]/30 shadow-md'
                   : 'border-[var(--bf-muted)]/40 hover:border-[var(--bf-accent)]/60'
@@ -211,13 +226,13 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
                   {/* Main Large Numerical Output */}
                   <div className="flex items-baseline justify-between gap-2 my-2 pr-10">
                     <div className="font-mono text-2xl sm:text-3xl font-bold text-[var(--bf-heading)] break-all leading-tight">
-                      {card.prefix && card.value !== 'Error' && (
-                        <span className="text-[var(--bf-heading)]/50 select-none text-xl mr-1 font-normal">
+                      {card.prefix && card.value !== 'Error' && !isPending && (
+                        <span className="text-[var(--bf-heading)]/65 select-none text-xl mr-1 font-normal">
                           {card.prefix}
                         </span>
                       )}
                       <span className={card.value === 'Error' ? 'text-rose-500 font-semibold text-sm' : ''}>
-                        {card.value}
+                        {isPending ? '\u2014' : card.value}
                       </span>
                     </div>
                   </div>
@@ -246,7 +261,7 @@ export const LiveBasesGrid: React.FC<LiveBasesGridProps> = ({
               <button
                 type="button"
                 onClick={() => copyToClipboard(card.value, card.id, card.name)}
-                disabled={card.value === 'Error'}
+                disabled={card.value === 'Error' || isPending}
                 className={`absolute top-[4.5rem] right-5 p-2 rounded-lg transition-all shrink-0 ${
                   isCopied
                     ? 'bg-emerald-600 text-white'

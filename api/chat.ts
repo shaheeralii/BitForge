@@ -17,8 +17,10 @@ const REQUEST_TIMEOUT_MS = 15_000;
 // parsing or per-item validation happens. A legitimate request — a 600-char
 // message plus up to 8 history turns of up to 600 chars each, plus JSON
 // overhead — comes in well under 10KB, so 20KB leaves plenty of headroom
-// without letting someone hand us an arbitrarily large payload to buffer and
-// parse before we've even looked at its shape.
+// without letting an oversized payload be JSON-parsed or shape-validated. The
+// check runs on the already-read text, so how much can be *buffered* is
+// bounded by the hosting platform's own request-body limit; the rate limiter
+// (when configured) runs earlier still, before the body is read at all.
 export const MAX_BODY_LENGTH = 20_000;
 // A hard cap on how many history *entries* we'll even shape-check, applied
 // before iterating the array — independent of the byte-size guard above, so
@@ -28,20 +30,18 @@ export const MAX_BODY_LENGTH = 20_000;
 // validating it expensive.
 export const MAX_HISTORY_ARRAY_LENGTH = 40;
 
-// Google has been cycling Gemini model IDs roughly every 1-2 months in 2026
-// (2.0 Flash was shut down June 1, 2026; 2.5 Flash is scheduled to follow in
-// October 2026). Rather than hardcode a specific snapshot that will go stale,
-// this reads from an env var with a currently-stable fallback: Gemini 3.5
-// Flash-Lite (GA as of July 21, 2026) is Google's current recommended
-// low-cost, high-volume model — a newer generation than 3.1 Flash-Lite with
-// a longer runway ahead of it before deprecation. Check
-// https://ai.google.dev/gemini-api/docs/deprecations before assuming the
-// fallback below is still valid.
+// Gemini model IDs change over time, and Google retires older models on its
+// own schedule. Before relying on the fallback below, check Google's current
+// model list and deprecation notices:
+// https://ai.google.dev/gemini-api/docs/deprecations
+// Set the GEMINI_MODEL environment variable to override the fallback without
+// a code change, and review the fallback whenever Google changes its model
+// lifecycle.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
-const SYSTEM_PROMPT = `You are "BitForge AI", a friendly, concise computer-science tutor built into BitForge — a browser tool for number systems and bit-level encoding.
+export const SYSTEM_PROMPT = `You are "BitForge AI", a friendly, concise computer-science tutor built into BitForge — a browser tool for number systems and bit-level encoding.
 
-Scope: binary, decimal, octal, hexadecimal, custom-base conversion, positional notation, binary arithmetic (add/subtract/multiply/divide), bitwise operations (AND/OR/XOR/NOT/shifts), bit representation, two's complement, signed vs. unsigned integers, and ASCII/text encoding. Politely decline unrelated topics and steer back to these subjects.
+Scope: number-system conversion (binary, decimal, octal, hexadecimal, and custom bases from 2 to 36), positional notation, binary arithmetic (add/subtract/multiply/divide, with carry, borrow and overflow), bit representation and signed integers (unsigned, sign-magnitude, one's complement, two's complement), inverting and shifting bit patterns, ASCII and UTF-8 text encoding, and floating-point representation (IEEE-754 Binary16/32/64). Politely decline unrelated topics and steer back to these subjects. When you mention what BitForge itself can do, name only the features listed here; if asked about a BitForge tool that is not listed, say BitForge does not have it rather than describing it.
 
 Teach, don't just answer: briefly explain the "why", and for any conversion or calculation, show the key intermediate steps rather than only the final value.
 
@@ -202,7 +202,9 @@ export default async function handler(req: Request): Promise<Response> {
   // ---- Input validation -------------------------------------------------
   // Read and size-check the raw body ourselves — before any JSON parsing —
   // rather than calling req.json() directly, so an oversized payload is
-  // rejected immediately instead of being fully buffered and parsed first.
+  // rejected before it is JSON-parsed or shape-validated. (The text itself is
+  // already read at this point; how much can be buffered is bounded by the
+  // hosting platform's request-body limit — see MAX_BODY_LENGTH above.)
   let rawBody: string;
   try {
     rawBody = await req.text();

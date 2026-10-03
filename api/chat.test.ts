@@ -27,7 +27,7 @@ vi.mock('@upstash/ratelimit', () => {
   return { Ratelimit: MockRatelimit };
 });
 
-import handler, { isValidHistory, sanitizeUserText, isProductionDeployment, VERIFIED_MARKER } from './chat';
+import handler, { isValidHistory, sanitizeUserText, isProductionDeployment, VERIFIED_MARKER, SYSTEM_PROMPT } from './chat';
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -392,5 +392,70 @@ describe('POST /api/chat — Gemini and Upstash integration (mocked network)', (
     const res = await handler(req({ message: 'hi' }));
     const data = await res.json();
     expect(data.reply).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The AI is told what BitForge can do; that description must match the real
+// app. Binary Operations is add / subtract / multiply / divide; Bit
+// Representation has Invert, Shift Left and Logical Shift Right on a bit
+// pattern. There is no AND / OR / XOR tool, so the prompt must not present
+// one as part of BitForge.
+// ---------------------------------------------------------------------------
+describe('BitForge AI system prompt describes only real BitForge functionality', () => {
+  it('does not claim AND / OR / XOR or a general "bitwise operations" tool', () => {
+    expect(SYSTEM_PROMPT).not.toMatch(/\bAND\/OR\/XOR\b/i);
+    expect(SYSTEM_PROMPT).not.toMatch(/\bXOR\b/i);
+    expect(SYSTEM_PROMPT).not.toMatch(/\bbitwise\b/i);
+    expect(SYSTEM_PROMPT).not.toMatch(/\b(AND|OR)\b(?=[\s,/]+(?:AND|OR|XOR|NOT)\b)/); // "AND, OR, ..." style lists
+  });
+
+  it('lists the capabilities BitForge actually has', () => {
+    const p = SYSTEM_PROMPT.toLowerCase();
+    for (const real of [
+      'conversion',
+      'positional notation',
+      'add/subtract/multiply/divide',
+      'carry, borrow and overflow',
+      "two's complement",
+      "one's complement",
+      'sign-magnitude',
+      'unsigned',
+      'inverting and shifting bit patterns',
+      'ascii and utf-8',
+      'floating-point',
+      'ieee-754',
+    ]) {
+      expect(p, real).toContain(real);
+    }
+  });
+
+  it('tells the model not to invent BitForge tools that are not listed', () => {
+    expect(SYSTEM_PROMPT).toMatch(/name only the features listed here/i);
+    expect(SYSTEM_PROMPT).toMatch(/does not have it/i);
+  });
+
+  it('is what is actually sent to Gemini as the system instruction', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://mock-upstash.example.com';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'mock-token';
+    process.env.GEMINI_API_KEY = 'mock-gemini-key';
+    shortLimitMock.mockReset();
+    dailyLimitMock.mockReset();
+    shortLimitMock.mockResolvedValue(okLimit());
+    dailyLimitMock.mockResolvedValue(okLimit());
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }), { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+    try {
+      const res = await handler(req({ message: 'what can BitForge do?' }));
+      expect(res.status).toBe(200);
+      const sent = JSON.parse(fetchSpy.mock.calls[0][1].body as string);
+      const instruction: string = sent.system_instruction.parts[0].text;
+      expect(instruction).toContain(SYSTEM_PROMPT);
+      expect(instruction).not.toMatch(/\bXOR\b/i);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

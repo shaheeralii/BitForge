@@ -13,7 +13,7 @@ import {
   decimalToFloatBreakdown, decodeBits, specialValueBits, validateCustomFormat,
   makeCustomFormat, totalBits, biasOf, approxDecimalDigits, CUSTOM_FORMAT_LIMITS,
   numberToFloatBreakdown, SPECIAL_VALUE_BLURBS, STANDARD_FORMATS,
-  FloatBreakdown, FPStep, FloatCategory, FloatFormat, BitDecodeResult,
+  FloatBreakdown, FPStep, FloatCategory, FloatFormat, BitDecodeResult, isDecimalSyntax,
 } from '../utils/floatingPoint';
 
 type Direction = 'encode' | 'decode';
@@ -56,7 +56,7 @@ export const FloatingPointCard: React.FC = () => {
                 {format.isStandard ? `IEEE 754 \u2022 ${format.label}` : 'Custom Format'}
               </span>
             </div>
-            <p className="text-xs text-[var(--bf-accent)]/80 mt-0.5 font-medium">See how numbers are stored using sign, exponent, and fraction bits.</p>
+            <p className="text-xs text-[var(--bf-accent)]/90 mt-0.5 font-medium">See how numbers are stored using sign, exponent, and fraction bits.</p>
           </div>
         </div>
 
@@ -199,12 +199,12 @@ const StepCard: React.FC<{ step: FPStep; index: number; highlighted: boolean; ch
     <div className={`rounded-lg border p-3.5 space-y-2 transition-all duration-300 ${
       highlighted ? 'border-[var(--bf-accent)] bg-[var(--bf-accent)]/10 ring-2 ring-[var(--bf-accent)]/40' : 'border-[var(--bf-muted)]/40 bg-[var(--bf-surface-inset)]'
     }`}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-[var(--bf-chip)] text-[var(--bf-accent)] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 border border-[var(--bf-accent)]/30">{index}</span>
           <h4 className="text-xs font-bold text-[var(--bf-heading)] uppercase tracking-wider">{step.title}</h4>
         </div>
-        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[var(--bf-chip)] text-[var(--bf-accent)] border border-[var(--bf-accent)]/30 shrink-0">{step.finalResult}</span>
+        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[var(--bf-chip)] text-[var(--bf-accent)] border border-[var(--bf-accent)]/30 max-w-full break-all">{step.finalResult}</span>
       </div>
 
       <p className="text-xs text-[var(--bf-heading)]/80 leading-relaxed font-sans">{step.explanation}</p>
@@ -251,7 +251,7 @@ const EncodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
   const errorMessage = 'error' in result ? result.error : undefined;
 
   const handleInputChange = (val: string) => {
-    if (/^[+-]?\d*\.?\d*(?:[eE][+-]?\d*)?$/.test(val)) setInputStr(val);
+    if (isDecimalSyntax(val, true)) setInputStr(val);
   };
 
   const jumpToSegment = (seg: FloatSegment | null) => {
@@ -351,11 +351,11 @@ const EncodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
               {breakdown.conversionChangedValue && <div className="text-amber-300 font-sans text-[11px]">Target-format conversion changed the value — see Precision &amp; Rounding below.</div>}
             </div>
             <div className="relative z-10 flex items-center gap-2 pt-4 mt-4 border-t border-[var(--bf-muted)]/40 flex-wrap">
-              <button onClick={() => copyText(breakdown.bitString, 'binary')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copied === 'binary' ? 'bg-emerald-500 text-white' : copyFailed === 'binary' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-muted)] hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-white'}`}>
+              <button onClick={() => copyText(breakdown.bitString, 'binary')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copied === 'binary' ? 'bg-emerald-500 text-white' : copyFailed === 'binary' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-chip-alt-hover)] border border-[var(--bf-muted)]/60 hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-[var(--bf-heading)]'}`}>
                 {copied === 'binary' ? <Check className="w-3.5 h-3.5" /> : copyFailed === 'binary' ? <AlertCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}<span>Copy Binary</span>
               </button>
               {breakdown.hex && (
-                <button onClick={() => copyText(`0x${breakdown.hex}`, 'hex')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copied === 'hex' ? 'bg-emerald-500 text-white' : copyFailed === 'hex' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-muted)] hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-white'}`}>
+                <button onClick={() => copyText(`0x${breakdown.hex}`, 'hex')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copied === 'hex' ? 'bg-emerald-500 text-white' : copyFailed === 'hex' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-chip-alt-hover)] border border-[var(--bf-muted)]/60 hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-[var(--bf-heading)]'}`}>
                   {copied === 'hex' ? <Check className="w-3.5 h-3.5" /> : copyFailed === 'hex' ? <AlertCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}<span>Copy Hex</span>
                 </button>
               )}
@@ -381,7 +381,7 @@ const NormalizationVisual: React.FC<{ breakdown: FloatBreakdown }> = ({ breakdow
   const shift = breakdown.unbiasedExponent;
   return (
     <div className="bg-[var(--bf-chip-alt)] rounded-lg border border-[var(--bf-muted)]/40 p-3 space-y-3">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/50">Binary Point Movement</div>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Binary Point Movement</div>
       <PointRow digits={digits} pointPos={originalPointPos} label="Plain form" accent="text-[var(--bf-heading)]" />
       <div className="flex items-center gap-2 pl-1 text-[11px] font-mono text-[var(--bf-heading)]/65">
         <ArrowLeftRight className="w-3.5 h-3.5 text-[var(--bf-accent)]" /><span>Point moves {Math.abs(shift)} place{Math.abs(shift) === 1 ? '' : 's'} {shift >= 0 ? 'left' : 'right'}</span>
@@ -628,7 +628,7 @@ const DecodePanel: React.FC<{ format: FloatFormat }> = ({ format }) => {
         <div className="relative z-10 flex items-center justify-between pt-4 mt-4 border-t border-[var(--bf-muted)]/40 flex-wrap gap-2">
           <div className="text-[11px] text-[var(--bf-heading)]/80 font-sans">{decoded.hex ? <>Hex: <span className="font-mono font-bold text-[var(--bf-heading)]">0x{decoded.hex}</span></> : <>Bits: <span className="font-mono font-bold text-[var(--bf-heading)]">{decoded.bitString}</span></>}</div>
           <div className="flex items-center gap-2">
-            <button onClick={() => copyValue(formatDecodedValue(decoded.value), 'value')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copiedKey === 'value' ? 'bg-emerald-500 text-white' : failedKey === 'value' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-muted)] hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-white'}`}>
+            <button onClick={() => copyValue(formatDecodedValue(decoded.value), 'value')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${copiedKey === 'value' ? 'bg-emerald-500 text-white' : failedKey === 'value' ? 'bg-rose-600 text-white' : 'bg-[var(--bf-chip-alt-hover)] border border-[var(--bf-muted)]/60 hover:bg-[var(--bf-accent)] hover:text-[var(--bf-chip)] text-[var(--bf-heading)]'}`}>
               {copiedKey === 'value' ? <Check className="w-3.5 h-3.5" /> : failedKey === 'value' ? <AlertCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}<span>Copy Value</span>
             </button>
             <ShareButton label="Share" shareTitle="BitForge Floating Point Decode"
@@ -695,7 +695,7 @@ const DirectBitInputs: React.FC<{ format: FloatFormat; bitString: string; hex: s
       <div>
         <div className="flex items-center justify-between mb-1">
           <label htmlFor="fp-decode-binary" className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Binary</label>
-          <span className={`text-[10px] font-mono ${binaryDraft.length === bits ? 'text-emerald-400' : 'text-[var(--bf-heading)]/50'}`}>{binaryDraft.length} / {bits} bits</span>
+          <span className={`text-[10px] font-mono ${binaryDraft.length === bits ? 'text-emerald-400' : 'text-[var(--bf-heading)]/65'}`}>{binaryDraft.length} / {bits} bits</span>
         </div>
         <input id="fp-decode-binary" type="text" value={binaryDraft} onChange={e => handleBinaryChange(e.target.value)}
           placeholder={`Enter ${bits} bits to decode`}
@@ -704,7 +704,7 @@ const DirectBitInputs: React.FC<{ format: FloatFormat; bitString: string; hex: s
       <div>
         <div className="flex items-center justify-between mb-1">
           <label htmlFor="fp-decode-hex" className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Hexadecimal</label>
-          <span className={`text-[10px] font-mono ${!hexDigits ? 'text-[var(--bf-heading)]/50' : hexDraft.length === hexDigits ? 'text-emerald-400' : 'text-[var(--bf-heading)]/50'}`}>
+          <span className={`text-[10px] font-mono ${!hexDigits ? 'text-[var(--bf-heading)]/65' : hexDraft.length === hexDigits ? 'text-emerald-400' : 'text-[var(--bf-heading)]/65'}`}>
             {hexDigits ? `${hexDraft.length} / ${hexDigits} hex digits` : 'unavailable for this bit width'}
           </span>
         </div>

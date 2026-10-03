@@ -68,7 +68,7 @@ export const BitRepresentationPanel: React.FC<BitRepresentationPanelProps> = ({ 
         </p>
         <BitCellRow bits={bits} subLabels={meta.labels} size="sm" />
         <StepList steps={getUnsignedSteps(bits)} />
-        <p className="text-[11px] text-[var(--bf-heading)]/50 font-mono">Range for {bitWidth}-bit Unsigned: {rangeText}</p>
+        <p className="text-[11px] text-[var(--bf-heading)]/65 font-mono">Range for {bitWidth}-bit Unsigned: {rangeText}</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export const BitRepresentationPanel: React.FC<BitRepresentationPanelProps> = ({ 
         <BitCellRow bits={bits} subLabels={meta.labels} dividerAfterIndex={meta.dividerAfterIndex} highlightIndices={meta.highlightIndices} size="sm" />
         <StepList steps={getSignMagnitudeSteps(bits)} />
         <Note>Sign-Magnitude has two bit patterns for zero: <code className="font-mono">{'0'.repeat(bitWidth)}</code> is +0, and <code className="font-mono">{'1' + '0'.repeat(bitWidth - 1)}</code> is −0.</Note>
-        <p className="text-[11px] text-[var(--bf-heading)]/50 font-mono">Range for {bitWidth}-bit Sign-Magnitude: {rangeText}</p>
+        <p className="text-[11px] text-[var(--bf-heading)]/65 font-mono">Range for {bitWidth}-bit Sign-Magnitude: {rangeText}</p>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export const BitRepresentationPanel: React.FC<BitRepresentationPanelProps> = ({ 
         )}
         <StepList steps={getOnesComplementSteps(bits)} />
         <Note>One's Complement also has two zeros: <code className="font-mono">{'0'.repeat(bitWidth)}</code> is +0, and <code className="font-mono">{'1'.repeat(bitWidth)}</code> is −0.</Note>
-        <p className="text-[11px] text-[var(--bf-heading)]/50 font-mono">Range for {bitWidth}-bit One's Complement: {rangeText}</p>
+        <p className="text-[11px] text-[var(--bf-heading)]/65 font-mono">Range for {bitWidth}-bit One's Complement: {rangeText}</p>
       </div>
     );
   }
@@ -118,7 +118,7 @@ export const BitRepresentationPanel: React.FC<BitRepresentationPanelProps> = ({ 
       </p>
       <BitCellRow bits={bits} subLabels={meta.labels} highlightIndices={meta.highlightIndices} size="sm" />
       <StepList steps={getTwosComplementDecodeSteps(bits)} />
-      <p className="text-[11px] text-[var(--bf-heading)]/50 font-mono">Range for {bitWidth}-bit Two's Complement: {rangeText} (one extra negative value, one single zero)</p>
+      <p className="text-[11px] text-[var(--bf-heading)]/65 font-mono">Range for {bitWidth}-bit Two's Complement: {rangeText} (one extra negative value, one single zero)</p>
     </div>
   );
 };

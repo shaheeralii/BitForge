@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Binary, Calculator, Type, SquareSigma, History, Keyboard, Layers3 } from 'lucide-react';
 import { useHistory } from '../context/HistoryContext';
 import { BitForgeLogo } from './BitForgeLogo';
@@ -18,6 +18,29 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onGoHome, onOpenHistory, onOpenShortcutsHelp }) => {
   const { entries } = useHistory();
+  const tabBarRef = useRef<HTMLElement>(null);
+
+  // Below md the tab bar scrolls sideways (the five tabs don't fit). Opening a
+  // tool by direct link, refresh or Back/Forward leaves the bar scrolled to
+  // its start, which on a phone can hide the highlighted tab off-screen even
+  // though the right tool is showing. Keep the active tab in view by moving
+  // the bar's own scroll position — instant (so it is reduced-motion safe),
+  // and it never scrolls the page. A no-op wherever the tabs already fit.
+  useEffect(() => {
+    const bar = tabBarRef.current;
+    if (!bar || bar.scrollWidth <= bar.clientWidth + 1) return;
+    const active = bar.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!active) return;
+    const barRect = bar.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    const margin = 8;
+    if (activeRect.left < barRect.left + margin) {
+      bar.scrollLeft += activeRect.left - barRect.left - margin;
+    } else if (activeRect.right > barRect.right - margin) {
+      bar.scrollLeft += activeRect.right - barRect.right + margin;
+    }
+  }, [activeMode]);
+
   const modes = [
     {
       id: 'converter' as AppMode,
@@ -47,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onGoHo
   ];
 
   return (
-    <header className="flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 py-3 bg-[var(--bf-overlay)]/55 backdrop-blur-xl text-white border-b border-[var(--bf-accent)]/15 shadow-sm shadow-black/20 sticky top-0 z-30 transition-colors gap-3">
+    <header className="flex flex-col md:flex-row md:flex-wrap wide:flex-nowrap items-center justify-between px-4 sm:px-8 py-3 bg-[var(--bf-overlay)]/55 backdrop-blur-xl text-white border-b border-[var(--bf-accent)]/15 shadow-sm shadow-black/20 sticky top-0 z-30 transition-colors gap-3">
       {/* Branding — a real link back to the landing page, so it keeps link
           semantics (focusable, "copy link address", open in new tab all work
           and point at the landing route). A plain left click is intercepted
@@ -63,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onGoHo
           e.preventDefault();
           onGoHome();
         }}
-        className="flex items-center gap-3 rounded-lg -m-1 p-1 hover:bg-white/5 transition-colors" aria-label="Back to the BitForge landing page">
+        className="flex items-center gap-3 rounded-lg -m-1 p-1 hover:bg-white/5 transition-colors md:order-1" aria-label="Back to the BitForge landing page">
         <BitForgeLogo className="w-9 h-9 shrink-0" />
         <div>
           <div className="flex items-center gap-2">
@@ -80,8 +103,15 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onGoHo
         </div>
       </a>
 
-      {/* Center Navigation Tabs */}
-      <nav className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[var(--bf-accent)]/15 text-xs font-mono font-medium tracking-tight overflow-x-auto scrollbar-none max-w-full">
+      {/* Center Navigation Tabs.
+          Five tabs need ~785px. Below 1440px there is not room for them
+          between the brand and the controls, and a scrolling tab bar hid the
+          last tab(s) with no cue that it scrolled (measured: "Floating
+          Point" clipped at 1280 and 1366). So from md up the tabs get their
+          own centred row under the brand/controls until 1440px (the `wide:` breakpoint, defined in index.css), where they
+          sit inline as before. Under md the bar still scrolls, as before. */}
+      <div className="flex justify-center max-w-full min-w-0 md:order-3 md:basis-full wide:order-2 wide:basis-auto">
+      <nav ref={tabBarRef} className="flex items-center gap-1 bg-black/25 backdrop-blur-sm p-1 rounded-lg border border-[var(--bf-accent)]/15 text-xs font-mono font-medium tracking-tight overflow-x-auto md:overflow-visible md:flex-wrap md:justify-center scrollbar-none max-w-full">
         {modes.map(mode => {
           const Icon = mode.icon;
           const isActive = activeMode === mode.id;
@@ -102,9 +132,10 @@ export const Header: React.FC<HeaderProps> = ({ activeMode, onModeChange, onGoHo
           );
         })}
       </nav>
+      </div>
 
       {/* System Status Indicators */}
-      <div className="flex items-center gap-3 text-xs font-mono shrink-0">
+      <div className="flex items-center gap-3 text-xs font-mono shrink-0 md:order-2 wide:order-3">
         <ThemeSwitcher />
         <button
           onClick={onOpenShortcutsHelp}

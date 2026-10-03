@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  hasPlainNumberShape,
   isValidRadix,
   stripSignAndPrefix,
   parseNumericLiteral,
@@ -171,5 +172,53 @@ describe('parseSignedIntegerLiteral — exact BigInt, used by the AI intent syst
     // A canonical parser must not reproduce either failure mode.
     expect(parseSignedIntegerLiteral('0x2A').value).not.toBe(0n);
     expect(parseSignedIntegerLiteral('-0xFF').value).not.toBe(0n);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hasPlainNumberShape: linear-time replacement for the regexes
+//   ^[01]*\.?[01]+$   ^[0-7]*\.?[0-7]+$   ^[0-9]*\.?[0-9]+$   ^[0-9a-fA-F]*\.?[0-9a-fA-F]+$
+// which backtracked quadratically on "long valid run + one bad character".
+// ---------------------------------------------------------------------------
+describe('hasPlainNumberShape', () => {
+  const OLD: Record<2 | 8 | 10 | 16, RegExp> = {
+    2: /^[01]*\.?[01]+$/,
+    8: /^[0-7]*\.?[0-7]+$/,
+    10: /^[0-9]*\.?[0-9]+$/,
+    16: /^[0-9a-fA-F]*\.?[0-9a-fA-F]+$/,
+  };
+
+  it('accepts and rejects exactly what the old regexes did (every string up to length 5 over a mixed alphabet)', () => {
+    const alphabet = ['0', '1', '7', '8', '9', 'a', 'F', 'g', '.', '-'];
+    let checked = 0;
+    const mismatches: string[] = [];
+    const walk = (prefix: string, depth: number) => {
+      for (const radix of [2, 8, 10, 16] as const) {
+        if (hasPlainNumberShape(prefix, radix) !== OLD[radix].test(prefix)) mismatches.push(`radix ${radix} on ${JSON.stringify(prefix)}`);
+        checked++;
+      }
+      if (depth === 0) return;
+      for (const ch of alphabet) walk(prefix + ch, depth - 1);
+    };
+    walk('', 5);
+    expect(mismatches).toEqual([]);
+    expect(checked).toBeGreaterThan(400_000);
+  });
+
+  it('keeps the documented edge cases: ".5" ok, "5." rejected, "." and "" rejected', () => {
+    expect(hasPlainNumberShape('.5', 10)).toBe(true);
+    expect(hasPlainNumberShape('5.', 10)).toBe(false);
+    expect(hasPlainNumberShape('.', 10)).toBe(false);
+    expect(hasPlainNumberShape('', 10)).toBe(false);
+    expect(hasPlainNumberShape('1.2.3', 10)).toBe(false);
+  });
+
+  it('is linear: 200,000 valid digits followed by a bad character is rejected almost instantly', () => {
+    const t = performance.now();
+    for (const radix of [2, 8, 10, 16] as const) {
+      expect(hasPlainNumberShape('1'.repeat(200_000) + 'z', radix)).toBe(false);
+    }
+    // The old regex needed tens of seconds here; anything under a second proves linearity.
+    expect(performance.now() - t).toBeLessThan(1000);
   });
 });

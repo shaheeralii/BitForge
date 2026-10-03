@@ -78,7 +78,7 @@ export const BinaryOperationsCard: React.FC = () => {
             <h2 className="text-sm font-display font-semibold text-[var(--bf-text)] uppercase tracking-wide">
               Binary Arithmetic Operations
             </h2>
-            <p className="text-xs text-[var(--bf-accent)]/80">
+            <p className="text-xs text-[var(--bf-accent)]/90">
               Bit-accurate addition, subtraction, multiplication &amp; division with full derivations
             </p>
           </div>
@@ -139,7 +139,7 @@ export const BinaryOperationsCard: React.FC = () => {
 
       {!bothValid && (
         <div className="glass-panel rounded-xl p-6 text-center text-[var(--bf-heading)]/60 border-dashed">
-          <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-[var(--bf-accent)]/60" />
+          <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-[var(--bf-accent)]/90" />
           <p className="text-sm font-semibold text-[var(--bf-heading)]">Fix the operand errors above to see the calculation.</p>
         </div>
       )}
@@ -172,7 +172,7 @@ const OperandField: React.FC<{
       }`}
     />
     {parsed.valid ? (
-      <p className="text-[11px] font-mono text-[var(--bf-accent)]/70">{groupNibbles(parsed.bits)}</p>
+      <p className="text-[11px] font-mono text-[var(--bf-accent)]/90">{groupNibbles(parsed.bits)}</p>
     ) : (
       <p className="text-[11px] font-mono text-red-300 flex items-center gap-1">
         <AlertTriangle className="w-3 h-3 shrink-0" /> {parsed.error}
@@ -394,7 +394,7 @@ const ResultTrace: React.FC<{ result: ReturnType<typeof computeBinaryOperation>;
   );
 };
 
-const thClass = 'px-3 py-2 text-left font-bold text-[var(--bf-accent)]/80 uppercase tracking-wider text-[10px]';
+const thClass = 'px-3 py-2 text-left font-bold text-[var(--bf-accent)]/90 uppercase tracking-wider text-[10px]';
 const tdClass = 'px-3 py-2 border-t border-[var(--bf-accent)]/10 text-[var(--bf-heading)]';
 
 const AddSubTrace: React.FC<{ data: AddSubResult }> = ({ data }) => {
@@ -411,15 +411,15 @@ const AddSubTrace: React.FC<{ data: AddSubResult }> = ({ data }) => {
       {data.operator === '-' && data.bComplementBits && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
           <div className="bg-black/20 rounded-md px-3 py-2 border border-[var(--bf-accent)]/10">
-            <div className="text-[var(--bf-heading)]/50 uppercase text-[10px] mb-1">B (original)</div>
+            <div className="text-[var(--bf-heading)]/65 uppercase text-[10px] mb-1">B (original)</div>
             <div className="text-[var(--bf-heading)]">{groupNibbles(data.bBits)}</div>
           </div>
           <div className="bg-black/20 rounded-md px-3 py-2 border border-[var(--bf-accent)]/10">
-            <div className="text-[var(--bf-heading)]/50 uppercase text-[10px] mb-1">~B (inverted)</div>
+            <div className="text-[var(--bf-heading)]/65 uppercase text-[10px] mb-1">~B (inverted)</div>
             <div className="text-[var(--bf-heading)]">{groupNibbles(data.bBits.split('').map(c => c === '0' ? '1' : '0').join(''))}</div>
           </div>
           <div className="bg-black/20 rounded-md px-3 py-2 border border-[var(--bf-accent)]/10">
-            <div className="text-[var(--bf-heading)]/50 uppercase text-[10px] mb-1">~B + 1 (two's complement)</div>
+            <div className="text-[var(--bf-heading)]/65 uppercase text-[10px] mb-1">~B + 1 (two's complement)</div>
             <div className="text-[var(--bf-accent)]">{groupNibbles(data.bComplementBits)}</div>
           </div>
         </div>

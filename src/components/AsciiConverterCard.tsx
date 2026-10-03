@@ -74,7 +74,7 @@ export const AsciiConverterCard: React.FC = () => {
             <h2 className="text-base font-display font-semibold tracking-wide text-[var(--bf-heading)]">
               Text & UTF-8 Encoding
             </h2>
-            <p className="text-xs text-[var(--bf-accent)]/80 mt-0.5">
+            <p className="text-xs text-[var(--bf-accent)]/90 mt-0.5">
               Convert text into UTF-8 bytes shown as Binary, Hexadecimal, Octal, and Decimal. Standard ASCII characters (0-127) map to a single 8-bit byte.
             </p>
           </div>

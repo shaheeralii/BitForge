@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   decimalToFloatBreakdown, decodeBits, specialValueBits, numberToFloatBreakdown,
   validateCustomFormat, makeCustomFormat, totalBits, biasOf,
-  STANDARD_FORMATS, FloatFormat,
+  STANDARD_FORMATS, FloatFormat, isDecimalSyntax, parseDecimalInput,
 } from './floatingPoint';
 
 function groundTruthBits32(n: number): string {
@@ -348,5 +348,58 @@ describe('Decode walkthrough steps', () => {
   it('encode steps no longer include a separate Final Assembly step', () => {
     const r = breakdownOf('13.25', STANDARD_FORMATS.binary32);
     expect(r.steps.map(s => s.id)).toEqual(['sign', 'binary', 'normalize', 'exponent', 'fraction']);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// isDecimalSyntax replaces two backtracking regexes with a linear scanner.
+// It must accept exactly what those regexes accepted.
+// ---------------------------------------------------------------------------
+describe('isDecimalSyntax', () => {
+  const STRICT = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+  const DRAFT = /^[+-]?\d*\.?\d*(?:[eE][+-]?\d*)?$/;
+
+  it('agrees with both original regexes on every string up to length 6 over a syntax-focused alphabet', () => {
+    const alphabet = ['0', '5', '.', 'e', 'E', '+', '-', 'x'];
+    let checked = 0;
+    const mismatches: string[] = [];
+    const walk = (prefix: string, depth: number) => {
+      if (isDecimalSyntax(prefix, false) !== STRICT.test(prefix)) mismatches.push(`strict ${JSON.stringify(prefix)}`);
+      if (isDecimalSyntax(prefix, true) !== DRAFT.test(prefix)) mismatches.push(`draft ${JSON.stringify(prefix)}`);
+      checked++;
+      if (depth === 0) return;
+      for (const ch of alphabet) walk(prefix + ch, depth - 1);
+    };
+    walk('', 6);
+    expect(mismatches).toEqual([]);
+    expect(checked).toBeGreaterThan(250_000);
+  });
+
+  it('parses ordinary inputs exactly as before', () => {
+    expect(parseDecimalInput('0.1').value).toBe(0.1);
+    expect(parseDecimalInput('-1.5e3').value).toBe(-1500);
+    expect(parseDecimalInput('.5').value).toBe(0.5);
+    expect(parseDecimalInput('5.').value).toBe(5);
+    expect(parseDecimalInput('1e').error).toBeDefined();
+    expect(parseDecimalInput('abc').error).toBeDefined();
+    expect(parseDecimalInput('').error).toBeDefined();
+  });
+
+  it('is linear: 200,000 digits + a bad character is rejected almost instantly', () => {
+    const t = performance.now();
+    expect(isDecimalSyntax('1'.repeat(200_000) + 'z', false)).toBe(false);
+    expect(isDecimalSyntax('1'.repeat(200_000) + 'z', true)).toBe(false);
+    expect(parseDecimalInput('9'.repeat(200_000) + 'z').error).toBeDefined();
+    // Previously ~8 s at 50,000; a single scan finishes in milliseconds.
+    expect(performance.now() - t).toBeLessThan(1000);
+  });
+
+  it('a huge but valid digit string still parses (to Infinity) instantly', () => {
+    const t = performance.now();
+    const r = parseDecimalInput('9'.repeat(200_000));
+    expect(r.error).toBeUndefined();
+    expect(r.value).toBe(Infinity);
+    expect(performance.now() - t).toBeLessThan(1000);
   });
 });
