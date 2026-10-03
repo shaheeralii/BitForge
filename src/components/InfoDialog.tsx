@@ -67,10 +67,9 @@ const AboutContent: React.FC = () => (
     <H>What you can learn</H>
     <ul className="list-disc list-inside text-[13px] leading-relaxed text-[var(--bf-heading)]/85 space-y-1 mb-2">
       <li>Positional notation and base conversion across binary, octal, decimal, hexadecimal, and custom radices</li>
-      <li>Binary arithmetic, including addition and subtraction with carry and borrow</li>
+      <li>Binary arithmetic with addition, subtraction, multiplication and division, including carry, borrow and overflow</li>
       <li>Signed number representation across Unsigned, Sign-Magnitude, One's Complement, and Two's Complement</li>
       <li>Text and byte-level encoding, including UTF-8 and ASCII</li>
-      <li>Binary arithmetic with addition, subtraction, multiplication and division, including carry, borrow and overflow</li>
       <li>Interactive bit-level manipulation and visualization of numerical data</li>
       <li>Floating-point representation (Binary16, Binary32, Binary64, and custom formats), including normalization and rounding</li>
     </ul>
@@ -319,7 +318,9 @@ const TermsContent: React.FC = () => (
 
     <H>Acceptable Use</H>
     <P>
-      BitForge, including BitForge AI, is intended for personal, non-commercial, educational use.
+      The hosted BitForge service is intended for personal, educational use. 
+      The repository's original source code is available under the MIT License, 
+      whose terms govern reuse of the code.
       Please don't attempt to abuse, overload, scrape at scale, or circumvent the rate limiting or
       other protections on BitForge's backend or API.
     </P>

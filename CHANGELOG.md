@@ -5,7 +5,7 @@ The README links here; nothing has been removed from the project's release histo
 
 ### v7.0.0 — Public-Release Hardening, Input Robustness & Polish
 
-A targeted hardening and polish pass before the first public announcement, promoted to a major release. BitForge's scope, identity and tools are unchanged — no new tools, no accounts, no tracking, no backend changes. Every behaviour change below was reviewed and approved individually; the items marked *(new in this release candidate)* were found during the final audit.
+A targeted hardening and polish pass before BitForge's first public-facing showcase, promoted to a major release. BitForge's scope, identity and tools are unchanged — no new tools, no accounts, no tracking, no backend changes. Every behaviour change below was reviewed and approved individually; the items marked *(new in this release candidate)* were found during the final audit.
 
 **Fixed**
 - **Ambiguity notice missed `.1` *(new in this release candidate)*:** the helper required at least two binary digits, so `.1`, `-.1` and `+.1` — which are `0.5` as Binary but `0.1` as Decimal — showed no notice. A lone *fractional* `1` now counts as ambiguous. A lone integer `0`/`1` and a lone fractional `0` (`.0`) still do not, because they mean the same in every base. Auto-detection is unchanged: these inputs are still read as Binary.

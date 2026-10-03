@@ -36,12 +36,12 @@ const TOOLS: { n: string; title: string; body: string; mode: AppMode | null }[] 
   { n: '03', title: 'Binary Operations', body: 'Add, subtract, multiply and divide binary values at your chosen width — with the full column-by-column trace.', mode: 'operations' },
   { n: '04', title: 'Floating Point', body: 'Take IEEE 754 apart — sign, exponent, mantissa — and watch precision behave the way it really does.', mode: 'floating_point' },
   { n: '05', title: 'Text & UTF-8', body: 'Follow a character down to its bytes, and see why encoding is never just "one byte each".', mode: 'ascii' },
-  { n: '06', title: 'BitForge AI', body: 'Ask why, not just what. Every calculation it quotes is verified by BitForge itself, not guessed.', mode: null },
+  { n: '06', title: 'BitForge AI', body: 'Ask why, not just what. Supported conversions and Two’s Complement results are verified by BitForge itself.', mode: null },
 ];
 
 const PRINCIPLES = [
   { n: '01', title: 'Shows its working', body: 'A number that appears without explanation teaches nothing. Every result can be expanded into the steps that produced it.' },
-  { n: '02', title: 'Runs on your machine', body: 'Every calculation happens in your browser. No account, no upload, no telemetry — your work never leaves the device.' },
+  { n: '02', title: 'Runs on your machine', body: 'Core calculations happen in your browser. No account, no telemetry — your calculation inputs stay on your device.' },
   { n: '03', title: 'Correct at the edges', body: "\u2212128, negative zero, overflow boundaries, the gap between one's and two's complement. The cases textbooks gloss over are the ones that matter." },
   { n: '04', title: 'Quiet by design', body: 'Three themes, including a motion-free plain mode. Keyboard shortcuts throughout. Nothing blinks for attention.' },
 ];
