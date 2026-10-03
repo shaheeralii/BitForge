@@ -226,7 +226,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
                 className="group rounded-lg border border-[var(--bf-muted)]/40 bg-[var(--bf-surface)]/60 p-3 space-y-1.5 hover:border-[var(--bf-accent)]/40 transition-colors"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--bf-accent)]/80">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--bf-accent)]/90">
                     <Icon className="w-3 h-3" />
                     <span>{meta.label}</span>
                     <span className="text-[var(--bf-heading)]/30 font-normal normal-case">· {entry.operation}</span>
@@ -238,7 +238,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
                           onReuseConverterEntry(entry);
                           onClose();
                         }}
-                        className="p-1 text-[var(--bf-heading)]/50 hover:text-[var(--bf-accent)] rounded transition-colors"
+                        className="p-1 text-[var(--bf-heading)]/65 hover:text-[var(--bf-accent)] rounded transition-colors"
                         title="Reuse this input in the converter"
                         aria-label={`Reuse "${entry.input}" in the converter`}
                       >
@@ -247,7 +247,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onR
                     )}
                     <button
                       onClick={() => removeEntry(entry.id)}
-                      className="p-1 text-[var(--bf-heading)]/50 hover:text-rose-400 rounded transition-colors"
+                      className="p-1 text-[var(--bf-heading)]/65 hover:text-rose-400 rounded transition-colors"
                       title="Remove this entry"
                       aria-label={`Remove ${meta.label} entry: ${entry.operation}`}
                     >

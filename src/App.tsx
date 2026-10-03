@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { BaseType, HistoryEntry, PresetItem } from './types';
-import { autoDetectBase, convertNumber } from './utils/converter';
+import { autoDetectBase, convertTypedInput, isBinaryDecimalAmbiguous, MAX_CONVERTER_INPUT_LENGTH } from './utils/converter';
 import { Header, AppMode } from './components/Header';
 import { ConversionInput } from './components/ConversionInput';
+import { ConverterAnnouncer } from './components/ConverterAnnouncer';
 import { LiveBasesGrid } from './components/LiveBasesGrid';
 import { StepByStepBreakdown } from './components/StepByStepBreakdown';
 import { BitRepresentationLab } from './components/BitRepresentationLab';
@@ -55,7 +56,14 @@ interface AppProps {
 }
 
 export default function App({ mode: activeMode, chatOpen: isChatOpen, onModeChange, onChatOpenChange, onGoHome }: AppProps) {
-  const [inputVal, setInputVal] = useState<string>('255.625');
+  const [inputVal, setInputValRaw] = useState<string>('255.625');
+  // Every path that can set the converter text (typing, presets, History
+  // "reuse", the clear shortcut) goes through the same length cap, so no
+  // route — including an old, longer History entry — can exceed it.
+  const setInputVal = useCallback(
+    (v: string) => setInputValRaw(v.length > MAX_CONVERTER_INPUT_LENGTH ? v.slice(0, MAX_CONVERTER_INPUT_LENGTH) : v),
+    []
+  );
   const [sourceBase, setSourceBase] = useState<BaseType>('10');
   const [targetBase, setTargetBase] = useState<BaseType>('2');
   const [isLocked, setIsLocked] = useState<boolean>(false);
@@ -146,7 +154,7 @@ export default function App({ mode: activeMode, chatOpen: isChatOpen, onModeChan
 
   // Real-time conversion execution
   const conversionResult = useMemo(() => {
-    return convertNumber(inputVal, currentSourceBase, targetBase, customRadix);
+    return convertTypedInput(inputVal, currentSourceBase, targetBase, customRadix);
   }, [inputVal, currentSourceBase, targetBase, customRadix]);
 
   // Preset Selection Handler
@@ -208,7 +216,17 @@ export default function App({ mode: activeMode, chatOpen: isChatOpen, onModeChan
                 onToggleLock={() => setIsLocked(!isLocked)}
                 customRadix={customRadix}
                 onCustomRadixChange={setCustomRadix}
-                errorMessage={conversionResult.isValid ? undefined : conversionResult.errorMessage}
+                errorMessage={conversionResult.isValid || conversionResult.incompleteHint ? undefined : conversionResult.errorMessage}
+                incompleteHint={conversionResult.incompleteHint}
+              />
+
+              {/* Screen-reader summary of the result / error (small, debounced regions) */}
+              <ConverterAnnouncer
+                conversion={conversionResult}
+                targetBase={targetBase}
+                customRadix={customRadix}
+                inputText={inputVal}
+                ambiguous={!isLocked && isBinaryDecimalAmbiguous(autoDetect)}
               />
 
               {/* Live All-Bases Output Grid */}

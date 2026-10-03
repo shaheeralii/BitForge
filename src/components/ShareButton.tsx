@@ -11,6 +11,8 @@ interface ShareButtonProps {
   /** Optional: log a history entry when the share/copy succeeds. */
   historyEntry?: () => Omit<HistoryEntry, 'id' | 'timestamp'>;
   className?: string;
+  /** Inert while there is nothing meaningful to share (e.g. incomplete input). */
+  disabled?: boolean;
 }
 
 /**
@@ -24,6 +26,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   label = 'Share',
   historyEntry,
   className = '',
+  disabled = false,
 }) => {
   const [status, setStatus] = useState<'idle' | 'shared' | 'copied'>('idle');
   const { addEntry } = useHistory();
@@ -47,10 +50,11 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   return (
     <button
       onClick={handleClick}
+      disabled={disabled}
       title={shareCapable ? 'Share this result' : 'Copy this result (sharing isn\u2019t supported on this device)'}
       className={
         className ||
-        'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors bg-black/20 text-[var(--bf-heading)]/70 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/15 hover:border-[var(--bf-accent)]/40'
+        'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-black/20 text-[var(--bf-heading)]/70 hover:text-[var(--bf-accent)] border border-[var(--bf-accent)]/15 hover:border-[var(--bf-accent)]/40'
       }
     >
       {status === 'idle' && (shareCapable ? <Share2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />)}

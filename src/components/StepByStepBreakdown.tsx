@@ -49,7 +49,7 @@ export const StepByStepBreakdown: React.FC<StepByStepBreakdownProps> = ({
                 <h2 className="text-sm font-display font-semibold text-[var(--bf-heading)] uppercase tracking-wide">
                   Step-by-Step Derivation
                 </h2>
-                <p className="text-xs text-[var(--bf-accent)]/80">
+                <p className="text-xs text-[var(--bf-accent)]/90">
                   Rigorous derivation converting <span className="font-semibold text-[var(--bf-heading)]">{srcName}</span> to <span className="font-semibold text-[var(--bf-accent)]">{tgtName}</span>
                 </p>
               </div>
@@ -65,31 +65,42 @@ export const StepByStepBreakdown: React.FC<StepByStepBreakdownProps> = ({
                  : targetBase === 'custom' ? conversion.customBaseValue
                  : conversion.denary}
               </span>
-              <span className="hidden sm:inline text-[10px] font-sans font-semibold uppercase tracking-wide text-[var(--bf-accent)]/70 border-l border-[var(--bf-muted)]/40 pl-2 ml-0.5">
+              <span className="hidden sm:inline text-[10px] font-sans font-semibold uppercase tracking-wide text-[var(--bf-accent)]/90 border-l border-[var(--bf-muted)]/40 pl-2 ml-0.5">
                 {conversion.steps.length} {conversion.steps.length === 1 ? 'step' : 'steps'}
               </span>
             </div>
           </div>
         }
       >
-        <div className="border-t border-[var(--bf-muted)]/30 pt-4 space-y-4">
-          {/* List of Steps */}
-          <div className="space-y-4">
-            {conversion.steps.map((step, idx) => (
-              <StepCard key={idx} step={step} index={idx + 1} />
-            ))}
-          </div>
-
-          {/* Footer Verification Notice */}
-          <div className="pt-4 border-t border-[var(--bf-muted)]/30 italic text-[var(--bf-heading)]/65 text-[11px] font-mono flex items-center justify-between">
-            <span>BitForge Engine Logic verified</span>
-            <span>Integer Engine: Exact</span>
-          </div>
-        </div>
+        <DerivationBody steps={conversion.steps} />
       </DerivationDisclosure>
     </div>
   );
 };
+
+/**
+ * The derivation body: every step card plus the verification footer. A
+ * component of its own (not inline JSX in StepByStepBreakdown) on purpose:
+ * DerivationDisclosure only renders its children while open, and an inline
+ * `steps.map(...)` here would still build every StepCard element on every
+ * keystroke even while the panel is closed.
+ */
+const DerivationBody: React.FC<{ steps: StepDetail[] }> = ({ steps }) => (
+  <div className="border-t border-[var(--bf-muted)]/30 pt-4 space-y-4">
+    {/* List of Steps */}
+    <div className="space-y-4">
+      {steps.map((step, idx) => (
+        <StepCard key={idx} step={step} index={idx + 1} />
+      ))}
+    </div>
+
+    {/* Footer Verification Notice */}
+    <div className="pt-4 border-t border-[var(--bf-muted)]/30 italic text-[var(--bf-heading)]/65 text-[11px] font-mono flex items-center justify-between">
+      <span>BitForge Engine Logic verified</span>
+      <span>Integer Engine: Exact</span>
+    </div>
+  </div>
+);
 
 const StepCard: React.FC<{ step: StepDetail; index: number }> = ({ step, index }) => {
   return (

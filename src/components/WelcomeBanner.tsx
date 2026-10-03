@@ -68,7 +68,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onNavigate }) => {
                 <h2 className="text-base sm:text-lg font-bold text-white font-sans tracking-tight">
                   Welcome to BitForge
                 </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--bf-accent)]/20 text-[var(--bf-accent)] border border-[var(--bf-accent)]/40 uppercase tracking-wide">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--bf-accent)]/10 text-[var(--bf-accent)] border border-[var(--bf-accent)]/40 uppercase tracking-wide">
                   First-Time Guide
                 </span>
               </div>

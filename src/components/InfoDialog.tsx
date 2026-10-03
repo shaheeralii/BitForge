@@ -70,7 +70,7 @@ const AboutContent: React.FC = () => (
       <li>Binary arithmetic, including addition and subtraction with carry and borrow</li>
       <li>Signed number representation across Unsigned, Sign-Magnitude, One's Complement, and Two's Complement</li>
       <li>Text and byte-level encoding, including UTF-8 and ASCII</li>
-      <li>Bitwise operations such as AND, OR, XOR, NOT, and bit shifts</li>
+      <li>Binary arithmetic with addition, subtraction, multiplication and division, including carry, borrow and overflow</li>
       <li>Interactive bit-level manipulation and visualization of numerical data</li>
       <li>Floating-point representation (Binary16, Binary32, Binary64, and custom formats), including normalization and rounding</li>
     </ul>
@@ -127,7 +127,7 @@ const HelpContent: React.FC = () => (
       <li><strong className="text-[var(--bf-heading)]">Number Converter</strong> — Convert values between number systems with step-by-step derivations</li>
       <li><strong className="text-[var(--bf-heading)]">Bit Representation</strong> — Toggle or type an 8-, 16-, or 32-bit value and interpret it as Unsigned, Sign-Magnitude, One's Complement, or Two's Complement</li>
       <li><strong className="text-[var(--bf-heading)]">Text &amp; UTF-8</strong> — Explore how text is represented as bytes</li>
-      <li><strong className="text-[var(--bf-heading)]">Binary Operations</strong> — Perform and visualize common bitwise and binary arithmetic operations</li>
+      <li><strong className="text-[var(--bf-heading)]">Binary Operations</strong> — Perform and visualize binary arithmetic operations</li>
       <li><strong className="text-[var(--bf-heading)]">Floating Point</strong> — Explore how a decimal number is stored as sign, exponent, and fraction bits (or decode one back to decimal) using the standard Binary16/32/64 formats or a custom bit-width layout</li>
     </ul>
 
@@ -142,8 +142,12 @@ const HelpContent: React.FC = () => (
     <P>BitForge supports Binary (2), Octal (8), Decimal (10), Hexadecimal (16), and custom radices from 2 through 36.</P>
 
     <H>What can I do with Binary Operations?</H>
-    <P>Binary Operations supports AND, OR, XOR, NOT, left and right shifts, addition, and subtraction.</P>
-    <P>Operations use arbitrary-precision arithmetic where supported and can include step-by-step carry or borrow information.</P>
+    <P>Binary Operations adds, subtracts, multiplies, and divides binary values at a chosen width of 4, 8, 16, 32, or 64 bits.</P>
+    <P>
+      Each operation shows its bit-by-bit trace. Addition and subtraction report carry, borrow, and both
+      unsigned and signed overflow; multiplication and division are unsigned, fixed-width operations and are
+      labelled that way in the results.
+    </P>
 
     <H>How does Bit Representation work?</H>
     <P>Bit Representation is a single workspace with two synchronized inputs: a denary field and an interactive bit grid.</P>
@@ -178,6 +182,17 @@ const HelpContent: React.FC = () => (
       infinity, NaN, and subnormal numbers.
     </P>
 
+    <H>How precisely does the Floating Point tool read decimals?</H>
+    <P>
+      Decimal input is first represented using JavaScript's IEEE-754 binary64 number type before
+      conversion to the selected target format. Extremely precise decimal values near a target-format
+      rounding boundary may therefore reflect the intermediate binary64 rounding.
+    </P>
+    <P>
+      In practice this only matters for decimal text with far more digits than the target format can
+      store; exact ties, such as 16777217 in Binary32, are handled correctly.
+    </P>
+
     <H>How precise are fractional conversions?</H>
     <P>
       A fraction's digits in the target base are computed exactly, using whole-number arithmetic
@@ -195,6 +210,9 @@ const HelpContent: React.FC = () => (
       <li>Only digits valid for the selected base are accepted</li>
       <li>Binary input accepts only 0 and 1</li>
       <li>Empty input is treated as invalid rather than being interpreted as zero</li>
+      <li>The Number Converter accepts up to 1,024 characters; longer pastes are trimmed with a notice</li>
+      <li>Text made only of 0s and 1s (such as "10") is read as Binary by default, but it is also valid Decimal — a notice under the input says so and offers a one-tap switch. A prefix (0b, 0x, 0o) or a locked base removes the ambiguity</li>
+      <li>In the Number Converter, "-0" is simply zero; negative zero is taught in the Floating Point and Bit Representation tools, where it exists</li>
       <li>Custom radices must be between 2 and 36</li>
       <li>A sign (+ or −) and a base prefix (0x, 0b, 0o) are recognized independently, so "-0xFF" is parsed as negative 255, not rejected</li>
       <li>Values exceeding the active bit width are flagged instead of being silently wrapped</li>
@@ -224,7 +242,7 @@ const HelpContent: React.FC = () => (
 
 const PrivacyContent: React.FC = () => (
   <div>
-    <span className="text-[11px] font-mono text-[var(--bf-heading)]/50">Last updated: September 6, 2026</span>
+    <span className="text-[11px] font-mono text-[var(--bf-heading)]/65">Last updated: September 6, 2026</span>
 
     <P>
       BitForge is designed with privacy in mind. Its core tools run in your browser and do not
@@ -283,7 +301,7 @@ const PrivacyContent: React.FC = () => (
 
 const TermsContent: React.FC = () => (
   <div>
-    <span className="text-[11px] font-mono text-[var(--bf-heading)]/50">Last updated: September 13, 2026</span>
+    <span className="text-[11px] font-mono text-[var(--bf-heading)]/65">Last updated: September 13, 2026</span>
 
     <P>
       These Terms apply to your use of BitForge, a free, student-built educational toolkit. By

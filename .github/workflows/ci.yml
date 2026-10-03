@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Informational for now. `npm run lint` currently exits 0 (0 errors, a
+      # handful of pre-existing warnings), so this could already be a normal
+      # blocking step; it stays non-blocking until those warnings have each
+      # been looked at deliberately rather than suppressed or auto-fixed in
+      # bulk. Flip `continue-on-error` off once they are resolved or
+      # consciously accepted at their call sites.
+      - name: Lint (informational only — see comment)
+        run: npm run lint
+        continue-on-error: true

@@ -52,7 +52,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
               </div>
               <div>
                 <h3 className="text-sm font-display font-semibold text-[var(--bf-heading)]">Same Bits, Different Meaning</h3>
-                <p className="text-[11px] text-[var(--bf-accent)]/80">What your current bit pattern means under all four systems at once</p>
+                <p className="text-[11px] text-[var(--bf-accent)]/90">What your current bit pattern means under all four systems at once</p>
               </div>
             </div>
           }
@@ -85,7 +85,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
               </div>
               <div>
                 <h3 className="text-sm font-display font-semibold text-[var(--bf-heading)]">Why Is Two's Complement Preferred?</h3>
-                <p className="text-[11px] text-[var(--bf-accent)]/80">The practical reason modern computers standardized on it</p>
+                <p className="text-[11px] text-[var(--bf-accent)]/90">The practical reason modern computers standardized on it</p>
               </div>
             </div>
           }
@@ -105,7 +105,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
                   <div>+ {negEnc.bits}{'   ('}−{demoValue}{')'}</div>
                   <div className="border-t border-[var(--bf-accent)]/30 pt-0.5">{sum.carryOut === '1' ? sum.carryOut : ''} {sum.sumBits}</div>
                 </div>
-                <p className="text-[11px] text-[var(--bf-heading)]/50 mt-1.5">
+                <p className="text-[11px] text-[var(--bf-heading)]/65 mt-1.5">
                   The result is <code className="font-mono text-[var(--bf-accent)]">{sum.sumBits}</code> = 0{sum.carryOut === '1' ? ' — the extra carry bit simply falls off the end of the register and is discarded' : ''}.
                 </p>
               </div>
@@ -125,7 +125,7 @@ export const BitRepresentationInsights: React.FC<BitRepresentationInsightsProps>
               </div>
               <div>
                 <h3 className="text-sm font-display font-semibold text-[var(--bf-heading)]">Representation Comparison</h3>
-                <p className="text-[11px] text-[var(--bf-accent)]/80">All four systems, side by side, at {bitWidth}-bit width</p>
+                <p className="text-[11px] text-[var(--bf-accent)]/90">All four systems, side by side, at {bitWidth}-bit width</p>
               </div>
             </div>
           }

@@ -34,6 +34,13 @@ export interface StepDetail {
 export interface ConversionResult {
   isValid: boolean;
   errorMessage?: string;
+  /**
+   * Set (with `isValid: false` and no `errorMessage`) when the typed text is a
+   * temporarily incomplete number such as ".", "-", "0." or a bare "0x" prefix.
+   * That is not an error — the person is mid-entry — so the UI shows this
+   * neutral "waiting for digits" hint instead of an "invalid characters" alert.
+   */
+  incompleteHint?: string;
   sourceBase: BaseType;
   sourceValue: string;
   normalizedSource: string;

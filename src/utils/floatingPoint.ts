@@ -264,12 +264,52 @@ function superscript(n: number): string {
 // Decimal / Number -> Floating Point
 // ---------------------------------------------------------------------------
 
+/**
+ * Linear-time scanner for decimal-number syntax: `[+-] digits [. digits] [e [+-] digits]`.
+ *
+ * `draft: true` accepts any prefix a person could be in the middle of typing
+ * ("", "-", "1.", "1e", "1e-", ".") — the keystroke filter. `draft: false` is
+ * the strict grammar a value must satisfy to be parsed: at least one mantissa
+ * digit, and at least one digit after an `e`.
+ *
+ * It replaces `^[+-]?\d*\.?\d*(?:[eE][+-]?\d*)?$` and
+ * `^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$`. Both had adjacent quantifiers
+ * over the same digit class, which is quadratic when a long digit run is
+ * followed by a bad character (50,000 digits + "z" measured ~8 s). A single
+ * left-to-right scan cannot backtrack; accepted strings are identical to the
+ * old regexes (floatingPoint.test.ts compares them exhaustively).
+ */
+export function isDecimalSyntax(s: string, draft: boolean): boolean {
+  const n = s.length;
+  const isDigit = (i: number) => i < n && s.charCodeAt(i) >= 48 && s.charCodeAt(i) <= 57;
+  let i = 0;
+  if (i < n && (s[i] === '+' || s[i] === '-')) i++;
+  let intDigits = 0;
+  while (isDigit(i)) { i++; intDigits++; }
+  let hasDot = false;
+  let fracDigits = 0;
+  if (i < n && s[i] === '.') {
+    hasDot = true;
+    i++;
+    while (isDigit(i)) { i++; fracDigits++; }
+  }
+  if (!draft && intDigits === 0 && !(hasDot && fracDigits > 0)) return false;
+  if (i < n && (s[i] === 'e' || s[i] === 'E')) {
+    i++;
+    if (i < n && (s[i] === '+' || s[i] === '-')) i++;
+    let expDigits = 0;
+    while (isDigit(i)) { i++; expDigits++; }
+    if (!draft && expDigits === 0) return false;
+  }
+  return i === n;
+}
+
 export function parseDecimalInput(raw: string): { value: number; error?: string } {
   const trimmed = raw.trim();
   if (trimmed === '' || trimmed === '-' || trimmed === '+') {
     return { value: NaN, error: 'Enter a decimal number.' };
   }
-  if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(trimmed)) {
+  if (!isDecimalSyntax(trimmed, false)) {
     return { value: NaN, error: 'Enter a decimal number, e.g. 13.25 or 6.02e23.' };
   }
   const value = Number(trimmed);

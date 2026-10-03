@@ -34,6 +34,17 @@
 @theme {
   --font-display: 'Orbitron', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /*
+   * The header's "tabs inline with the brand" breakpoint (the five tabs need
+   * ~790px, so they only fit beside the brand and controls from 1440px up).
+   * It is a *named theme breakpoint* on purpose: Tailwind emits those in
+   * size order, after `md`, so `wide:` utilities reliably override the `md:`
+   * ones on the same element. The arbitrary `min-[1440px]:` form was emitted
+   * *before* `md:` and was silently overridden, so the inline layout never
+   * applied at 1440px and above.
+   */
+  --breakpoint-wide: 90rem;
 }
 
 @layer utilities {
@@ -101,6 +112,28 @@ html[data-fx="reduced"] .glass-panel-solid {
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn {
     animation: none;
+  }
+  /* Purely decorative attention-grabbers: the auto-detect sparkle and the
+     "detected candidate" ping dot. The static icon/dot already carries the
+     meaning, so the motion is simply dropped. */
+  .animate-pulse,
+  .animate-ping {
+    animation: none;
+  }
+  /* A loading spinner is a genuine "something is happening" state cue, so it
+     is kept — but rotated far more slowly and calmly (3 s per turn instead
+     of 1 s) rather than removed. */
+  .animate-spin {
+    animation-duration: 3s;
+  }
+  /* Decorative hover/press/colour transitions become instant state changes.
+     The state change itself (selected pill, toggled bit, copied check) still
+     happens immediately, so no feedback is lost. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

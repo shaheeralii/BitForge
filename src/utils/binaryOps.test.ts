@@ -156,3 +156,131 @@ describe('bitsToSignedBigInt / bitsToUnsignedBigInt', () => {
     expect(bitsToSignedBigInt(bits, 8)).toBe(127n);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Subtraction flag regressions (release hardening). Two real defects were
+// found by differential testing against BigInt:
+//   1. Borrow was read off the adder's final carry, so it was wrongly "Yes"
+//      for every A - 0 (the complement step wraps ~0 + 1 back to 0).
+//   2. Signed overflow used the adder's sign-bit carry test, which cannot see
+//      that -B does not exist for B = the minimum signed value, so
+//      0 - (-128) (= +128, which does not fit in 8 bits) reported no overflow.
+// Reference semantics: Borrow = (A < B) unsigned; signed overflow = the true
+// signed difference falls outside [-2^(w-1), 2^(w-1) - 1].
+// ---------------------------------------------------------------------------
+describe('subtractBinary flags — regression + exhaustive reference check', () => {
+  const ref = (a: bigint, b: bigint, w: number) => {
+    const mask = (1n << BigInt(w)) - 1n;
+    const half = 1n << BigInt(w - 1);
+    const sa = a >= half ? a - (1n << BigInt(w)) : a;
+    const sb = b >= half ? b - (1n << BigInt(w)) : b;
+    const trueSigned = sa - sb;
+    return {
+      result: (a - b) & mask,
+      borrow: a < b,
+      signedOverflow: trueSigned < -half || trueSigned >= half,
+    };
+  };
+  const bits = (v: bigint, w: number) => v.toString(2).padStart(w, '0');
+
+  it('A - 0 never reports a borrow (all widths)', () => {
+    for (const w of [4, 8, 16, 32, 64] as const) {
+      const samples = [0n, 1n, (1n << BigInt(w - 1)) - 1n, 1n << BigInt(w - 1), (1n << BigInt(w)) - 1n];
+      for (const a of samples) {
+        const r = subtractBinary(bits(a, w), '0'.repeat(w), w);
+        expect(r.borrow, `${w}-bit ${a} - 0`).toBe(false);
+        expect(r.unsignedOverflow).toBe(false);
+        expect(r.signedOverflow).toBe(false);
+        expect(bitsToUnsignedBigInt(r.resultBits)).toBe(a);
+      }
+    }
+  });
+
+  it('8-bit 0 - (-128) reports signed overflow (result +128 does not fit)', () => {
+    const r = subtractBinary('00000000', '10000000', 8);
+    expect(r.signedOverflow).toBe(true);
+    expect(r.borrow).toBe(true); // 0 < 128 unsigned
+    expect(r.resultBits).toBe('10000000'); // wraps to -128
+  });
+
+  it('the minimum signed value minus itself is 0 with no signed overflow', () => {
+    for (const w of [4, 8, 16, 32, 64] as const) {
+      const min = '1' + '0'.repeat(w - 1);
+      const r = subtractBinary(min, min, w);
+      expect(r.signedOverflow, `${w}-bit`).toBe(false);
+      expect(r.borrow).toBe(false);
+      expect(bitsToUnsignedBigInt(r.resultBits)).toBe(0n);
+    }
+  });
+
+  it('classic sign combinations (8-bit)', () => {
+    const cases: Array<[string, string, string, boolean]> = [
+      // A, B, description, expected signedOverflow
+      ['01111111', '11111111', 'positive - negative: 127 - (-1) = 128 overflows', true],
+      ['10000000', '00000001', 'negative - positive: -128 - 1 = -129 overflows', true],
+      ['00000101', '00000011', 'positive - positive: 5 - 3', false],
+      ['11111011', '11111101', 'negative - negative: -5 - (-3) = -2', false],
+      ['00000011', '00000101', 'positive - positive, negative result: 3 - 5', false],
+      ['11111111', '00000000', 'negative - 0', false],
+      ['01111111', '10000000', '127 - (-128) = 255 overflows', true],
+      ['11111111', '10000000', '-1 - (-128) = 127 fits', false],
+    ];
+    for (const [a, b, why, expected] of cases) {
+      expect(subtractBinary(a, b, 8).signedOverflow, why).toBe(expected);
+    }
+  });
+
+  it('matches the BigInt reference for all 256 operand pairs at 4 bits', () => {
+    for (let a = 0n; a < 16n; a++) {
+      for (let b = 0n; b < 16n; b++) {
+        const r = subtractBinary(bits(a, 4), bits(b, 4), 4);
+        const e = ref(a, b, 4);
+        const label = `${bits(a, 4)} - ${bits(b, 4)}`;
+        expect(bitsToUnsignedBigInt(r.resultBits), label).toBe(e.result);
+        expect(r.borrow, label + ' borrow').toBe(e.borrow);
+        expect(r.unsignedOverflow, label + ' unsignedOverflow').toBe(e.borrow);
+        expect(r.signedOverflow, label + ' signedOverflow').toBe(e.signedOverflow);
+      }
+    }
+  });
+
+  it('matches the BigInt reference on a boundary grid at 8/16/32/64 bits', () => {
+    for (const w of [8, 16, 32, 64] as const) {
+      const W = BigInt(w);
+      const half = 1n << (W - 1n);
+      const all = (1n << W) - 1n;
+      const samples = [0n, 1n, 2n, half - 2n, half - 1n, half, half + 1n, all - 1n, all];
+      for (const a of samples) {
+        for (const b of samples) {
+          const r = subtractBinary(bits(a, w), bits(b, w), w);
+          const e = ref(a, b, w);
+          const label = `${w}-bit ${a} - ${b}`;
+          expect(bitsToUnsignedBigInt(r.resultBits), label).toBe(e.result);
+          expect(r.borrow, label + ' borrow').toBe(e.borrow);
+          expect(r.signedOverflow, label + ' signedOverflow').toBe(e.signedOverflow);
+        }
+      }
+    }
+  });
+
+  it('addition flags are unchanged and still match the reference (exhaustive 4-bit)', () => {
+    for (let a = 0n; a < 16n; a++) {
+      for (let b = 0n; b < 16n; b++) {
+        const r = addBinary(bits(a, 4), bits(b, 4), 4);
+        const sa = a >= 8n ? a - 16n : a;
+        const sb = b >= 8n ? b - 16n : b;
+        expect(r.unsignedOverflow).toBe(a + b > 15n);
+        expect(r.signedOverflow).toBe(sa + sb < -8n || sa + sb > 7n);
+        expect(r.borrow).toBe(false);
+      }
+    }
+  });
+
+  it('multiplication and division semantics are unchanged (unsigned, fixed width)', () => {
+    const m = multiplyBinary('11111111', '11111111', 8);
+    expect(m.fullProductBits).toBe('1111111000000001'); // 255 * 255 = 65025 unsigned
+    expect(m.resultBits).toBe('00000001');
+    const d = divideBinary('11111000', '00000010', 8); // 248 / 2 unsigned, NOT -8 / 2
+    expect(d.decimalQuotient).toBe(124n);
+  });
+});

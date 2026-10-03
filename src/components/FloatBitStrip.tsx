@@ -31,7 +31,7 @@ const SEGMENT_META: Record<FloatSegment, { label: string; base: string; active: 
   },
   fraction: {
     label: 'Fraction',
-    base: 'bg-[var(--bf-surface-deep)] border-[var(--bf-accent)]/30 text-[var(--bf-accent)]/70',
+    base: 'bg-[var(--bf-surface-deep)] border-[var(--bf-accent)]/30 text-[var(--bf-accent)]/90',
     active: 'bg-[var(--bf-accent)]/20 border-[var(--bf-accent)] text-[var(--bf-heading)] shadow-[0_0_0_1px_rgb(var(--bf-accent-rgb)/35%)]',
     text: 'text-[var(--bf-accent)]',
     ring: 'ring-[var(--bf-accent)]/40',
@@ -71,7 +71,7 @@ export const FloatBitStrip: React.FC<FloatBitStripProps> = ({
           onClick={() => onSegmentSelect?.(field)}
           className={`text-left text-[10px] font-bold uppercase tracking-wider px-0.5 ${meta.text} hover:underline underline-offset-2 w-fit`}
         >
-          {meta.label} <span className="font-mono normal-case text-[9px] opacity-70">({bitsStr.length} bit{bitsStr.length === 1 ? '' : 's'})</span>
+          {meta.label} <span className="font-mono normal-case text-[9px] opacity-90">({bitsStr.length} bit{bitsStr.length === 1 ? '' : 's'})</span>
         </button>
         <div className={`flex gap-0.5 sm:gap-1 flex-wrap`} aria-hidden={!interactive}>
           {bitsStr.split('').map((bit, i) => (

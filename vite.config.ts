@@ -1,11 +1,24 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, type Plugin} from 'vite';
+import {APP_VERSION} from './src/version';
+import {injectAppVersion} from './src/utils/htmlVersion';
+
+// Stamps the release version from src/version.ts into index.html (see
+// src/utils/htmlVersion.ts). `order: 'pre'` runs before Vite's own %ENV%
+// substitution so the placeholder is never mistaken for an env variable.
+const appVersionPlugin = (): Plugin => ({
+  name: 'bitforge-app-version',
+  transformIndexHtml: {
+    order: 'pre',
+    handler: (html) => injectAppVersion(html, APP_VERSION),
+  },
+});
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), appVersionPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

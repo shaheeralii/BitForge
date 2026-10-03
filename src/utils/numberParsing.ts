@@ -174,3 +174,44 @@ export function parseSignedIntegerLiteral(input: string, radixHint = 10): Parsed
 
   return { valid: true, isNegative: parsed.isNegative, radix: parsed.radix, value };
 }
+
+/**
+ * Linear-time check that `body` (sign and prefix already removed) has the
+ * plain positional-number shape `digits* [. digits*]` whose *last* character
+ * is a digit, using only the digit alphabet of `radix`.
+ *
+ * This replaces regexes of the form `^[01]*\.?[01]+$`. Two adjacent
+ * quantifiers over the same character class make a regex engine retry every
+ * split point when the match fails at the very end, so a long run of valid
+ * digits followed by one bad character took O(n^2) time (100,000 digits +
+ * "z" measured ~43 s). A single scan cannot backtrack. Accepted/rejected
+ * strings are identical to the old regexes (see numberParsing.test.ts, which
+ * compares both exhaustively on short strings).
+ *
+ * Note that "5." is rejected (no digit after the point) while ".5" is
+ * accepted, exactly as before.
+ */
+export function hasPlainNumberShape(body: string, radix: 2 | 8 | 10 | 16): boolean {
+  const n = body.length;
+  if (n === 0) return false;
+  let dots = 0;
+  let lastIsDigit = false;
+  for (let i = 0; i < n; i++) {
+    const c = body.charCodeAt(i);
+    if (c === 46) { // '.'
+      if (++dots > 1) return false;
+      lastIsDigit = false;
+      continue;
+    }
+    let ok: boolean;
+    switch (radix) {
+      case 2: ok = c === 48 || c === 49; break;
+      case 8: ok = c >= 48 && c <= 55; break;
+      case 10: ok = c >= 48 && c <= 57; break;
+      default: ok = (c >= 48 && c <= 57) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102);
+    }
+    if (!ok) return false;
+    lastIsDigit = true;
+  }
+  return lastIsDigit;
+}

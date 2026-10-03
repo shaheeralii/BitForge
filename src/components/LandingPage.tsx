@@ -33,7 +33,7 @@ interface LandingPageProps {
 const TOOLS: { n: string; title: string; body: string; mode: AppMode | null }[] = [
   { n: '01', title: 'Number Converter', body: 'Move between binary, decimal, hex and octal — with the full derivation, digit by digit.', mode: 'converter' },
   { n: '02', title: 'Bit Representation', body: "Toggle bits or type a signed value, then read it as unsigned, sign-magnitude, one's or two's complement.", mode: 'bit_representation' },
-  { n: '03', title: 'Binary Operations', body: 'AND, OR, XOR, NOT and shifts, worked column by column so the logic stays visible.', mode: 'operations' },
+  { n: '03', title: 'Binary Operations', body: 'Add, subtract, multiply and divide binary values at your chosen width — with the full column-by-column trace.', mode: 'operations' },
   { n: '04', title: 'Floating Point', body: 'Take IEEE 754 apart — sign, exponent, mantissa — and watch precision behave the way it really does.', mode: 'floating_point' },
   { n: '05', title: 'Text & UTF-8', body: 'Follow a character down to its bytes, and see why encoding is never just "one byte each".', mode: 'ascii' },
   { n: '06', title: 'BitForge AI', body: 'Ask why, not just what. Every calculation it quotes is verified by BitForge itself, not guessed.', mode: null },
@@ -92,7 +92,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
 
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--bf-app-bg)]/85 backdrop-blur-xl border-b border-[var(--bf-muted)]/20">
-        <div className="max-w-[1080px] mx-auto px-6 sm:px-7 h-16 flex items-center gap-7">
+        <div className="max-w-[1080px] mx-auto px-4 min-[400px]:px-6 sm:px-7 h-16 flex items-center gap-3 sm:gap-7">
           <a href="#top" className="flex items-center gap-2.5 mr-auto">
             <BitForgeLogo className="w-7 h-7 shrink-0" />
             <span className="font-display font-semibold text-[15px] tracking-wide text-[var(--bf-heading)]">BitForge</span>
@@ -104,9 +104,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
           <ThemeSwitcher />
           <button
             onClick={onEnterApp}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--bf-accent)] hover:bg-[var(--bf-accent-hover)] text-[var(--bf-app-bg)] font-mono text-[13px] font-bold transition-colors shrink-0"
+            aria-label="Open BitForge"
+            className="inline-flex items-center gap-2 px-3 min-[400px]:px-4 py-2 rounded-lg bg-[var(--bf-accent)] hover:bg-[var(--bf-accent-hover)] text-[var(--bf-app-bg)] font-mono text-[13px] font-bold transition-colors shrink-0"
           >
-            Open BitForge
+            <span>Open<span className="hidden min-[400px]:inline"> BitForge</span></span>
           </button>
         </div>
       </header>
@@ -141,8 +142,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
           <div className="mt-16 rounded-2xl border border-[var(--bf-muted)]/40 bg-[var(--bf-surface)] overflow-hidden shadow-sm">
             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--bf-muted)]/30 bg-[var(--bf-surface-inset)]">
               <span className="w-2 h-2 rounded-full bg-[var(--bf-muted)]/60" />
-              <span className="font-mono text-[11px] tracking-wider uppercase text-[var(--bf-text)]/55">Bit Representation · 8-bit</span>
-              <span className="ml-auto font-mono text-[11px] text-[var(--bf-accent)]/80">click any bit ↓</span>
+              <span className="font-mono text-[11px] tracking-wider uppercase text-[var(--bf-text)]/65">Bit Representation · 8-bit</span>
+              <span className="ml-auto font-mono text-[11px] text-[var(--bf-accent)]/90">click any bit ↓</span>
             </div>
             <div className="px-5 sm:px-7 py-8">
               <div className="flex justify-center overflow-x-auto scrollbar-none">
@@ -162,13 +163,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
                   ["Two's Compl.", decoded['twos-complement']],
                 ] as const).map(([label, value]) => (
                   <div key={label} className="bg-[var(--bf-surface-inset)] px-3.5 py-4 text-center">
-                    <span className="block font-mono text-[10px] tracking-wider uppercase text-[var(--bf-text)]/45 mb-1.5">{label}</span>
+                    <span className="block font-mono text-[10px] tracking-wider uppercase text-[var(--bf-text)]/65 mb-1.5">{label}</span>
                     <span className="font-mono text-lg font-bold text-[var(--bf-accent)]">{formatValueForDisplay(value)}</span>
                   </div>
                 ))}
               </div>
 
-              <p className="mt-5 text-center text-sm text-[var(--bf-text)]/55">
+              <p className="mt-5 text-center text-sm text-[var(--bf-text)]/65">
                 One pattern — <b className="font-mono text-[var(--bf-heading)] font-semibold">{bits}</b> — four different numbers.
                 A bit pattern has no meaning until you choose how to read it.
               </p>
@@ -195,7 +196,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
                 className="group text-left bg-[var(--bf-app-bg)] hover:bg-[var(--bf-surface-inset)] transition-colors px-6 sm:px-7 py-7 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--bf-accent)]"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="font-mono text-[11px] text-[var(--bf-accent)]/60 tracking-wider">{tool.n}</span>
+                  <span className="font-mono text-[11px] text-[var(--bf-accent)]/90 tracking-wider">{tool.n}</span>
                   {tool.mode === null ? (
                     <MessageCircle className="w-3.5 h-3.5 text-[var(--bf-accent)]/50 group-hover:text-[var(--bf-accent)] transition-colors shrink-0 mt-0.5" />
                   ) : (
@@ -217,7 +218,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-x-14 gap-y-10">
             {PRINCIPLES.map(p => (
               <div key={p.n} className="flex gap-4">
-                <span className="font-mono text-[11px] text-[var(--bf-accent)]/70 pt-1 shrink-0">{p.n}</span>
+                <span className="font-mono text-[11px] text-[var(--bf-accent)]/90 pt-1 shrink-0">{p.n}</span>
                 <div>
                   <h3 className="font-display font-semibold text-[15px] text-[var(--bf-heading)] mb-1.5">{p.title}</h3>
                   <p className="text-[13px] text-[var(--bf-text)]/60 leading-relaxed">{p.body}</p>
@@ -258,7 +259,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onOpenTool
           into the tool to show it. */}
       <footer className="border-t border-[var(--bf-muted)]/20 py-8">
         <div className="max-w-[1080px] mx-auto px-6 sm:px-7 flex flex-wrap items-center gap-x-4 gap-y-3">
-          <span className="text-[13px] text-[var(--bf-text)]/50 mr-auto">BitForge v{APP_VERSION} — built for people learning how machines think.</span>
+          <span className="text-[13px] text-[var(--bf-text)]/65 mr-auto">BitForge v{APP_VERSION} — built for people learning how machines think.</span>
           <button onClick={() => openInfo('about')} className="text-[13px] text-[var(--bf-text)]/60 hover:text-[var(--bf-accent)] transition-colors">About</button>
           <button onClick={() => openInfo('help')} className="text-[13px] text-[var(--bf-text)]/60 hover:text-[var(--bf-accent)] transition-colors">Help</button>
           <button onClick={() => openInfo('privacy')} className="text-[13px] text-[var(--bf-text)]/60 hover:text-[var(--bf-accent)] transition-colors">Privacy</button>

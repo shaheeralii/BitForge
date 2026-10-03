@@ -1,5 +1,5 @@
 import { BaseType, BaseOption, AutoDetectResult, ConversionResult, StepDetail } from '../types';
-import { DIGITS, stripSignAndPrefix } from './numberParsing';
+import { DIGITS, stripSignAndPrefix, hasPlainNumberShape, parseNumericLiteral } from './numberParsing';
 
 export const BASE_OPTIONS: Record<BaseType, BaseOption> = {
   '10': {
@@ -108,11 +108,12 @@ export function autoDetectBase(rawInput: string): AutoDetectResult {
     };
   }
 
-  // Check character validity across standard bases
-  const isBinary = /^[01]*\.?[01]+$/.test(noSign);
-  const isOctal = /^[0-7]*\.?[0-7]+$/.test(noSign);
-  const isDenary = /^[0-9]*\.?[0-9]+$/.test(noSign);
-  const isHex = /^[0-9a-fA-F]*\.?[0-9a-fA-F]+$/.test(noSign);
+  // Check character validity across standard bases. Linear-time scans, not
+  // regexes with adjacent quantifiers — see hasPlainNumberShape for why.
+  const isBinary = hasPlainNumberShape(noSign, 2);
+  const isOctal = hasPlainNumberShape(noSign, 8);
+  const isDenary = hasPlainNumberShape(noSign, 10);
+  const isHex = hasPlainNumberShape(noSign, 16);
 
   const validBases: BaseType[] = [];
   if (isBinary) validBases.push('2');
@@ -176,6 +177,64 @@ export function autoDetectBase(rawInput: string): AutoDetectResult {
     hasPrefix: false,
     strippedInput: cleanInput,
   };
+}
+
+/**
+ * Maximum number of characters the Number Converter accepts.
+ *
+ * The full derivation (every base at once, plus a step-by-step table whose
+ * rows each embed the running quotient) grows roughly quadratically with the
+ * digit count: measured 1,000 digits ~93 ms, 5,000 ~4.9 s, 10,000 ~27 s /
+ * ~720 MB heap, 20,000 ~92 s / ~1.3 GB. 1,024 keeps the worst case
+ * comfortably interactive while still being far beyond any educational
+ * example (a 1,024-digit decimal is a ~3,400-bit integer).
+ */
+export const MAX_CONVERTER_INPUT_LENGTH = 1024;
+
+/**
+ * True when the auto-detector read the input as Binary purely because it is
+ * made only of 0s and 1s (no prefix), so the very same text is *also* a
+ * perfectly valid Decimal number, AND the two readings are different numbers
+ * — "10" is two as Binary but ten as Decimal, ".1" is 0.5 vs 0.1. The
+ * detected base is deliberately not changed; the UI uses this to say so out
+ * loud and offer a one-tap switch.
+ *
+ * Whether the readings differ is decided by *value*, not by how the text
+ * looks. Earlier versions counted 0/1 digits, which flagged "00", "0.0" and
+ * "1.0" (all identical in Binary and Decimal, so there is nothing to
+ * disambiguate) and needed a special case to catch ".1". Now the text is
+ * parsed once per base with the canonical parser (`parseNumericLiteral`),
+ * then both exact values are compared with the same BigInt integer /
+ * numerator-denominator arithmetic the converter itself uses — no
+ * floating point, so there is no rounding to disagree about:
+ *
+ *   "0", "1", "00", "000", "0.0", ".0", "1.0", "00.0"  → same value → not ambiguous
+ *   "01", "000001" (leading zeros are not digits that count) → same value → not ambiguous
+ *   "10", "101", "10.0", ".1", "-.1", "+.1", "0.1", "-0.1"  → different → ambiguous
+ *
+ * The sign is shared by both readings, so it can never make them differ.
+ *
+ * Cost: one pass over the (already length-capped) text per base plus a
+ * handful of BigInt operations — comparable to the conversion it annotates.
+ */
+export function isBinaryDecimalAmbiguous(detect: AutoDetectResult): boolean {
+  if (detect.hasPrefix || detect.detectedBase !== '2' || !detect.validBases.includes('10')) return false;
+
+  const text = detect.strippedInput;
+  const asBinary = parseNumericLiteral(text, 2);
+  const asDecimal = parseNumericLiteral(text, 10);
+  if (!asBinary.valid || !asDecimal.valid) return false; // not valid in both readings: nothing to choose between
+
+  const bin = baseToDecimalValue(text, 2);
+  const dec = baseToDecimalValue(text, 10);
+  if (bin.integerVal !== dec.integerVal) return true;
+
+  // Equal integer parts: the readings differ only if the fractions do. Each
+  // fraction is in [0, 1), so equal totals require equal fractions; compare
+  // n₂/2ᴸ against n₁₀/10ᴸ by cross-multiplication (exact, no division).
+  const fb = fractionDigitsToRatio(bin.fractionStr, 2);
+  const fd = fractionDigitsToRatio(dec.fractionStr, 10);
+  return fb.numerator * fd.denominator !== fd.numerator * fb.denominator;
 }
 
 /**
@@ -485,6 +544,17 @@ export function convertNumber(
 
   // Parse source into Base 10 representation
   const parsed = baseToDecimalValue(sanitized, srcRadix);
+
+  // Integers have a single zero. "-0", "-000" and "-0.0" are ordinary zero
+  // here, not a distinct negative zero (that concept belongs to IEEE-754 and
+  // to Sign-Magnitude / One's Complement bit patterns, which the Floating
+  // Point Explorer and Bit Representation lab teach on purpose). Drop the
+  // sign before anything is rendered so no output, step, or history entry
+  // shows a "-0".
+  const isZeroMagnitude =
+    parsed.integerVal === 0n && fractionDigitsToRatio(parsed.fractionStr, srcRadix).numerator === 0n;
+  if (isZeroMagnitude) parsed.isNegative = false;
+  const sanitizedForSteps = isZeroMagnitude ? sanitized.replace(/^[-+]/, '') : sanitized;
   const signPrefix = parsed.isNegative ? '-' : '';
 
   // Generate values for standard target bases
@@ -530,7 +600,7 @@ export function convertNumber(
     srcRadix,
     targetBase: targetBaseChoice,
     targetRadix,
-    sanitizedInput: sanitized,
+    sanitizedInput: sanitizedForSteps,
     parsed,
     denaryInt: parsed.integerVal,
     resultStr: targetBaseChoice === '2' ? binaryStr 
@@ -544,7 +614,7 @@ export function convertNumber(
     isValid: true,
     sourceBase,
     sourceValue: rawInput,
-    normalizedSource: sanitized,
+    normalizedSource: sanitizedForSteps,
     denary: denaryStr,
     binary: binaryStr,
     octal: octalStr,
@@ -561,6 +631,104 @@ export function convertNumber(
     fractionPart: parsed.fractionStr,
     bitLengthNeeded,
     steps,
+  };
+}
+
+export type IncompleteInputKind = 'sign' | 'point' | 'trailing-point' | 'prefix';
+
+export interface IncompleteInput {
+  kind: IncompleteInputKind;
+  /** Neutral, educational "waiting for digits" text — not an error message. */
+  message: string;
+}
+
+/**
+ * Recognizes text that is a *temporarily incomplete* number rather than an
+ * invalid one: a lone sign ("-", "+"), a lone point (".", "-.", "+."), a
+ * point with nothing after it ("0.", "-0.", "101."), or a bare base prefix
+ * ("0x", "0b", "0o", "-0x"). Typing "-0.5" necessarily passes through "-",
+ * "-0" and "-0." on the way, and none of those should be reported as
+ * "invalid characters" — nor should "0." be quietly accepted and shown as a
+ * finished result of zero.
+ *
+ * Returns null for everything else, including text that is genuinely wrong:
+ * "G." in base 10 has a bad digit in front of the point, "1.2." has two
+ * points, and "0x" while Decimal is locked is an unsupported prefix — those
+ * keep their real error. Empty input is also null (the empty state already
+ * has its own message). `sourceBase` is the *effective* base, because only
+ * that base's own prefix is recognized (the same rule `sanitizeInput` uses).
+ *
+ * Linear-time: a few single-pass scans over the length-capped text.
+ */
+export function describeIncompleteInput(
+  rawInput: string,
+  sourceBase: BaseType,
+  customRadix = 12
+): IncompleteInput | null {
+  const trimmed = rawInput.trim();
+  if (!trimmed) return null;
+
+  const hasSign = trimmed[0] === '-' || trimmed[0] === '+';
+  let body = hasSign ? trimmed.slice(1) : trimmed;
+
+  const prefixPattern = sourceBase === '2' ? /^0b/i : sourceBase === '8' ? /^0o/i : sourceBase === '16' ? /^0x/i : null;
+  let prefixLabel = '';
+  if (prefixPattern && prefixPattern.test(body)) {
+    prefixLabel = body.slice(0, 2).toLowerCase();
+    body = body.slice(2);
+  }
+
+  if (body === '') {
+    if (prefixLabel) return { kind: 'prefix', message: `Waiting for digits after the ${prefixLabel} prefix.` };
+    return hasSign ? { kind: 'sign', message: 'Waiting for digits — a sign needs a number after it.' } : null;
+  }
+  if (body === '.') {
+    return { kind: 'point', message: 'Waiting for digits — a point needs a digit next to it.' };
+  }
+  if (body[body.length - 1] === '.') {
+    const beforePoint = body.slice(0, -1);
+    const radix = sourceBase === 'custom' ? customRadix : BASE_OPTIONS[sourceBase].radix;
+    // Only "digits then a point" counts as in-progress; a bad digit or a
+    // second point in front of it is a real error and must still be reported.
+    if (!beforePoint.includes('.') && isValidForRadix(beforePoint, radix)) {
+      return { kind: 'trailing-point', message: 'Waiting for digits after the point.' };
+    }
+  }
+  return null;
+}
+
+/**
+ * The converter's interactive entry point: identical to `convertNumber`
+ * except that a temporarily incomplete token (see `describeIncompleteInput`)
+ * yields a neutral `incompleteHint` instead of either an "invalid
+ * characters" error or a silently finished-looking value. `convertNumber`
+ * itself is deliberately unchanged — other callers (the AI intent engine)
+ * rely on its existing acceptance rules, e.g. a sentence-final "5.".
+ */
+export function convertTypedInput(
+  rawInput: string,
+  sourceBase: BaseType,
+  targetBaseChoice: BaseType = '10',
+  customRadix = 12
+): ConversionResult {
+  const incomplete = describeIncompleteInput(rawInput, sourceBase, customRadix);
+  if (!incomplete) return convertNumber(rawInput, sourceBase, targetBaseChoice, customRadix);
+  return {
+    isValid: false,
+    incompleteHint: incomplete.message,
+    sourceBase,
+    sourceValue: rawInput,
+    normalizedSource: '',
+    denary: '',
+    binary: '',
+    octal: '',
+    hexadecimal: '',
+    isNegative: false,
+    hasFraction: false,
+    integerPart: '',
+    fractionPart: '',
+    bitLengthNeeded: 0,
+    steps: [],
   };
 }
 

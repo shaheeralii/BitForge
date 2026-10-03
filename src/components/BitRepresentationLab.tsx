@@ -169,7 +169,7 @@ export const BitRepresentationLab: React.FC = () => {
               <h2 className="text-base font-display font-semibold tracking-wide text-[var(--bf-heading)]">
                 Bit Representation
               </h2>
-              <p className="text-xs text-[var(--bf-accent)]/80 font-medium">
+              <p className="text-xs text-[var(--bf-accent)]/90 font-medium">
                 Build, manipulate, and understand binary values at the bit level
               </p>
             </div>
@@ -180,7 +180,7 @@ export const BitRepresentationLab: React.FC = () => {
               touched, and keeping it out of the input row leaves that row a
               single full-width field instead of a cramped two-column split. */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/50">Bit width</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--bf-heading)]/65">Bit width</span>
             <div className="flex items-center gap-0.5 bg-[var(--bf-chip-alt)] p-0.5 rounded-md border border-[var(--bf-muted)]/40 text-[11px] font-semibold">
               {BIT_WIDTHS.map(w => (
                 <button
@@ -353,7 +353,7 @@ export const BitRepresentationLab: React.FC = () => {
             { key: 'octal', label: 'Octal', value: octalVal },
           ].map(row => (
             <span key={row.key} className="inline-flex items-center gap-1">
-              <span className="text-[var(--bf-heading)]/50">{row.label}:</span>
+              <span className="text-[var(--bf-heading)]/65">{row.label}:</span>
               <span className="text-[var(--bf-heading)] font-semibold">{row.value}</span>
               <button
                 onClick={() => copyVal(row.value, row.key, row.label)}

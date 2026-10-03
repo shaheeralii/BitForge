@@ -1,10 +1,34 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+
+/**
+ * How long the body stays mounted after a close, so the collapse animation
+ * (`duration-300` on the region below) can finish before its content is
+ * removed. A timer rather than `transitionend`: that event never fires when
+ * the transition is disabled (prefers-reduced-motion) or the tab is hidden.
+ */
+const COLLAPSE_ANIMATION_MS = 300;
+const UNMOUNT_GRACE_MS = COLLAPSE_ANIMATION_MS + 50;
+
+/** Reduced-motion collapses instantly, so there is nothing to wait for. */
+function unmountDelayMs(): number {
+  const reduced =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return reduced ? 0 : UNMOUNT_GRACE_MS;
+}
 
 interface DerivationDisclosureProps {
   /** The always-visible bar content (icon, title, subtitle, badges, etc). */
   bar: React.ReactNode;
-  /** The collapsible body — the actual step list / trace tables. */
+  /**
+   * The collapsible body — the actual step list / trace tables. It is only
+   * rendered while the disclosure is open (or finishing its close
+   * animation), so pass it as a single component element
+   * (`<StepList steps={…} />`) rather than an inline `.map()`: elements
+   * built in the caller are created even when the body never mounts.
+   */
   children: React.ReactNode;
   /** Closed by default keeps the page uncluttered; pass true to override. */
   defaultOpen?: boolean;
@@ -32,13 +56,27 @@ export const DerivationDisclosure: React.FC<DerivationDisclosureProps> = ({
   toggleLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  // Whether the body is in the tree. Follows `isOpen` immediately on open, but
+  // lags it on close so the collapse animation has content to animate.
+  const [isMounted, setIsMounted] = useState(defaultOpen);
   const contentId = useId();
+
+  useEffect(() => {
+    if (isOpen || !isMounted) return;
+    const timer = window.setTimeout(() => setIsMounted(false), unmountDelayMs());
+    return () => window.clearTimeout(timer); // re-opened before the grace period ended
+  }, [isOpen, isMounted]);
+
+  const handleToggle = () => {
+    if (!isOpen) setIsMounted(true);
+    setIsOpen(!isOpen);
+  };
 
   return (
     <div className={className}>
       <button
         type="button"
-        onClick={() => setIsOpen(o => !o)}
+        onClick={handleToggle}
         aria-expanded={isOpen}
         aria-controls={contentId}
         aria-label={toggleLabel}
@@ -62,7 +100,7 @@ export const DerivationDisclosure: React.FC<DerivationDisclosureProps> = ({
           isOpen ? 'grid-rows-[1fr] mt-4' : 'grid-rows-[0fr]'
         }`}
       >
-        <div className="overflow-hidden min-h-0">{children}</div>
+        {isMounted && <div className="overflow-hidden min-h-0">{children}</div>}
       </div>
     </div>
   );
