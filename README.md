@@ -6,6 +6,7 @@
 
 **[Live Demo](https://bitforge-tool.vercel.app/)** · **[GitHub](https://github.com/shaheeralii/BitForge)** · [Changelog](CHANGELOG.md)
 
+[![CI](https://github.com/shaheeralii/BitForge/actions/workflows/ci.yml/badge.svg)](https://github.com/shaheeralii/BitForge/actions/workflows/ci.yml)
 ![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite)
@@ -307,8 +308,8 @@ The complete, detailed release history — from v1.0.0 to the current release �
 
 [MIT](LICENSE)
 
-## Author
+   ## Author
 
-**Syed Shaheer Ali**  
-BSCS, 1st Year    
-Bahria University Karachi
+   **Syed Shaheer Ali** · BS Computer Science, Bahria University Karachi
+
+   [GitHub](https://github.com/shaheeralii) · [LinkedIn](https://www.linkedin.com/in/syedshaheer/)
